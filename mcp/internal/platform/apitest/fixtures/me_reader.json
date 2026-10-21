@@ -1,0 +1,7 @@
+{
+  "token": "usr_reader",
+  "email": "grace@example.test",
+  "name": "Grace",
+  "role": {"token": "rol_reader", "name": "reader", "permissions": []},
+  "permissions": ["gentasks.board.read"]
+}

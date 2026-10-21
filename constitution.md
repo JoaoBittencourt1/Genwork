@@ -12,6 +12,7 @@ This is a monorepo. Components and stacks:
 | `modules/<name>/` | Go service per module, each its own container and release |
 | `sdk/go/` | Shared Go library modules use to talk to core (registration, token validation, events) |
 | `cli/` | Go installer CLI for self-hosted setups |
+| `mcp/` | Go MCP server (`genwork-mcp`): a client of the gateway that exposes core and enabled modules as tools |
 | `web/` | SPA: Vite + React (TypeScript), served as static files |
 | `clients/macos/` | Swift / SwiftUI |
 | `clients/windows/` | C# / .NET (UI framework TBD) |

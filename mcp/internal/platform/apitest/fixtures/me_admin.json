@@ -1,0 +1,10 @@
+{
+  "token": "usr_admin",
+  "email": "ada@example.test",
+  "name": "Ada",
+  "role": {"token": "rol_admin", "name": "admin", "permissions": []},
+  "permissions": [
+    "core.invite.create", "core.invite.read", "core.invite.revoke", "core.user.read",
+    "gentasks.board.read", "gentasks.board.manage", "gentasks.task.write", "gentasks.task.delete"
+  ]
+}

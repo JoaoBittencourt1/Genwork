@@ -7,10 +7,10 @@ define check_go_coverage
 		'/^total:/ { sub("%", "", $$NF); printf "%s coverage: %.1f%% (minimum %d%%)\n", name, $$NF, min; if ($$NF + 0 < min) { print name " is below the minimum coverage"; exit 1 } }'
 endef
 
-.PHONY: lint lint-core lint-sdk lint-gentasks lint-cli lint-web lint-fix test test-core test-sdk test-gentasks test-cli test-web \
-	build build-core build-gentasks build-cli build-web install-cli
+.PHONY: lint lint-core lint-sdk lint-gentasks lint-cli lint-mcp lint-web lint-fix test test-core test-sdk test-gentasks test-cli test-mcp test-web \
+	build build-core build-gentasks build-cli build-mcp build-web install-cli install-mcp
 
-lint: lint-core lint-sdk lint-gentasks lint-cli lint-web
+lint: lint-core lint-sdk lint-gentasks lint-cli lint-mcp lint-web
 
 lint-core:
 	@unformatted="$$(cd core && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
@@ -28,6 +28,10 @@ lint-cli:
 	@unformatted="$$(cd cli && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
 	cd cli && go vet ./...
 
+lint-mcp:
+	@unformatted="$$(cd mcp && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	cd mcp && go vet ./...
+
 lint-web:
 	cd web && npm audit --audit-level=high && npm run lint && npm run typecheck
 
@@ -36,9 +40,10 @@ lint-fix:
 	cd sdk/go && gofmt -w .
 	cd modules/gentasks && gofmt -w .
 	cd cli && gofmt -w .
+	cd mcp && gofmt -w .
 	cd web && npm run lint:fix
 
-test: test-core test-sdk test-gentasks test-cli test-web
+test: test-core test-sdk test-gentasks test-cli test-mcp test-web
 
 # Needs TEST_DATABASE_URL, e.g. postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable with `genwork db` running.
 test-core:
@@ -58,10 +63,14 @@ test-cli:
 	cd cli && go test -coverpkg=./... -coverprofile=coverage.out ./...
 	$(call check_go_coverage,cli)
 
+test-mcp:
+	cd mcp && go test -coverpkg=./... -coverprofile=coverage.out ./...
+	$(call check_go_coverage,mcp)
+
 test-web:
 	cd web && npm run test:coverage -- --coverage.thresholds.lines=$(MIN_COVERAGE) --coverage.thresholds.statements=$(MIN_COVERAGE)
 
-build: build-core build-gentasks build-cli build-web
+build: build-core build-gentasks build-cli build-mcp build-web
 
 build-core:
 	cd core && go build -o bin/ ./cmd/...
@@ -72,9 +81,16 @@ build-gentasks:
 build-cli:
 	cd cli && go build -o bin/genwork ./cmd/genwork
 
+build-mcp:
+	cd mcp && go build -o bin/genwork-mcp ./cmd/genwork-mcp
+
 build-web:
 	cd web && npm run build
 
 # Installs `genwork` into $(go env GOPATH)/bin; that directory must be on PATH.
 install-cli:
 	cd cli && go install ./cmd/genwork
+
+# Installs `genwork-mcp`, the MCP server assistants launch, into $(go env GOPATH)/bin.
+install-mcp:
+	cd mcp && go install ./cmd/genwork-mcp
