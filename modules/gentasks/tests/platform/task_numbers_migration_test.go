@@ -20,7 +20,7 @@ func TestTaskNumbersMigrationBackfillsExistingBoards(t *testing.T) {
 	databaseURL := dbtest.DatabaseURL(t)
 	schema := dbtest.NewSchemaName(t)
 	ctx := context.Background()
-	pool := openSchemaAtFirstMigration(t, databaseURL, schema)
+	pool := openSchemaAtMigration(t, databaseURL, schema, firstMigrationVersion)
 	seedBoardsBeforeTaskNumbers(t, pool)
 
 	if err := platform.Migrate(ctx, databaseURL, schema); err != nil {
@@ -43,7 +43,7 @@ func TestTaskNumbersMigrationBackfillsExistingBoards(t *testing.T) {
 	}
 }
 
-func openSchemaAtFirstMigration(t *testing.T, databaseURL, schema string) *pgxpool.Pool {
+func openSchemaAtMigration(t *testing.T, databaseURL, schema string, version int64) *pgxpool.Pool {
 	t.Helper()
 	ctx := context.Background()
 	conn, err := pgx.Connect(ctx, databaseURL)
@@ -65,8 +65,8 @@ func openSchemaAtFirstMigration(t *testing.T, databaseURL, schema string) *pgxpo
 	if err != nil {
 		t.Fatalf("load migrations: %v", err)
 	}
-	if _, err := provider.UpTo(ctx, firstMigrationVersion); err != nil {
-		t.Fatalf("migrate to the first version: %v", err)
+	if _, err := provider.UpTo(ctx, version); err != nil {
+		t.Fatalf("migrate to version %d: %v", version, err)
 	}
 	return pool
 }

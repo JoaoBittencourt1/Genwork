@@ -19,16 +19,19 @@ type NewTask struct {
 	Title             string
 	Description       *string
 	AssigneeUserToken *string
+	AssignedAt        *time.Time
 	Urgency           Urgency
 	Position          int
 	CreatedBy         string
 	At                time.Time
 }
 
+const taskColumns = `tasks.id, tasks.token, tasks.number, tasks.board_id, tasks.column_id, board_columns.token, tasks.title, tasks.description,
+       tasks.assignee_user_token, tasks.assigned_at, tasks.urgency, tasks.position, tasks.created_by, tasks.created_at, tasks.updated_at,
+       tasks.archived_at`
+
 const taskSelect = `
-SELECT tasks.id, tasks.token, tasks.number, tasks.board_id, tasks.column_id, board_columns.token, tasks.title, tasks.description,
-       tasks.assignee_user_token, tasks.urgency, tasks.position, tasks.created_by, tasks.created_at, tasks.updated_at,
-       tasks.archived_at
+SELECT ` + taskColumns + `
 FROM tasks
 JOIN board_columns ON board_columns.id = tasks.column_id
 JOIN boards ON boards.id = tasks.board_id`
@@ -36,12 +39,12 @@ JOIN boards ON boards.id = tasks.board_id`
 func (repository TaskRepository) Create(ctx context.Context, db platform.DBTX, newTask NewTask) (Task, error) {
 	var id int64
 	err := db.QueryRow(ctx, `
-		INSERT INTO tasks (token, number, board_id, column_id, title, description, assignee_user_token, urgency, position,
+		INSERT INTO tasks (token, number, board_id, column_id, title, description, assignee_user_token, assigned_at, urgency, position,
 		                   created_by, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)
 		RETURNING id`,
 		platform.NewPublicToken(), newTask.Number, newTask.BoardID, newTask.ColumnID, newTask.Title, newTask.Description,
-		newTask.AssigneeUserToken, newTask.Urgency, newTask.Position, newTask.CreatedBy, newTask.At).Scan(&id)
+		newTask.AssigneeUserToken, newTask.AssignedAt, newTask.Urgency, newTask.Position, newTask.CreatedBy, newTask.At).Scan(&id)
 	if err != nil {
 		return Task{}, fmt.Errorf("create task: %w", err)
 	}
@@ -68,6 +71,33 @@ func (TaskRepository) ListArchivedByBoard(ctx context.Context, db platform.DBTX,
 	return listTasks(ctx, db, taskSelect+`
 		WHERE tasks.board_id = $1 AND tasks.archived_at IS NOT NULL AND tasks.deleted_at IS NULL
 		ORDER BY tasks.archived_at DESC, tasks.id DESC`, boardID)
+}
+
+// ListActiveAssignedTo lists a user's active tasks outside Done-preset columns, the longest-assigned first.
+func (TaskRepository) ListActiveAssignedTo(ctx context.Context, db platform.DBTX, userToken string, limit int) ([]AssignedTask, error) {
+	rows, err := db.Query(ctx, `
+		SELECT `+taskColumns+`, boards.token, boards.name, boards.task_prefix, board_columns.preset, board_columns.name
+		FROM tasks
+		JOIN board_columns ON board_columns.id = tasks.column_id
+		JOIN boards ON boards.id = tasks.board_id
+		WHERE tasks.assignee_user_token = $1 AND tasks.position IS NOT NULL AND boards.deleted_at IS NULL
+		  AND board_columns.preset IS DISTINCT FROM 'done'
+		ORDER BY tasks.assigned_at, tasks.created_at, tasks.token
+		LIMIT $2`, userToken, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list assigned tasks: %w", err)
+	}
+	assigned, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (AssignedTask, error) {
+		var task AssignedTask
+		err := row.Scan(append(taskFields(&task.Task),
+			&task.Board.Token, &task.Board.Name, &task.Board.TaskPrefix, &task.Column.Preset, &task.Column.Name)...)
+		task.Column.Token = task.ColumnToken
+		return task, err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list assigned tasks: %w", err)
+	}
+	return assigned, nil
 }
 
 func (TaskRepository) CountActiveInColumn(ctx context.Context, db platform.DBTX, columnID int64) (int, error) {
@@ -102,8 +132,8 @@ func (TaskRepository) Place(ctx context.Context, db platform.DBTX, taskID, colum
 
 func (TaskRepository) UpdateDetails(ctx context.Context, db platform.DBTX, task Task, at time.Time) error {
 	_, err := db.Exec(ctx, `
-		UPDATE tasks SET title = $2, description = $3, assignee_user_token = $4, urgency = $5, updated_at = $6
-		WHERE id = $1`, task.ID, task.Title, task.Description, task.AssigneeUserToken, task.Urgency, at)
+		UPDATE tasks SET title = $2, description = $3, assignee_user_token = $4, assigned_at = $5, urgency = $6, updated_at = $7
+		WHERE id = $1`, task.ID, task.Title, task.Description, task.AssigneeUserToken, task.AssignedAt, task.Urgency, at)
 	if err != nil {
 		return fmt.Errorf("update task: %w", err)
 	}
@@ -161,7 +191,12 @@ func scanSingleTask(row pgx.Row) (Task, error) {
 
 func scanTask(row pgx.Row) (Task, error) {
 	var task Task
-	err := row.Scan(&task.ID, &task.Token, &task.Number, &task.BoardID, &task.ColumnID, &task.ColumnToken, &task.Title, &task.Description,
-		&task.AssigneeUserToken, &task.Urgency, &task.Position, &task.CreatedBy, &task.CreatedAt, &task.UpdatedAt, &task.ArchivedAt)
+	err := row.Scan(taskFields(&task)...)
 	return task, err
+}
+
+// taskFields lists the scan targets in the order of taskColumns.
+func taskFields(task *Task) []any {
+	return []any{&task.ID, &task.Token, &task.Number, &task.BoardID, &task.ColumnID, &task.ColumnToken, &task.Title, &task.Description,
+		&task.AssigneeUserToken, &task.AssignedAt, &task.Urgency, &task.Position, &task.CreatedBy, &task.CreatedAt, &task.UpdatedAt, &task.ArchivedAt}
 }

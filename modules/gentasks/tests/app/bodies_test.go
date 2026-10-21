@@ -32,6 +32,7 @@ type taskBody struct {
 	Urgency       string      `json:"urgency"`
 	Labels        []labelBody `json:"labels"`
 	CreatedBy     string      `json:"createdBy"`
+	AssignedAt    *time.Time  `json:"assignedAt"`
 	ArchivedAt    *time.Time  `json:"archivedAt"`
 	CreatedAt     time.Time   `json:"createdAt"`
 	UpdatedAt     time.Time   `json:"updatedAt"`

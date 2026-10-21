@@ -70,10 +70,11 @@ func (service *TaskService) CreateTask(ctx context.Context, caller Caller, board
 		if err != nil {
 			return err
 		}
+		now := service.now()
 		task, err := service.tasks.Create(ctx, tx, NewTask{
 			BoardID: board.ID, Number: number, ColumnID: column.ID, Title: input.Title, Description: input.Description,
-			AssigneeUserToken: input.AssigneeToken, Urgency: input.Urgency, Position: position,
-			CreatedBy: caller.UserToken, At: service.now(),
+			AssigneeUserToken: input.AssigneeToken, AssignedAt: assignmentTime(Task{}, input.AssigneeToken, now),
+			Urgency: input.Urgency, Position: position, CreatedBy: caller.UserToken, At: now,
 		})
 		if err != nil {
 			return err
@@ -112,6 +113,25 @@ func (service *TaskService) ListTasks(ctx context.Context, boardToken string, ar
 	return service.AttachLabels(ctx, service.db, listed)
 }
 
+func (service *TaskService) ListAssignedTasks(ctx context.Context, caller Caller, limit int) ([]AssignedTask, error) {
+	assigned, err := service.tasks.ListActiveAssignedTo(ctx, service.db, caller.UserToken, limit)
+	if err != nil {
+		return nil, err
+	}
+	ids := make([]int64, 0, len(assigned))
+	for _, task := range assigned {
+		ids = append(ids, task.ID)
+	}
+	byTask, err := service.taskLabels.ListForTasks(ctx, service.db, ids)
+	if err != nil {
+		return nil, err
+	}
+	for index := range assigned {
+		assigned[index].Labels = byTask[assigned[index].ID]
+	}
+	return assigned, nil
+}
+
 func (service *TaskService) UpdateTask(ctx context.Context, caller Caller, token string, changes TaskChanges) (TaskWithLabels, error) {
 	if err := service.verifyAssignee(ctx, caller, changes.NewAssigneeToken()); err != nil {
 		return TaskWithLabels{}, err
@@ -127,7 +147,8 @@ func (service *TaskService) UpdateTask(ctx context.Context, caller Caller, token
 				return err
 			}
 		}
-		if err := service.tasks.UpdateDetails(ctx, tx, changes.ApplyTo(task), service.now()); err != nil {
+		now := service.now()
+		if err := service.tasks.UpdateDetails(ctx, tx, changes.ApplyTo(task, now), now); err != nil {
 			return err
 		}
 		var err error
