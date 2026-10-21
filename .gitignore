@@ -10,14 +10,12 @@
 !.env.example
 
 # Go
-server/bin/
 *.test
 *.out
 
-# Node / Next.js
+# Node / Vite
 node_modules/
-.next/
-out/
+dist/
 
 # Swift / Xcode
 .build/

@@ -1,0 +1,1 @@
+{{.InviterName}} invited you to {{.InstanceName}}

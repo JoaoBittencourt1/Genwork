@@ -2,12 +2,17 @@
 
 Rules that MUST be followed in this repository. They are non-negotiable.
 
+Genwork is a self-hosted platform built from **modules**: a small core plus optional modules (kanban, infra insights, automation, …) that each installation picks through the installer CLI. See the Modules section — it shapes every other rule.
+
 This is a monorepo. Components and stacks:
 
 | Path | Stack |
 | --- | --- |
-| `server/` | Go (API + worker), PostgreSQL |
-| `web/` | Next.js (TypeScript) |
+| `core/` | Go service: auth, users, workspaces & teams, roles & permissions, projects, module registry, settings |
+| `modules/<name>/` | Go service per module, each its own container and release |
+| `sdk/go/` | Shared Go library modules use to talk to core (registration, token validation, events) |
+| `cli/` | Go installer CLI for self-hosted setups |
+| `web/` | SPA: Vite + React (TypeScript), served as static files |
 | `clients/macos/` | Swift / SwiftUI |
 | `clients/windows/` | C# / .NET (UI framework TBD) |
 | `clients/linux/` | Rust / GTK 4 |
@@ -17,33 +22,68 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 ## Configuration & secrets
 
 1. **Never hardcode URLs, hosts, ports, keys, or credentials in source code.** They come from environment variables. If a required variable is missing, fail explicitly at startup — no silent fallbacks like `?? "http://localhost:..."`.
-2. **Never pin environment-specific values in `docker-compose.yml`'s `environment:` block.** It overrides `env_file`, so the same compose file silently diverges between local and production (in a previous project a hardcoded `MAIL_HOST: mailpit` sent all production e-mail to the local Mailpit). Values flow from `.env`; placeholders live in `.env.example`.
+2. **Never pin environment-specific values in `docker-compose.yml`'s `environment:` block.** It overrides `env_file`, so the same compose file silently diverges between local and production (e.g. a hardcoded `SMTP_HOST: mailpit` would send all production e-mail to a local mail catcher). Values flow from `.env`; placeholders live in `.env.example`.
 3. **Never commit secrets** (`.env`, private keys, cloud credentials). Document placeholders in `.env.example` only.
 
 ## Architecture & code organization
 
-4. **Organize business code by feature, not by type.** On the server, each feature lives in `server/internal/<feature>/`; entrypoints live in `server/cmd/<binary>/`. Code shared by two or more features moves to a shared package instead of being duplicated.
+4. **Organize business code by feature, not by type.** In every Go service (core and each module), each feature lives in `internal/<feature>/`; entrypoints live in `cmd/<binary>/`. Code shared by two or more features moves to a shared package instead of being duplicated.
 5. **Name every file and type for exactly what it is**, with its architectural role (`TaskHandler`, `TaskService`, `TaskRepository`, `CreateTaskRequest`, `TaskResponse`). No generic names like `Manager`, `Util`, `Helper`, `Data`, or `Misc`.
 6. **Search before adding.** Before creating a type, package, migration, component, or config entry, look for existing code that can be reused or extended. Reuse or refactor before duplicating.
 7. **Single source of truth.** Every fact, state slice, label, mapping, or identifier has exactly one canonical owner; everything else derives from it. If two sources already exist, consolidate them in the same change — never add a third.
 8. **Keep handlers/controllers thin** — parse the request, delegate, write the response. Business logic lives in services.
 9. **Keep framework and transport details out of business rules.** HTTP types, SQL drivers, UI frameworks, and storage APIs must not leak into domain logic. Depend on small interfaces at the boundary; wire concrete implementations at the composition root (`cmd/`, app entrypoints).
-10. **Optional features ship as modules** under `server/internal/modules` and must be disableable without breaking the core.
+10. **Everything that is not core is a module** — see the Modules section (rules 49–64).
+65. **The web app is a static SPA** (Vite + React), served by the gateway — no Node process runs in production. It calls the API on the same origin through relative `/api/...` paths, so no API URL is baked in at build time and one build works for every installation.
+
+## Modules
+
+49. **Core is minimal; everything else is a module.** Core owns only: auth, users, workspaces & teams, roles & permissions, projects, the module registry, and settings. Kanban, infra insights, automation, and any future feature are modules. When in doubt, it is a module. **Core must run and pass its tests with zero modules installed.**
+50. **One module = one container.** Each module lives in `modules/<name>/` with its own `go.mod`, `cmd/`, `internal/`, `migrations/`, `Dockerfile`, and `module.yaml`; it is built into its own image and released with its own semantic version, independent of core and of other modules.
+51. **`module.yaml` is the module's single source of truth** (rule 7): id, version, compatible core API range, required modules with version ranges, permissions it defines, events it publishes and consumes, and its API prefix. Nothing else may restate these facts.
+52. **Core never contains module-specific code.** No `if module == "kanban"` in core. Core exposes generic extension points (registry, permissions, events, settings, capabilities) and modules plug into them.
+53. **Each module owns its data in isolation.** One Postgres schema per module (named after the module), accessed through a dedicated database role that cannot read any other schema. No cross-schema foreign keys, joins, or queries. Core entities (user, workspace, project) are referenced by their opaque token (rule 14).
+54. **Modules talk to each other only through public contracts**: the other module's versioned HTTP API or published events. Never through its database, never by importing its Go code. Code shared by several modules lives in `sdk/go/`.
+55. **Module dependencies are declared, acyclic, and enforced by the installer.** A module may require another only if `module.yaml` lists it. Installing or enabling a module enables its required modules; disabling a module is refused while an enabled module requires it. An *optional* integration ("works better if X is present") is not a dependency: it must degrade gracefully — hide the feature, never error — when X is not enabled.
+56. **Disable is not uninstall.** Disabling stops the module's container and hides it from clients; its data stays intact and re-enabling resumes where it left off. Uninstall is a separate, explicit action that confirms data removal. Enabling or disabling a module never requires a code or config change in core or in any other module.
+57. **One public entrypoint.** A gateway routes `/api/core/...` to core and `/api/<module>/v<N>/...` to each module; module containers are never exposed directly. Core issues access tokens; modules validate them with core's public keys and never store credentials.
+58. **Clients follow the enabled set at runtime.** Modules register with core on startup (manifest + health). Core publishes the enabled modules and their versions through a capabilities endpoint. The web app and desktop clients ship UI for every module, read capabilities, and show only enabled modules — no client code path may assume a module is enabled.
+59. **Module code is isolated in every component.** Each client keeps a module's UI in a dedicated folder (e.g. `web/src/modules/<name>/`), and one module's UI never imports another's. Shared UI belongs to the client's shared design system.
+60. **Permissions are namespaced `<module>.<resource>.<action>`** (e.g. `kanban.issue.create`), declared in `module.yaml`, and stored and assigned to roles by core.
+61. **Public contracts are versioned.** A breaking change to a module's API or events — or to a core contract modules consume — ships as a new major version (`/v2`, new event version) while the previous one keeps working through a deprecation window.
+62. **Modules are tested in isolation.** A module's suite runs against a stubbed core and stubbed dependency APIs built from recorded contract fixtures — no other real module running. CI runs: core alone; each module with only its declared dependencies; all modules together.
+63. **Every OpenSpec change states which components it touches** (core, which modules, which clients). A change spanning core and a module, or several modules, justifies why, and its phases are split per component.
+64. **The installer CLI is the supported way to choose modules.** `cli/` resolves dependencies, writes the deployment config and `.env` (rules 1–3), pulls the selected images, runs each module's migrations, and enables or disables modules.
+
+### Open decisions — do not assume
+
+These are not decided yet. Do not pick one silently in code or specs; raise it with the developer.
+
+- Gateway technology (e.g. Caddy, Traefik, or a Go gateway inside core).
+- Event bus technology (e.g. Postgres outbox + `LISTEN/NOTIFY`, NATS).
+- Windows client UI framework.
 
 ## API design
 
 11. **Validate input at the boundary**, on dedicated request types — not ad hoc inside business logic.
 12. **Never bind a request body directly to a persistence model.** Decode into a request type and map explicitly (guards against mass assignment).
 13. **Shape responses with explicit response types** — never serialize persistence models to clients.
-14. **Expose public resource identifiers as opaque tokens**, never internal sequential IDs.
+14. **Every table has two identifiers: `id` and `token`.** `id` is the internal auto-generated integer primary key, used only for foreign keys and joins inside the owning service. `token` is the public identifier: opaque, unique, immutable, URL-safe, and generated by a cryptographically secure random generator with at least 128 bits of entropy. APIs, events, URLs, and references across services (rule 53) use only `token`; an `id` never leaves its service.
 15. **Represent fixed sets of values as typed enums/constants**, not loose strings or ints.
-16. **Prefix REST routes with `/api`.**
+16. **Prefix REST routes with `/api`**, followed by the owning component (rule 57).
 17. **Partial update is `PATCH` and must distinguish "omitted" from "explicit null".** Omitted field → stored value unchanged. Present non-null → persist. Present `null` → clear if nullable, HTTP 400 if not. `PUT` is a full replace. Every `PATCH` endpoint has a test proving that a single-field body leaves every other stored field unchanged.
 18. **Authorization is part of the feature, not a follow-up.** Every new endpoint declares its authorization rule when it is added; nothing is publicly reachable by omission. Resource-ownership checks live in one central place, not in per-feature copies.
 
+## Security
+
+66. **Passwords are hashed with Argon2id** — never encrypted or stored reversibly. Each hash has its own random salt and uses parameters at or above the current OWASP recommendation (baseline: 64 MiB memory, 3 iterations, parallelism 2). The stored hash encodes its parameters; when a login succeeds against outdated parameters, the password is rehashed transparently. Passwords are 8 to 128 characters (the cap bounds hashing cost), with no composition rules.
+67. **Credentials and bearer secrets are never stored or logged in clear.** Refresh tokens, invite tokens, and any other bearer secret are stored only as a hash (SHA-256 suffices for high-entropy random values) and compared in constant time. Passwords, tokens, and `Authorization` headers never appear in logs, error messages, or traces.
+68. **Authentication responses never reveal which part failed.** An unknown e-mail and a wrong password return the same error in comparable time (hash a dummy password when the account does not exist). Login and sign-up endpoints are rate limited per client address and per account, using the address the server resolves — never a client-controlled header such as the first `X-Forwarded-For` value.
+69. **Access tokens are short-lived; refresh tokens rotate.** Access token: signed JWT, at most 15 minutes. Refresh token: opaque, bound to one session, single-use — each refresh issues a new one, and presenting an already-used one revokes the whole session. The web app keeps the refresh token in an `httpOnly; Secure; SameSite=Strict` cookie and the access token only in memory; native clients keep tokens in the OS secure store (Keychain, Windows Credential Manager, Secret Service).
+
 ## Persistence
 
-19. **All schema changes go through versioned migrations** in `server/migrations/`. Never alter the database manually; never recreate existing tables.
+19. **All schema changes go through versioned migrations** in the owning service's `migrations/` directory (`core/migrations/`, `modules/<name>/migrations/`), written as plain SQL for goose and embedded in the service binary. Never alter the database manually; never recreate existing tables.
 20. **Never edit a migration that has already been applied** — including whitespace or comment-only edits, which change its checksum. Add a new migration instead. Formatters and comment-stripping tools must exclude the migrations directory.
 21. **Avoid N+1 queries** when returning related data: join or batch — never query in a loop over results.
 22. **Use soft delete for removable domain records** (`deleted_at` nullable timestamp). Unique constraints on soft-deletable tables use partial indexes `WHERE deleted_at IS NULL`. Physical deletes are reserved for test cleanup, or for an explicitly documented exception in the feature's spec.
@@ -86,7 +126,7 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 44. **Dependency first, one layer per PR.** Artifacts with zero internal dependencies form the first PR. Never mix layers in a PR, and never ship an interface and its implementation in the same PR. If an upper layer ships first, use stubs until the dependency merges.
 45. **PRs in the same layer may be reviewed in parallel** only when they do not depend on each other.
 46. **Cap each PR at ~600 productive lines and 10 new files**; subdivide before implementing if exceeded.
-47. **Server phases implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
+47. **Go service phases (core and modules) implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
 48. **Every phase includes its own tests** covering only the code delivered in that phase. CI must pass after each phase.
 
 ## Samples

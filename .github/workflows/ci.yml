@@ -18,32 +18,90 @@ jobs:
     name: Detect changed components
     runs-on: ubuntu-latest
     outputs:
-      server: ${{ steps.filter.outputs.server }}
+      core: ${{ steps.filter.outputs.core }}
+      cli: ${{ steps.filter.outputs.cli }}
+      web: ${{ steps.filter.outputs.web }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
         uses: dorny/paths-filter@v4
         with:
           filters: |
-            server:
-              - 'server/**'
+            core:
+              - 'core/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            cli:
+              - 'cli/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'web/**'
               - 'Makefile'
               - '.github/workflows/ci.yml'
 
-  server:
-    name: Server · Lint · Test · Build
+  core:
+    name: Core · Lint · Test · Build
     needs: changes
-    if: needs.changes.outputs.server == 'true'
+    if: needs.changes.outputs.core == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: genwork
+          POSTGRES_PASSWORD: genwork
+          POSTGRES_DB: genwork_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genwork"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://genwork:genwork@localhost:5432/genwork_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+          cache-dependency-path: core/go.sum
+      - run: make lint-core
+      - run: make test-core
+      - run: make build-core
+
+  cli:
+    name: CLI · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: server/go.mod
-          cache-dependency-path: server/go.mod
-      - name: Lint (gofmt + go vet)
-        run: make lint
-      - name: Test
-        run: make test
-      - name: Build
-        run: make build
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
+      - run: make lint-cli
+      - run: make test-cli
+      - run: make build-cli
+
+  web:
+    name: Web · Audit · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm audit --audit-level=high
+        working-directory: web
+      - run: make lint-web
+      - run: make test-web
+      - run: make build-web

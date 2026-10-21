@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "Genwork",
+    "loading": "Loading…",
+    "nav": { "home": "Home", "invites": "Invites" },
+    "signOut": "Sign out"
+  },
+  "login": {
+    "title": "Sign in",
+    "subtitle": "Sign in to your {{instance}} account",
+    "email": "E-mail",
+    "password": "Password",
+    "submit": "Sign in",
+    "submitting": "Signing in…"
+  },
+  "home": {
+    "greeting": "Hi, {{name}}!",
+    "description": "You are signed in as {{email}} with the {{role}} role."
+  },
+  "acceptInvite": {
+    "title": "You were invited",
+    "subtitle": "Create your account to join {{instance}}.",
+    "email": "E-mail",
+    "name": "Name",
+    "password": "Password",
+    "passwordHint": "Between 8 and 128 characters.",
+    "passwordConfirmation": "Confirm password",
+    "submit": "Create account and sign in",
+    "submitting": "Creating account…",
+    "passwordMismatch": "Passwords do not match.",
+    "notFoundTitle": "Invite not found",
+    "notFoundDescription": "This invite does not exist, expired, was revoked, or was already used. Ask whoever invited you for a new one.",
+    "goToLogin": "Go to sign in"
+  },
+  "invites": {
+    "title": "Invites",
+    "newInvite": "New invite",
+    "email": "E-mail",
+    "role": "Role",
+    "submit": "Invite",
+    "submitting": "Inviting…",
+    "linkTitle": "Invite link",
+    "linkDescription": "Send this link to the invited person. It can be used only once.",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "emailSent": "E-mail sent to {{email}}.",
+    "emailNotSent": "The e-mail could not be sent. Copy the link and share it manually.",
+    "empty": "No invites yet.",
+    "columns": { "email": "E-mail", "role": "Role", "status": "Status", "invitedBy": "Invited by", "expiresAt": "Expires", "actions": "Actions" },
+    "status": { "pending": "Pending", "accepted": "Accepted", "revoked": "Revoked", "expired": "Expired" },
+    "resend": "Resend",
+    "revoke": "Revoke",
+    "noPermissionTitle": "No permission",
+    "noPermissionDescription": "You do not have permission to see invites."
+  },
+  "errors": {
+    "invalid_credentials": "Wrong e-mail or password.",
+    "invalid_token": "Your session ended. Please sign in again.",
+    "session_revoked": "Your session was ended. Please sign in again.",
+    "session_expired": "Your session expired. Please sign in again.",
+    "rate_limited": "Too many attempts. Wait a moment and try again.",
+    "validation_failed": "Check the highlighted fields.",
+    "password_length_invalid": "The password must be between 8 and 128 characters.",
+    "email_already_registered": "This e-mail already has an account.",
+    "invite_already_pending": "This e-mail already has a pending invite. Use “Resend” in the list.",
+    "invite_not_pending": "This invite is no longer pending.",
+    "invite_not_found": "Invite not found.",
+    "role_not_assignable": "You cannot invite someone with that role.",
+    "forbidden": "You do not have permission to do that.",
+    "not_found": "Not found.",
+    "malformed_body": "The request could not be processed.",
+    "internal_error": "Something went wrong on the server. Try again.",
+    "network_error": "Could not reach the server. Check your connection.",
+    "unknown_error": "Something went wrong. Try again.",
+    "fields": {
+      "invalid": "Invalid value.",
+      "unknown": "Unknown option.",
+      "too_long": "Value is too long."
+    }
+  }
+}

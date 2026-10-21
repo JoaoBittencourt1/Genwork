@@ -1,30 +1,47 @@
-SERVER := server
-COMPOSE := docker compose -f deploy/docker-compose.yml
+.PHONY: lint lint-core lint-cli lint-web lint-fix test test-core test-cli test-web build build-core build-cli build-web \
+	install-cli
 
-.PHONY: lint lint-fix test build setup-env up down logs
+lint: lint-core lint-cli lint-web
 
-lint:
-	@unformatted="$$(cd $(SERVER) && gofmt -l .)"; \
-	if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
-	cd $(SERVER) && go vet ./...
+lint-core:
+	@unformatted="$$(cd core && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	cd core && go vet ./...
+
+lint-cli:
+	@unformatted="$$(cd cli && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	cd cli && go vet ./...
+
+lint-web:
+	cd web && npm run lint && npm run typecheck
 
 lint-fix:
-	cd $(SERVER) && gofmt -w .
+	cd core && gofmt -w .
+	cd cli && gofmt -w .
+	cd web && npm run lint:fix
 
-test:
-	cd $(SERVER) && go test ./...
+test: test-core test-cli test-web
 
-build:
-	cd $(SERVER) && go build -o bin/ ./cmd/...
+# Needs TEST_DATABASE_URL, e.g. postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable with `genwork db` running.
+test-core:
+	cd core && go test ./...
 
-setup-env:
-	@test -f deploy/.env || (cp deploy/.env.example deploy/.env && echo "Created deploy/.env from .env.example")
+test-cli:
+	cd cli && go test ./...
 
-up: setup-env
-	$(COMPOSE) up -d --build
+test-web:
+	cd web && npm test
 
-down:
-	$(COMPOSE) down
+build: build-core build-cli build-web
 
-logs:
-	$(COMPOSE) logs -f
+build-core:
+	cd core && go build -o bin/ ./cmd/...
+
+build-cli:
+	cd cli && go build -o bin/genwork ./cmd/genwork
+
+build-web:
+	cd web && npm run build
+
+# Installs `genwork` into $(go env GOPATH)/bin; that directory must be on PATH.
+install-cli:
+	cd cli && go install ./cmd/genwork

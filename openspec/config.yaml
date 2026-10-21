@@ -3,15 +3,19 @@ schema: spec-driven
 context: |
   Product: Genwork — a modular, self-hosted workspace platform that centralizes
   task management, team workflows, infrastructure insights, and automation.
-  Monorepo: server/ (Go API + worker, PostgreSQL), web/ (Next.js), clients/macos (Swift/SwiftUI),
-  clients/windows (C#/.NET, UI framework TBD), clients/linux (Rust/GTK 4), deploy/ (Docker Compose).
-  Each component is versioned and released independently. Optional features ship as server modules.
+  Modular: a minimal core (auth, users, workspaces, roles, projects, module registry, settings) plus
+  optional modules (kanban, infra insights, automation, ...), each its own container, Postgres schema,
+  and release. Installations pick modules through the installer CLI; modules can be enabled/disabled
+  without impacting core or other modules (constitution rules 49-64).
+  Monorepo: core/ and modules/<name>/ (Go services), sdk/go/, cli/ (Go installer), web/ (Vite + React static SPA),
+  clients/macos (Swift/SwiftUI), clients/windows (C#/.NET, UI TBD), clients/linux (Rust/GTK 4), deploy/.
   The constitution.md at the repo root is binding; read it in full before exploring, proposing, or applying.
 
 rules:
   proposal:
     - Write in English
-    - State which components (server, web, macos, windows, linux) the change touches
+    - State which components the change touches (core, which modules, sdk, cli, web, macos, windows, linux)
+    - If it adds a module, list its module.yaml facts (dependencies, permissions, events, API prefix)
     - Include a "Non-goals" section
   design:
     - Write in English

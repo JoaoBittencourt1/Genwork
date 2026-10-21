@@ -1,0 +1,9 @@
+Hi!
+
+{{.InviterName}} invited you to join {{.InstanceName}}.
+
+To accept, open the link below and create your password:
+{{.Link}}
+
+The invite is valid until {{.ExpiresAt}} and can be used only once.
+If you were not expecting this invite, ignore this e-mail.

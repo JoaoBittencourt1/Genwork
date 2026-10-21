@@ -1,0 +1,9 @@
+Olá!
+
+{{.InviterName}} convidou você para entrar no {{.InstanceName}}.
+
+Para aceitar, abra o link abaixo e crie sua senha:
+{{.Link}}
+
+O convite vale até {{.ExpiresAt}} e só pode ser usado uma vez.
+Se você não esperava este convite, ignore este e-mail.
