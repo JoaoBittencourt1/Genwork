@@ -8,6 +8,7 @@ A modular, self-hosted workspace platform designed to centralize task management
 | --- | --- | --- |
 | `core/` | Core service: auth, users, roles, invites, module registry | Go |
 | `cli/` | `genwork` installer and operations CLI | Go |
+| `mcp/` | `genwork-mcp`, the MCP server for AI assistants ([docs](mcp/README.md)) | Go |
 | `web/` | Web app (static SPA) | Vite + React (TypeScript) |
 | `clients/macos/` | macOS desktop app | Swift / SwiftUI |
 | `clients/windows/` | Windows desktop app | C# / .NET (UI framework TBD) |
@@ -57,7 +58,7 @@ The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new 
 | Mailpit (captured e-mails) | http://localhost:8486 |
 | Postgres | localhost:5484 |
 
-Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, cli, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
+Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, cli, mcp, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
 
 ## Contributing
 

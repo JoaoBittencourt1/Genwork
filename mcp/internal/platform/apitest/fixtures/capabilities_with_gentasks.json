@@ -1,0 +1,1 @@
+{"core": {"version": "1.4.0", "api": "1.0.0"}, "modules": [{"id": "gentasks", "version": "0.3.0", "apiPrefix": "/api/gentasks/v1"}]}

@@ -22,6 +22,7 @@ jobs:
       sdk: ${{ steps.filter.outputs.sdk }}
       gentasks: ${{ steps.filter.outputs.gentasks }}
       cli: ${{ steps.filter.outputs.cli }}
+      mcp: ${{ steps.filter.outputs.mcp }}
       web: ${{ steps.filter.outputs.web }}
     steps:
       - uses: actions/checkout@v4
@@ -48,6 +49,10 @@ jobs:
               - 'sdk/**'
               - 'modules/*/module.yaml'
               - 'deploy/docker-compose.yml'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            mcp:
+              - 'mcp/**'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             web:
@@ -145,6 +150,21 @@ jobs:
       - run: make lint-cli
       - run: make test-cli
       - run: make build-cli
+
+  mcp:
+    name: MCP · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.mcp == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: mcp/go.mod
+          cache-dependency-path: mcp/go.sum
+      - run: make lint-mcp
+      - run: make test-mcp
+      - run: make build-mcp
 
   web:
     name: Web · Lint (audit) · Test · Build
