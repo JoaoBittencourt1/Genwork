@@ -1,0 +1,15 @@
+id: gentasks
+version: 0.1.0
+core: ">=1.0.0 <2.0.0"
+apiPrefix: /api/gentasks/v1
+requires:
+  - id: identity
+    version: ">=1.2.0"
+permissions:
+  - name: gentasks.board.read
+    defaultRoles: [admin, member]
+  - name: gentasks.task.delete
+    defaultRoles: [admin]
+events:
+  publishes: []
+  consumes: []
