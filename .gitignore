@@ -1,0 +1,34 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Go
+server/bin/
+*.test
+*.out
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+
+# Swift / Xcode
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# .NET
+bin/
+obj/
+*.user
+
+# Rust
+target/

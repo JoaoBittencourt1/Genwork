@@ -1,0 +1,24 @@
+schema: spec-driven
+
+context: |
+  Product: Vanep Workspace — a modular, self-hosted workspace platform that centralizes
+  task management, team workflows, infrastructure insights, and automation.
+  Monorepo: server/ (Go API + worker, PostgreSQL), web/ (Next.js), clients/macos (Swift/SwiftUI),
+  clients/windows (C#/.NET, UI framework TBD), clients/linux (Rust/GTK 4), deploy/ (Docker Compose).
+  Each component is versioned and released independently. Optional features ship as server modules.
+  The constitution.md at the repo root is binding; read it in full before exploring, proposing, or applying.
+
+rules:
+  proposal:
+    - Write in English
+    - State which components (server, web, macos, windows, linux) the change touches
+    - Include a "Non-goals" section
+  design:
+    - Write in English
+    - Reference constitution rules by number when a decision depends on them
+  tasks:
+    - Write in English
+    - Split work into numbered phases, one branch and one PR per phase (constitution rules 42-48)
+    - Start with the phased delivery table (| Phase | Contents | Depends on | Parallel with |)
+    - Each phase starts with its tests and ends with lint, tests, and "Open PR"
+    - Name each phase's branch as tipo(N-<issue>)/short-slug

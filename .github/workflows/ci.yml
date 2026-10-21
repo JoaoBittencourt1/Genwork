@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changed components
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            server:
+              - 'server/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+
+  server:
+    name: Server · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.mod
+      - name: Lint (gofmt + go vet)
+        run: make lint
+      - name: Test
+        run: make test
+      - name: Build
+        run: make build
