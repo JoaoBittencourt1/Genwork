@@ -6,7 +6,7 @@ Generate a Pull Request description following `.github/pull_request_template.md`
 
 1. **Analyze the changes**: compare the current branch against `main` with `git diff main...HEAD` (ignore merge commits) to see what was modified, added, or removed, and which components (server, web, macos, windows, linux) are touched.
 
-2. **Generate the PR title**: `tipo(N-<issue>): mensagem em pt-BR` (constitution rule 39). Ask for the issue number if it is not obvious from the branch name or commit messages.
+2. **Generate the PR title**: `tipo(component): mensagem em pt-BR` (constitution rule 39), taking `tipo` from the branch name.
 
 3. **Write a clear description in pt-BR** (constitution rule 37):
    - What the PR does and why

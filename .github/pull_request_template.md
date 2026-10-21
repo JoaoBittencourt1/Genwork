@@ -1,4 +1,4 @@
-# [N-XX] Feature | Change Request | Bug — <short title>
+# Feature | Change Request | Bug — <short title>
 
 ## Description
 
