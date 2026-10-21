@@ -46,15 +46,21 @@ func (ExecRunner) Run(ctx context.Context, request RunRequest) error {
 }
 
 type TerminalPrompter struct {
-	input *bufio.Reader
+	input        *bufio.Reader
+	output       io.Writer
+	readPassword func() ([]byte, error)
 }
 
 func NewTerminalPrompter() *TerminalPrompter {
-	return &TerminalPrompter{input: bufio.NewReader(os.Stdin)}
+	return &TerminalPrompter{
+		input:        bufio.NewReader(os.Stdin),
+		output:       os.Stderr,
+		readPassword: func() ([]byte, error) { return term.ReadPassword(int(os.Stdin.Fd())) },
+	}
 }
 
 func (prompter *TerminalPrompter) PromptLine(label string) (string, error) {
-	fmt.Fprint(os.Stderr, label)
+	fmt.Fprint(prompter.output, label)
 	line, err := prompter.input.ReadString('\n')
 	if err != nil && line == "" {
 		return "", fmt.Errorf("read %s: %w", strings.TrimSpace(strings.TrimSuffix(label, ":")), err)
@@ -63,9 +69,9 @@ func (prompter *TerminalPrompter) PromptLine(label string) (string, error) {
 }
 
 func (prompter *TerminalPrompter) PromptPassword(label string) (string, error) {
-	fmt.Fprint(os.Stderr, label)
-	password, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprint(prompter.output, label)
+	password, err := prompter.readPassword()
+	fmt.Fprintln(prompter.output)
 	if err != nil {
 		return "", fmt.Errorf("read password: %w", err)
 	}

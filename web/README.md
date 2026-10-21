@@ -1,16 +1,28 @@
 # Web
 
-Static SPA (Vite + React + TypeScript) served by the gateway in production. It calls the API only through relative paths (`/api/...`, `/.well-known/...`), so one build works for every installation.
+Static SPA (Vite + React + TypeScript) served by the gateway in production. It calls the API only through relative paths (`/api/...`, `/.well-known/...`), so one build works for every installation. UI components come from [shadcn/ui](https://ui.shadcn.com).
 
 ```sh
-cp .env.example .env   # or just run `genwork web` / `genwork up`, which create it
-npm install
-npm run dev            # proxies /api and /.well-known to DEV_API_PROXY_TARGET
-npm test
+genwork web            # from anywhere in the repo; creates .env and installs dependencies on first run
+npm test               # domain and datasource tests
+npx shadcn@latest add <component>   # adds a component to src/shared/ui (the CLI is not a dependency)
 ```
 
-Layout:
+Layout (constitution rules 72–74):
 
-- `src/core/<feature>/` — core features (auth, invites, discovery)
-- `src/modules/<name>/` — module UIs, one folder per module
-- `src/shared/` — API client, design system, i18n
+```
+src/
+  app/<module>/
+    datasource/   HTTP calls (no React)
+    domain/       types and pure rules (no React, no HTTP)
+    components/   the module's React pieces
+    <Name>Page.tsx
+  shared/
+    ui/           shadcn components
+    components/   reusable compositions
+    datasource/   HTTP client, discovery
+    domain/       cross-module rules
+    hooks/  lib/  i18n/
+  test/           MSW server and fixtures
+  App.tsx  router.tsx  main.tsx
+```

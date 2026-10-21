@@ -35,6 +35,14 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 9. **Keep framework and transport details out of business rules.** HTTP types, SQL drivers, UI frameworks, and storage APIs must not leak into domain logic. Depend on small interfaces at the boundary; wire concrete implementations at the composition root (`cmd/`, app entrypoints).
 10. **Everything that is not core is a module** — see the Modules section (rules 49–64).
 65. **The web app is a static SPA** (Vite + React), served by the gateway — no Node process runs in production. It calls the API on the same origin through relative `/api/...` paths, so no API URL is baked in at build time and one build works for every installation.
+72. **The web app is organized by module under `web/src/app/<module>/`**, each with:
+    - `datasource/` — HTTP calls through the shared client; no React.
+    - `domain/` — types and pure rules (permissions, status transitions, validations); no React and no HTTP — when a rule needs data, it receives a gateway as a parameter.
+    - `components/` — the module's React pieces, including its context, providers, and query hooks.
+    - `<Name>Page.tsx` files at the module root — one per route.
+
+    Cross-module code lives in `web/src/shared/` with the same split (`datasource/`, `domain/`, `hooks/`, `components/`), plus `ui/` (rule 73), `lib/`, and `i18n/`. Root wiring (`App.tsx`, `router.tsx`, `main.tsx`) stays in `web/src/`.
+73. **The web UI is built from shadcn/ui components in `web/src/shared/ui/`**, added with `npx shadcn@latest add <component>` and never re-implemented by hand. Screens compose those components; reusable compositions (layouts, alerts with icons) live in `web/src/shared/components/`. Generated components may be adjusted in place, but never copied into a module.
 
 ## Modules
 
@@ -48,7 +56,7 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 56. **Disable is not uninstall.** Disabling stops the module's container and hides it from clients; its data stays intact and re-enabling resumes where it left off. Uninstall is a separate, explicit action that confirms data removal. Enabling or disabling a module never requires a code or config change in core or in any other module.
 57. **One public entrypoint.** A gateway routes `/api/core/...` to core and `/api/<module>/v<N>/...` to each module; module containers are never exposed directly. Core issues access tokens; modules validate them with core's public keys and never store credentials.
 58. **Clients follow the enabled set at runtime.** Modules register with core on startup (manifest + health). Core publishes the enabled modules and their versions through a capabilities endpoint. The web app and desktop clients ship UI for every module, read capabilities, and show only enabled modules — no client code path may assume a module is enabled.
-59. **Module code is isolated in every component.** Each client keeps a module's UI in a dedicated folder (e.g. `web/src/modules/<name>/`), and one module's UI never imports another's. Shared UI belongs to the client's shared design system.
+59. **Module code is isolated in every component.** Each client keeps a module's UI in a dedicated folder (e.g. `web/src/app/<name>/`, rule 72), and one module's UI never imports another's. Shared UI belongs to the client's shared design system.
 60. **Permissions are namespaced `<module>.<resource>.<action>`** (e.g. `kanban.issue.create`), declared in `module.yaml`, and stored and assigned to roles by core.
 61. **Public contracts are versioned.** A breaking change to a module's API or events — or to a core contract modules consume — ships as a new major version (`/v2`, new event version) while the previous one keeps working through a deprecation window.
 62. **Modules are tested in isolation.** A module's suite runs against a stubbed core and stubbed dependency APIs built from recorded contract fixtures — no other real module running. CI runs: core alone; each module with only its declared dependencies; all modules together.
@@ -95,63 +103,6 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 25. **No test may call a real external API — ever.** The whole suite passes with no network and no credentials. Stub outbound clients and feed them recorded fixtures committed to the repo. Enforce it through configuration: the test environment points every outbound base URL at an unroutable address and every key at an obviously fake value, so an accidental real call fails instead of silently succeeding and billing.
 26. **Fixtures and test doubles live in dedicated files**, not as large inline object graphs in test bodies. Test bodies stay thin: arrange via fixtures, act, assert.
 27. **Do not test seeders** (dev/demo data only) and keep them out of coverage gates. Logic a seeder needs belongs in a regular, tested unit.
-
-## Code quality
-
-28. **Small functions, single purpose.** If you describe it with "and then… and after that…", split it.
-29. **Names say exactly what things do.** Functions start with a verb (`validateEmail`, not `handleData`); variables express intent (`taskIndex`, not `i` outside trivial loops). Avoid `process()`, `handle()`, `calculate()`.
-30. **Use consistent vocabulary.** Pick `find` *or* `get` for the same idea and stick to it.
-31. **Comment only when strictly necessary.** The default is no comment. A comment is justified only for a non-obvious external constraint, a business rule names cannot express, a workaround for an external bug, or a `TODO`/`FIXME` describing the debt and its fix. Explain the *why*, never the *what*. Longer rationale belongs in `openspec/` or the PR description.
-32. **Explicit error handling.** Return or throw meaningful errors; never swallow them; don't mix business logic with error-handling noise.
-33. **Delete dead code.** Leave code cleaner than you found it; refactoring is first-class work. When refactoring, prefer clarity over conciseness.
-34. **Do not use deprecated APIs**; fix deprecation warnings in the code you touch.
-
-## Language
-
-35. **Everything in source is English**: file names, identifiers, comments, log messages, error messages, test names. Specs in `openspec/` are written in English too.
-36. **User-facing copy is never hardcoded.** It goes through each component's localization mechanism (message keys + translation files); pt-BR is a first-class locale.
-37. **Commit messages and PR descriptions are written in pt-BR.**
-
-## Workflow
-
-38. **Spec before code.** Every feature starts as an OpenSpec change (`/opsx:propose`) before implementation.
-39. **Branches and commits** follow `tipo(N-<issue>)/short-slug-in-english` and `tipo(N-<issue>): mensagem em pt-BR`, where `tipo` is `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, etc. PRs link their GitHub issue.
-40. **Run the component's lint at the end of every task and before every commit and push.** Never commit or push on a red lint, test, or build, and never bypass hooks with `--no-verify`.
-41. **Never commit or push without developer sign-off.** After lint and tests pass, stop and let the developer verify the behavior manually. Automated tests alone are not sufficient.
-
-## Phased delivery
-
-42. **Split feature work into numbered phases** in the change's `tasks.md`; each phase ships on its own branch with one PR.
-43. **Before generating code, produce a dependency graph, layer assignment, and a PR plan table** (`| Phase | Contents | Depends on | Parallel with |`). Do not implement until the plan is approved.
-44. **Dependency first, one layer per PR.** Artifacts with zero internal dependencies form the first PR. Never mix layers in a PR, and never ship an interface and its implementation in the same PR. If an upper layer ships first, use stubs until the dependency merges.
-45. **PRs in the same layer may be reviewed in parallel** only when they do not depend on each other.
-46. **Cap each PR at ~600 productive lines and 10 new files**; subdivide before implementing if exceeded.
-47. **Go service phases (core and modules) implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
-48. **Every phase includes its own tests** covering only the code delivered in that phase. CI must pass after each phase.
-
-## Samples
-
-`tasks.md`:
-
-```markdown
-## Phase 1 (branch: feat(N-12)/task-crud-foundation)
-- [ ] 1.1 Write tests for phase 1
-- [ ] 1.2 Implement …
-- [ ] 1.3 Run lint and tests
-- [ ] 1.4 Open PR
-
-## Phase 2 (branch: feat(N-12)/task-crud-api)
-- [ ] 2.1 Write tests for phase 2
-- [ ] 2.2 Implement …
-- [ ] 2.3 Run lint and tests
-- [ ] 2.4 Open PR
-```
-
-Phased delivery table:
-
-```markdown
-| Phase | Contents | Depends on | Parallel with |
-|-------|----------|------------|---------------|
-| 1 | Migration + model + repository | — | — |
-| 2 | Service + handler + DTOs | Phase 1 merged | — |
-```
+70. **Every component keeps at least 75% coverage**, measured over all of its own source files — statements for Go (`go test -coverpkg=./...`) and lines and statements for the web app (Vitest, v8) over its logic folders only (`domain/` and `datasource/`, rule 74). The minimum lives once, in `MIN_COVERAGE` in the Makefile; `make test` and CI fail below it. Only test-support code and generated files may be excluded. Never lower the minimum or add exclusions to make a change pass — write the missing tests.
+71. **Tests live next to the code they test.** In Go, `*_test.go` files sit in the same package directory, which is what lets them reach unexported code and count toward that package's coverage; cross-package HTTP integration tests live in `core/internal/app`, and reusable test doubles live in dedicated `*test` packages (e.g. `mailtest`, `dbtest`). In the web app, `*.test.ts(x)` sits beside the module it tests, and shared helpers, fixtures, and API mocks live in `web/src/test/`.
+74. **Web tests cover logic, not markup.** Only `domain/` and `datasource/` code is unit-tested — rules, mappings, request shapes, and error handling, with the API stubbed by MSW (rule 25). Components, pages, and `shared/ui` are not unit-tested and do not count toward coverage; keep them thin by moving every decision they make into `domain/`.

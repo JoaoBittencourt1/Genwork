@@ -16,6 +16,7 @@
 # Node / Vite
 node_modules/
 dist/
+coverage/
 
 # Swift / Xcode
 .build/

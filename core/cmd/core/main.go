@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
 
 var version = "dev"
@@ -26,28 +28,28 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := run(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr); err != nil {
+	if err := run(ctx, os.Args[1:], os.Getenv, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) error {
+func run(ctx context.Context, args []string, getenv platform.Getenv, stdin io.Reader, stdout io.Writer) error {
 	if len(args) == 0 {
 		return fmt.Errorf("%s", usage)
 	}
 	switch args[0] {
 	case "serve":
-		return runServe(ctx, os.Getenv)
+		return runServe(ctx, getenv, platform.CoreSchema)
 	case "worker":
 		return runWorker(ctx)
 	case "migrate":
-		return runMigrate(ctx, os.Getenv)
+		return runMigrate(ctx, getenv, platform.CoreSchema)
 	case "admin":
 		if len(args) < 2 || args[1] != "create" {
 			return fmt.Errorf("%s", usage)
 		}
-		return runAdminCreate(ctx, os.Getenv, args[2:], stdin, stdout)
+		return runAdminCreate(ctx, getenv, platform.CoreSchema, args[2:], stdin, stdout)
 	case "keygen":
 		return runKeygen(stdout)
 	default:

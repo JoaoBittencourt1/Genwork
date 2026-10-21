@@ -15,7 +15,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/users"
 )
 
-func runServe(ctx context.Context, getenv platform.Getenv) error {
+func runServe(ctx context.Context, getenv platform.Getenv, schema string) error {
 	config, err := platform.LoadServeConfig(getenv)
 	if err != nil {
 		return err
@@ -24,7 +24,7 @@ func runServe(ctx context.Context, getenv platform.Getenv) error {
 	if err != nil {
 		return err
 	}
-	db, err := platform.OpenDatabase(ctx, config.DatabaseURL, platform.CoreSchema)
+	db, err := platform.OpenDatabase(ctx, config.DatabaseURL, schema)
 	if err != nil {
 		return err
 	}

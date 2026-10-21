@@ -9,7 +9,7 @@ Project rules live in the constitution and are non-negotiable:
 Run from the repo root:
 
 - `make lint` / `make lint-fix` — core, cli, and web
-- `make test` — core tests need `TEST_DATABASE_URL` (Postgres from `genwork db` on port 5484)
+- `make test` — runs tests with coverage and fails below `MIN_COVERAGE` (75%, rule 70); core tests need `TEST_DATABASE_URL` (Postgres from `genwork db` on port 5484)
 - `make build` — core binary, `genwork` CLI, web bundle
 - `make install-cli` — install the `genwork` CLI into `$(go env GOPATH)/bin`
 

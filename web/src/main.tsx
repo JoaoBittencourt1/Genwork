@@ -1,8 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App } from './app/App'
+import { App } from './App'
 import './index.css'
-import { setUpI18n } from './shared/i18n'
+import { setUpI18n } from '@/shared/i18n'
 
 setUpI18n()
 
