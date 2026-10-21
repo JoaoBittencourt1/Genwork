@@ -1,4 +1,4 @@
-package main
+package command_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/JoaoBittencourt1/Genwork/core/internal/access"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/command"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform/dbtest"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/users"
@@ -15,7 +16,7 @@ var fastParams = users.PasswordParams{MemoryKiB: 8 * 1024, Iterations: 1, Parall
 
 func TestParseAdminCreateOptionsRequiresEveryFlag(t *testing.T) {
 	valid := []string{"--email", "ana@example.com", "--name", "Ana", "--password-stdin"}
-	if _, err := parseAdminCreateOptions(valid); err != nil {
+	if _, err := command.ParseAdminCreateOptions(valid); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	for _, args := range [][]string{
@@ -25,7 +26,7 @@ func TestParseAdminCreateOptionsRequiresEveryFlag(t *testing.T) {
 		{"--password", "inline", "--email", "ana@example.com", "--name", "Ana"},
 		{"--email", "ana@example.com", "--name", "  ", "--password-stdin"},
 	} {
-		if _, err := parseAdminCreateOptions(args); err == nil {
+		if _, err := command.ParseAdminCreateOptions(args); err == nil {
 			t.Errorf("expected %v to be rejected", args)
 		}
 	}
@@ -37,9 +38,9 @@ func TestReadPasswordLineStripsLineEnding(t *testing.T) {
 		"correct horse battery\r\n": "correct horse battery",
 		"correct horse battery":     "correct horse battery",
 	} {
-		got, err := readPasswordLine(strings.NewReader(input))
+		got, err := command.ReadPasswordLine(strings.NewReader(input))
 		if err != nil || got != expected {
-			t.Errorf("readPasswordLine(%q) = %q, %v", input, got, err)
+			t.Errorf("command.ReadPasswordLine(%q) = %q, %v", input, got, err)
 		}
 	}
 }
@@ -48,7 +49,7 @@ func TestCreateAdministrator(t *testing.T) {
 	db := dbtest.NewMigratedSchema(t)
 	ctx := context.Background()
 
-	user, err := createAdministrator(ctx, db, fastParams, "Ana@Example.com", "Ana", "correct horse battery")
+	user, err := command.CreateAdministrator(ctx, db, fastParams, "Ana@Example.com", "Ana", "correct horse battery")
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -61,10 +62,10 @@ func TestCreateAdministrator(t *testing.T) {
 		t.Error("the administrator must be able to sign in with the chosen password")
 	}
 
-	if _, err := createAdministrator(ctx, db, fastParams, "ana@example.com", "Ana", "correct horse battery"); err != users.ErrEmailAlreadyRegistered {
+	if _, err := command.CreateAdministrator(ctx, db, fastParams, "ana@example.com", "Ana", "correct horse battery"); err != users.ErrEmailAlreadyRegistered {
 		t.Errorf("duplicate e-mail error = %v", err)
 	}
-	if _, err := createAdministrator(ctx, db, fastParams, "bia@example.com", "Bia", "short"); err != users.ErrPasswordLength {
+	if _, err := command.CreateAdministrator(ctx, db, fastParams, "bia@example.com", "Bia", "short"); err != users.ErrPasswordLength {
 		t.Errorf("short password error = %v", err)
 	}
 }
@@ -76,8 +77,8 @@ func TestDescribeAdminCreateErrorExplainsCodes(t *testing.T) {
 		platform.NewValidationError(map[string]string{"name": "invalid", "email": "invalid"}): "validation_failed: invalid email, name",
 	}
 	for input, expected := range cases {
-		if got := describeAdminCreateError(input).Error(); got != expected {
-			t.Errorf("describeAdminCreateError(%v) = %q, want %q", input, got, expected)
+		if got := command.DescribeAdminCreateError(input).Error(); got != expected {
+			t.Errorf("command.DescribeAdminCreateError(%v) = %q, want %q", input, got, expected)
 		}
 	}
 }

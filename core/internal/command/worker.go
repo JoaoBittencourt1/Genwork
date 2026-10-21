@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-func runWorker(ctx context.Context) error {
-	slog.Info("worker started", "version", version)
+func RunWorker(ctx context.Context) error {
+	slog.Info("worker started", "version", Version)
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {

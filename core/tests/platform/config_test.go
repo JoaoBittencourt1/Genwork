@@ -1,6 +1,7 @@
-package platform
+package platform_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"strings"
 	"testing"
 )
@@ -20,12 +21,12 @@ func validServeEnv() map[string]string {
 	}
 }
 
-func getenvFrom(values map[string]string) Getenv {
+func getenvFrom(values map[string]string) platform.Getenv {
 	return func(name string) string { return values[name] }
 }
 
 func TestLoadServeConfigAcceptsCompleteEnvironment(t *testing.T) {
-	config, err := LoadServeConfig(getenvFrom(validServeEnv()))
+	config, err := platform.LoadServeConfig(getenvFrom(validServeEnv()))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestLoadServeConfigListsEveryMissingVariable(t *testing.T) {
 	delete(env, "GENWORK_INSTANCE_NAME")
 	delete(env, "JWT_SIGNING_KEY")
 
-	_, err := LoadServeConfig(getenvFrom(env))
+	_, err := platform.LoadServeConfig(getenvFrom(env))
 	if err == nil {
 		t.Fatal("expected an error for missing variables")
 	}
@@ -56,7 +57,7 @@ func TestLoadServeConfigListsEveryMissingVariable(t *testing.T) {
 func TestLoadServeConfigTreatsBlankAsMissing(t *testing.T) {
 	env := validServeEnv()
 	env["GENWORK_INSTANCE_NAME"] = "   "
-	if _, err := LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "GENWORK_INSTANCE_NAME") {
+	if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "GENWORK_INSTANCE_NAME") {
 		t.Fatalf("expected blank instance name to be rejected, got %v", err)
 	}
 }
@@ -73,7 +74,7 @@ func TestLoadServeConfigRejectsInvalidValues(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			env := validServeEnv()
 			env[name] = value
-			if _, err := LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), name) {
+			if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), name) {
 				t.Fatalf("expected %s=%q to be rejected, got %v", name, value, err)
 			}
 		})
@@ -83,17 +84,17 @@ func TestLoadServeConfigRejectsInvalidValues(t *testing.T) {
 func TestLoadServeConfigRequiresSMTPCredentialsTogether(t *testing.T) {
 	env := validServeEnv()
 	env["SMTP_USERNAME"] = "user"
-	if _, err := LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "SMTP_USERNAME") {
+	if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "SMTP_USERNAME") {
 		t.Fatalf("expected username without password to be rejected, got %v", err)
 	}
 	env["SMTP_PASSWORD"] = "secret"
-	if _, err := LoadServeConfig(getenvFrom(env)); err != nil {
+	if _, err := platform.LoadServeConfig(getenvFrom(env)); err != nil {
 		t.Fatalf("expected username with password to be accepted, got %v", err)
 	}
 }
 
 func TestLoadDatabaseURLRequiresVariable(t *testing.T) {
-	if _, err := LoadDatabaseURL(getenvFrom(map[string]string{})); err == nil {
+	if _, err := platform.LoadDatabaseURL(getenvFrom(map[string]string{})); err == nil {
 		t.Fatal("expected missing DATABASE_URL to fail")
 	}
 }

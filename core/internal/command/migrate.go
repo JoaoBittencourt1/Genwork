@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
 
-func runMigrate(ctx context.Context, getenv platform.Getenv, schema string) error {
+func RunMigrate(ctx context.Context, getenv platform.Getenv, schema string) error {
 	databaseURL, err := platform.LoadDatabaseURL(getenv)
 	if err != nil {
 		return err

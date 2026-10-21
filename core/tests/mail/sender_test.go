@@ -1,8 +1,9 @@
-package mail
+package mail_test
 
 import (
 	"context"
 	"encoding/base64"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/mail"
 	"strings"
 	"testing"
 	"time"
@@ -10,8 +11,8 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
 
-func testMessage() Message {
-	return Message{
+func testMessage() mail.Message {
+	return mail.Message{
 		To:      "bruno@example.com",
 		Subject: "Ana convidou você",
 		Text:    "Abra o link: http://localhost:8485/invite/abc",
@@ -19,7 +20,7 @@ func testMessage() Message {
 	}
 }
 
-func sendWithTimeout(t *testing.T, sender *SMTPSender) error {
+func sendWithTimeout(t *testing.T, sender *mail.SMTPSender) error {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -28,7 +29,7 @@ func sendWithTimeout(t *testing.T, sender *SMTPSender) error {
 
 func TestSMTPSenderDeliversPlainAndHTMLParts(t *testing.T) {
 	server := startFakeSMTPServer(t, false)
-	sender := NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: server.port(), From: "Genwork <no-reply@genwork.test>", TLS: "none"})
+	sender := mail.NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: server.port(), From: "Genwork <no-reply@genwork.test>", TLS: "none"})
 
 	if err := sendWithTimeout(t, sender); err != nil {
 		t.Fatalf("send: %v", err)
@@ -46,7 +47,7 @@ func TestSMTPSenderDeliversPlainAndHTMLParts(t *testing.T) {
 
 func TestSMTPSenderAuthenticatesWhenCredentialsAreSet(t *testing.T) {
 	server := startFakeSMTPServer(t, true)
-	sender := NewSMTPSender(platform.SMTPConfig{
+	sender := mail.NewSMTPSender(platform.SMTPConfig{
 		Host: "127.0.0.1", Port: server.port(), From: "no-reply@genwork.test", TLS: "none",
 		Username: "mailer", Password: "s3cret",
 	})
@@ -69,7 +70,7 @@ func TestSMTPSenderRefusesPlaintextWhenTLSIsRequired(t *testing.T) {
 	for _, mode := range []string{"starttls", "tls"} {
 		t.Run(mode, func(t *testing.T) {
 			server := startFakeSMTPServer(t, false)
-			sender := NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: server.port(), From: "no-reply@genwork.test", TLS: mode})
+			sender := mail.NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: server.port(), From: "no-reply@genwork.test", TLS: mode})
 			if err := sendWithTimeout(t, sender); err == nil {
 				t.Fatal("expected delivery to fail without TLS")
 			}
@@ -81,7 +82,7 @@ func TestSMTPSenderRefusesPlaintextWhenTLSIsRequired(t *testing.T) {
 }
 
 func TestSMTPSenderRejectsInvalidAddresses(t *testing.T) {
-	sender := NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: 1, From: "not an address", TLS: "none"})
+	sender := mail.NewSMTPSender(platform.SMTPConfig{Host: "127.0.0.1", Port: 1, From: "not an address", TLS: "none"})
 	if err := sendWithTimeout(t, sender); err == nil || !strings.Contains(err.Error(), "sender") {
 		t.Errorf("error = %v", err)
 	}

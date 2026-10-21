@@ -1,6 +1,7 @@
-package mail
+package mail_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/mail"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +15,7 @@ func TestRenderInviteInEachLocale(t *testing.T) {
 	}
 	for locale, expected := range cases {
 		t.Run(locale, func(t *testing.T) {
-			message, err := RenderInvite(InviteEmail{
+			message, err := mail.RenderInvite(mail.InviteEmail{
 				Locale: locale, To: "bruno@example.com", InstanceName: "Genwork Test",
 				InviterName: "Ana", Link: "http://localhost:8485/invite/abc", ExpiresAt: expiresAt,
 			})
@@ -36,7 +37,7 @@ func TestRenderInviteInEachLocale(t *testing.T) {
 }
 
 func TestRenderInviteEscapesHTML(t *testing.T) {
-	message, err := RenderInvite(InviteEmail{
+	message, err := mail.RenderInvite(mail.InviteEmail{
 		Locale: "en", InstanceName: "<script>x</script>", InviterName: "Ana", Link: "http://localhost/invite/a", ExpiresAt: time.Now(),
 	})
 	if err != nil {
@@ -48,7 +49,7 @@ func TestRenderInviteEscapesHTML(t *testing.T) {
 }
 
 func TestRenderInviteRejectsUnknownLocale(t *testing.T) {
-	if _, err := RenderInvite(InviteEmail{Locale: "fr"}); err == nil {
+	if _, err := mail.RenderInvite(mail.InviteEmail{Locale: "fr"}); err == nil {
 		t.Fatal("expected unsupported locale to fail")
 	}
 }

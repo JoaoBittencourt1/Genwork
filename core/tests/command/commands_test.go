@@ -1,4 +1,4 @@
-package main
+package command_test
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/core/internal/auth"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/command"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform/dbtest"
 )
@@ -22,16 +23,16 @@ func envFrom(values map[string]string) platform.Getenv {
 func TestRunRejectsUnknownOrIncompleteCommands(t *testing.T) {
 	ctx := context.Background()
 	for _, args := range [][]string{{}, {"explode"}, {"admin"}, {"admin", "delete"}} {
-		err := run(ctx, args, envFrom(nil), strings.NewReader(""), &bytes.Buffer{})
+		err := command.Run(ctx, args, envFrom(nil), strings.NewReader(""), &bytes.Buffer{})
 		if err == nil || !strings.Contains(err.Error(), "usage: core <command>") {
-			t.Errorf("run(%v) error = %v, want usage", args, err)
+			t.Errorf("command.Run(%v) error = %v, want usage", args, err)
 		}
 	}
 }
 
 func TestKeygenPrintsAValidSigningKey(t *testing.T) {
 	var output bytes.Buffer
-	if err := run(context.Background(), []string{"keygen"}, envFrom(nil), nil, &output); err != nil {
+	if err := command.Run(context.Background(), []string{"keygen"}, envFrom(nil), nil, &output); err != nil {
 		t.Fatal(err)
 	}
 	seed := strings.TrimSpace(output.String())
@@ -46,18 +47,18 @@ func TestKeygenPrintsAValidSigningKey(t *testing.T) {
 func TestWorkerStopsWhenContextEnds(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if err := run(ctx, []string{"worker"}, envFrom(nil), nil, &bytes.Buffer{}); err != nil {
+	if err := command.Run(ctx, []string{"worker"}, envFrom(nil), nil, &bytes.Buffer{}); err != nil {
 		t.Fatalf("worker error = %v", err)
 	}
 }
 
 func TestSubcommandsRequireDatabaseURL(t *testing.T) {
 	ctx := context.Background()
-	if err := runMigrate(ctx, envFrom(nil), "unused"); err == nil || !strings.Contains(err.Error(), "DATABASE_URL") {
+	if err := command.RunMigrate(ctx, envFrom(nil), "unused"); err == nil || !strings.Contains(err.Error(), "DATABASE_URL") {
 		t.Errorf("migrate error = %v", err)
 	}
 	args := []string{"--email", "ana@example.com", "--name", "Ana", "--password-stdin"}
-	if err := runAdminCreate(ctx, envFrom(nil), "unused", args, strings.NewReader("correct horse battery\n"), &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "DATABASE_URL") {
+	if err := command.RunAdminCreate(ctx, envFrom(nil), "unused", args, strings.NewReader("correct horse battery\n"), &bytes.Buffer{}); err == nil || !strings.Contains(err.Error(), "DATABASE_URL") {
 		t.Errorf("admin create error = %v", err)
 	}
 }
@@ -69,7 +70,7 @@ func TestMigrateCreatesSchemaAndIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 
 	for attempt := 1; attempt <= 2; attempt++ {
-		if err := runMigrate(ctx, env, schema); err != nil {
+		if err := command.RunMigrate(ctx, env, schema); err != nil {
 			t.Fatalf("migrate attempt %d: %v", attempt, err)
 		}
 	}
@@ -91,13 +92,13 @@ func TestAdminCreateCommandCreatesAdministrator(t *testing.T) {
 	args := []string{"--email", "Ana@Example.com", "--name", "Ana", "--password-stdin"}
 	var output bytes.Buffer
 
-	if err := runAdminCreate(context.Background(), env, schema, args, strings.NewReader("correct horse battery\n"), &output); err != nil {
+	if err := command.RunAdminCreate(context.Background(), env, schema, args, strings.NewReader("correct horse battery\n"), &output); err != nil {
 		t.Fatalf("admin create: %v", err)
 	}
 	if !strings.Contains(output.String(), "administrator created: ana@example.com") {
 		t.Errorf("output = %q", output.String())
 	}
-	err := runAdminCreate(context.Background(), env, schema, args, strings.NewReader("correct horse battery\n"), &bytes.Buffer{})
+	err := command.RunAdminCreate(context.Background(), env, schema, args, strings.NewReader("correct horse battery\n"), &bytes.Buffer{})
 	if err == nil || !strings.Contains(err.Error(), "email_already_registered") {
 		t.Errorf("duplicate error = %v", err)
 	}
@@ -121,7 +122,7 @@ func TestServeAnswersUntilContextEnds(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	stopped := make(chan error, 1)
-	go func() { stopped <- runServe(ctx, env, schema) }()
+	go func() { stopped <- command.RunServe(ctx, env, schema) }()
 
 	waitForHealth(t, "http://"+address+"/healthz")
 	response, err := http.Get("http://" + address + "/.well-known/genwork")
@@ -146,7 +147,7 @@ func TestServeAnswersUntilContextEnds(t *testing.T) {
 
 func TestServeFailsFastOnInvalidConfiguration(t *testing.T) {
 	ctx := context.Background()
-	if err := runServe(ctx, envFrom(nil), "unused"); err == nil || !strings.Contains(err.Error(), "GENWORK_INSTANCE_NAME") {
+	if err := command.RunServe(ctx, envFrom(nil), "unused"); err == nil || !strings.Contains(err.Error(), "GENWORK_INSTANCE_NAME") {
 		t.Errorf("missing config error = %v", err)
 	}
 	env := map[string]string{
@@ -154,7 +155,7 @@ func TestServeFailsFastOnInvalidConfiguration(t *testing.T) {
 		"GENWORK_INSTANCE_NAME": "x", "GENWORK_DEFAULT_LOCALE": "en", "JWT_SIGNING_KEY": "not-a-key",
 		"SMTP_HOST": "localhost", "SMTP_PORT": "25", "SMTP_FROM": "a@b.c", "SMTP_TLS": "none",
 	}
-	if err := runServe(ctx, envFrom(env), "unused"); err == nil || !strings.Contains(err.Error(), "JWT_SIGNING_KEY") {
+	if err := command.RunServe(ctx, envFrom(env), "unused"); err == nil || !strings.Contains(err.Error(), "JWT_SIGNING_KEY") {
 		t.Errorf("invalid key error = %v", err)
 	}
 }
