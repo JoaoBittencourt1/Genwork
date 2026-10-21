@@ -1,3 +1,12 @@
+# Minimum statement/line coverage per component (constitution rule 70).
+MIN_COVERAGE := 75
+
+# usage: $(call check_go_coverage,<module dir>)
+define check_go_coverage
+	cd $(1) && go tool cover -func=coverage.out | awk -v min=$(MIN_COVERAGE) -v name=$(1) \
+		'/^total:/ { sub("%", "", $$NF); printf "%s coverage: %.1f%% (minimum %d%%)\n", name, $$NF, min; if ($$NF + 0 < min) { print name " is below the minimum coverage"; exit 1 } }'
+endef
+
 .PHONY: lint lint-core lint-cli lint-web lint-fix test test-core test-cli test-web build build-core build-cli build-web \
 	install-cli
 
@@ -23,13 +32,15 @@ test: test-core test-cli test-web
 
 # Needs TEST_DATABASE_URL, e.g. postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable with `genwork db` running.
 test-core:
-	cd core && go test ./...
+	cd core && go test -coverpkg=./... -coverprofile=coverage.out ./...
+	$(call check_go_coverage,core)
 
 test-cli:
-	cd cli && go test ./...
+	cd cli && go test -coverpkg=./... -coverprofile=coverage.out ./...
+	$(call check_go_coverage,cli)
 
 test-web:
-	cd web && npm test
+	cd web && npm run test:coverage -- --coverage.thresholds.lines=$(MIN_COVERAGE) --coverage.thresholds.statements=$(MIN_COVERAGE)
 
 build: build-core build-cli build-web
 

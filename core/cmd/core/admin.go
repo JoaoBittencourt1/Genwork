@@ -47,7 +47,7 @@ func readPasswordLine(stdin io.Reader) (string, error) {
 	return strings.TrimRight(line, "\r\n"), nil
 }
 
-func runAdminCreate(ctx context.Context, getenv platform.Getenv, args []string, stdin io.Reader, stdout io.Writer) error {
+func runAdminCreate(ctx context.Context, getenv platform.Getenv, schema string, args []string, stdin io.Reader, stdout io.Writer) error {
 	options, err := parseAdminCreateOptions(args)
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func runAdminCreate(ctx context.Context, getenv platform.Getenv, args []string, 
 	if err != nil {
 		return err
 	}
-	db, err := platform.OpenDatabase(ctx, databaseURL, platform.CoreSchema)
+	db, err := platform.OpenDatabase(ctx, databaseURL, schema)
 	if err != nil {
 		return err
 	}

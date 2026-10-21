@@ -44,3 +44,9 @@ func TestDecodeJSONRejectsUnknownFieldsAndTrailingData(t *testing.T) {
 		}
 	}
 }
+
+func TestAPIErrorMessageIsItsCode(t *testing.T) {
+	if got := NewAPIError(http.StatusConflict, "invite_not_pending").Error(); got != "invite_not_pending" {
+		t.Errorf("Error() = %q", got)
+	}
+}
