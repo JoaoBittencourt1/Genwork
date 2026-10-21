@@ -4,7 +4,7 @@ import type { DirectoryUser } from '@/shared/datasource/users'
 
 export const capabilitiesFixture: Capabilities = {
   core: { version: '1.0.0', api: '1.0.0' },
-  modules: [{ id: 'gentasks', version: '0.1.0', apiPrefix: '/api/gentasks/v1' }],
+  modules: [{ id: 'gentasks', version: '0.2.0', apiPrefix: '/api/gentasks/v1' }],
 }
 
 export const usersFixture: DirectoryUser[] = [
@@ -18,6 +18,7 @@ export const featureLabel: Label = { token: 'label-feature', name: 'Feature', co
 export function taskFixture(overrides: Partial<Task> = {}): Task {
   return {
     token: 'task-1',
+    number: 1,
     columnToken: 'column-backlog',
     position: 0,
     title: 'Write tests',
@@ -33,31 +34,34 @@ export function taskFixture(overrides: Partial<Task> = {}): Task {
   }
 }
 
-function columnFixture(token: string, position: number, titles: string[], overrides: Partial<ColumnWithTasks> = {}): ColumnWithTasks {
+type ColumnFixtureTasks = { titles: string[]; firstNumber: number }
+
+function columnFixture(token: string, position: number, { titles, firstNumber }: ColumnFixtureTasks, overrides: Partial<ColumnWithTasks> = {}): ColumnWithTasks {
   return {
     token,
     preset: null,
     name: null,
     position,
     tasks: titles.map((title, index) =>
-      taskFixture({ token: `task-${title}`, title, columnToken: token, position: index }),
+      taskFixture({ token: `task-${title}`, number: firstNumber + index, title, columnToken: token, position: index }),
     ),
     ...overrides,
   }
 }
 
-// boardViewFixture: backlog [A, B, C], todo [D], done [] — the default columns with a few tasks.
+// boardViewFixture: backlog [A, B, C], todo [D], done [] — the default columns with tasks PLA-1 to PLA-4.
 export function boardViewFixture(): BoardView {
   return {
     token: 'board-1',
     name: 'Platform',
+    taskPrefix: 'PLA',
     createdBy: 'user-ana',
     createdAt: '2026-10-21T12:00:00Z',
     updatedAt: '2026-10-21T12:00:00Z',
     columns: [
-      columnFixture('column-backlog', 0, ['A', 'B', 'C'], { preset: 'backlog' }),
-      columnFixture('column-todo', 1, ['D'], { preset: 'todo' }),
-      columnFixture('column-done', 2, [], { preset: 'done' }),
+      columnFixture('column-backlog', 0, { titles: ['A', 'B', 'C'], firstNumber: 1 }, { preset: 'backlog' }),
+      columnFixture('column-todo', 1, { titles: ['D'], firstNumber: 4 }, { preset: 'todo' }),
+      columnFixture('column-done', 2, { titles: [], firstNumber: 5 }, { preset: 'done' }),
     ],
     labels: [bugLabel, featureLabel],
   }

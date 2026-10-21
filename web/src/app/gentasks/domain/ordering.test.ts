@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { boardViewFixture, titlesByColumn } from '@/test/gentasksFixtures'
-import { findTaskLocation, isSameLocation, moveColumn, moveTask } from './ordering'
+import { boardViewFixture, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
+import { findTaskLocation, haveSameContent, isSameLocation, moveColumn, moveTask } from './ordering'
 
 describe('moveTask', () => {
   it('moves a task to another column and renumbers both columns', () => {
@@ -55,5 +55,15 @@ describe('moveColumn', () => {
     const view = boardViewFixture()
     expect(moveColumn(view, 'missing', 0)).toBe(view)
     expect(moveColumn(view, 'column-backlog', 99).columns.map((column) => column.token)).toEqual(['column-todo', 'column-done', 'column-backlog'])
+  })
+})
+
+describe('haveSameContent', () => {
+  it('ignores a new position but not a changed field', () => {
+    const task = taskFixture()
+    expect(haveSameContent(task, task)).toBe(true)
+    expect(haveSameContent(task, { ...task, position: 4 })).toBe(true)
+    expect(haveSameContent(task, { ...task, title: 'Other' })).toBe(false)
+    expect(haveSameContent(task, { ...task, labels: [...task.labels] })).toBe(false)
   })
 })

@@ -4,6 +4,7 @@ import type { BoardView } from './types'
 
 const TASK_PREFIX = 'task:'
 const COLUMN_PREFIX = 'column:'
+const TASK_LIST_PREFIX = 'tasks:'
 
 export type DragItem = { kind: 'task'; token: string } | { kind: 'column'; token: string }
 
@@ -17,6 +18,11 @@ export function taskDragId(token: string): string {
 
 export function columnDragId(token: string): string {
   return COLUMN_PREFIX + token
+}
+
+// taskListId names the sortable list of a column's tasks, so collision detection can tell which column a card is in.
+export function taskListId(columnToken: string): string {
+  return TASK_LIST_PREFIX + columnToken
 }
 
 export function parseDragId(id: string | number): DragItem | undefined {
@@ -48,6 +54,20 @@ export function resolveDrop(view: BoardView, activeId: string | number, overId: 
   if (!column) return undefined
   const toPosition = column.tasks.findIndex((task) => task.token === over.token)
   return { kind: 'task', move: { taskToken: active.token, toColumnToken: column.token, toPosition } }
+}
+
+// resolveDragOver moves a dragged task into another column while it is still held, so the target column makes room for it;
+// moves within the same column are left to the sortable list.
+export function resolveDragOver(view: BoardView, activeId: string | number, overId: string | number | undefined): TaskMove | undefined {
+  const active = parseDragId(activeId)
+  const over = overId === undefined ? undefined : parseDragId(overId)
+  if (active?.kind !== 'task' || !over) return undefined
+  const sourceColumnToken = columnOfTask(view, active.token)
+  const targetColumnToken = over.kind === 'column' ? over.token : columnOfTask(view, over.token)
+  const target = view.columns.find((column) => column.token === targetColumnToken)
+  if (!sourceColumnToken || !target || target.token === sourceColumnToken) return undefined
+  const toPosition = over.kind === 'column' ? target.tasks.length : target.tasks.findIndex((task) => task.token === over.token)
+  return { taskToken: active.token, toColumnToken: target.token, toPosition }
 }
 
 // Dragging tasks while a filter hides some of them would compute positions against an incomplete column.

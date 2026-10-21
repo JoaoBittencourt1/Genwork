@@ -1,19 +1,24 @@
-import type { NewTask, Task, TaskPatch, Urgency } from './types'
+import type { TaskMove } from './ordering'
+import type { BoardView, NewTask, Task, TaskPatch, Urgency } from './types'
 
 export type TaskDraft = {
   title: string
   description: string
+  columnToken: string
   assigneeToken: string | null
   urgency: Urgency
   labelTokens: string[]
 }
 
-export const EMPTY_TASK_DRAFT: TaskDraft = { title: '', description: '', assigneeToken: null, urgency: 'none', labelTokens: [] }
+export function emptyTaskDraft(columnToken: string): TaskDraft {
+  return { title: '', description: '', columnToken, assigneeToken: null, urgency: 'none', labelTokens: [] }
+}
 
 export function draftFromTask(task: Task): TaskDraft {
   return {
     title: task.title,
     description: task.description ?? '',
+    columnToken: task.columnToken,
     assigneeToken: task.assigneeToken,
     urgency: task.urgency,
     labelTokens: task.labels.map((label) => label.token),
@@ -21,6 +26,7 @@ export function draftFromTask(task: Task): TaskDraft {
 }
 
 // buildTaskPatch sends only what changed, so a single edit never overwrites fields edited elsewhere (rule 17).
+// The column is not part of a PATCH: resolveColumnChange turns it into a move.
 export function buildTaskPatch(task: Task, draft: TaskDraft): TaskPatch {
   const original = draftFromTask(task)
   const patch: TaskPatch = {}
@@ -33,21 +39,25 @@ export function buildTaskPatch(task: Task, draft: TaskDraft): TaskPatch {
   return patch
 }
 
-export function isPatchEmpty(patch: TaskPatch): boolean {
-  return Object.keys(patch).length === 0
-}
-
 export function isDraftTitleValid(draft: TaskDraft): boolean {
   const length = draft.title.trim().length
   return length > 0 && length <= 200
 }
 
-export function newTaskFromDraft(draft: TaskDraft, columnToken: string): NewTask {
-  const task: NewTask = { title: draft.title.trim(), columnToken, urgency: draft.urgency }
+export function newTaskFromDraft(draft: TaskDraft): NewTask {
+  const task: NewTask = { title: draft.title.trim(), columnToken: draft.columnToken, urgency: draft.urgency }
   if (draft.description !== '') task.description = draft.description
   if (draft.assigneeToken) task.assigneeToken = draft.assigneeToken
   if (draft.labelTokens.length > 0) task.labelTokens = draft.labelTokens
   return task
+}
+
+// resolveColumnChange sends a task whose column was changed in the form to the end of its new column.
+export function resolveColumnChange(view: BoardView, task: Task, draft: TaskDraft): TaskMove | undefined {
+  if (draft.columnToken === task.columnToken) return undefined
+  const target = view.columns.find((column) => column.token === draft.columnToken)
+  if (!target) return undefined
+  return { taskToken: task.token, toColumnToken: target.token, toPosition: target.tasks.length }
 }
 
 function sameTokens(left: string[], right: string[]): boolean {

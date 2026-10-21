@@ -11,8 +11,8 @@ import {
   listBoards,
   moveColumn,
   readBoard,
-  renameBoard,
   renameColumn,
+  updateBoard,
 } from './boardsDatasource'
 import { createLabel, deleteLabel, listLabels, updateLabel } from './labelsDatasource'
 import {
@@ -29,7 +29,7 @@ import {
 const noContent = () => new HttpResponse(null, { status: 204 })
 
 describe('boardsDatasource', () => {
-  it('lists, creates, reads, renames, and deletes boards', async () => {
+  it('lists, creates, reads, updates, and deletes boards', async () => {
     const board = boardViewFixture()
     captureRequests('get', '*/api/gentasks/v1/boards', () => HttpResponse.json({ boards: [board] }))
     const created = captureRequests('post', '*/api/gentasks/v1/boards', () => HttpResponse.json(board, { status: 201 }))
@@ -41,13 +41,13 @@ describe('boardsDatasource', () => {
     await expect(listBoards()).resolves.toEqual([board])
     await expect(createBoard('Platform')).resolves.toEqual(board)
     await expect(readBoard('board/1')).resolves.toEqual(board)
-    await renameBoard('board-1', 'Renamed')
+    await updateBoard('board-1', { taskPrefix: 'CORE' })
     await expect(deleteBoard('board-1')).resolves.toBeUndefined()
 
     expect(created[0]?.body).toEqual({ name: 'Platform' })
     expect(created[0]?.headers.get('Authorization')).toBe('Bearer token-1')
     expect(read[0]?.path).toBe('/api/gentasks/v1/boards/board%2F1')
-    expect(renamed[0]?.body).toEqual({ name: 'Renamed' })
+    expect(renamed[0]?.body).toEqual({ taskPrefix: 'CORE' })
     expect(deleted[0]?.path).toBe('/api/gentasks/v1/boards/board-1')
   })
 
@@ -67,6 +67,11 @@ describe('boardsDatasource', () => {
     expect(renamed[0]?.body).toEqual({ name: null })
     expect(moved[0]?.body).toEqual({ position: 1 })
     expect(deleted[0]?.path).toBe('/api/gentasks/v1/columns/column-review')
+  })
+
+  it('surfaces a taken task prefix', async () => {
+    captureRequests('patch', '*/api/gentasks/v1/boards/:token', () => errorResponse(409, 'task_prefix_taken'))
+    await expect(updateBoard('board-1', { taskPrefix: 'OTH' })).rejects.toMatchObject({ status: 409, code: 'task_prefix_taken' })
   })
 
   it('surfaces the column deletion conflicts', async () => {

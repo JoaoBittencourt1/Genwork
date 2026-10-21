@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
-import { EMPTY_FILTER, filterBoardView, isFilterActive, matchesFilter, toggleValue, UNASSIGNED } from './filters'
+import { EMPTY_FILTER, filterBoardView, isFilterActive, matchesFilter, selectedNames, toggleValue, UNASSIGNED } from './filters'
 import type { BoardView } from './types'
 
 function boardWithVariedTasks(): BoardView {
@@ -42,5 +42,13 @@ describe('filters', () => {
   it('toggles values in and out', () => {
     expect(toggleValue(['low'], 'high')).toEqual(['low', 'high'])
     expect(toggleValue(['low', 'high'], 'low')).toEqual(['high'])
+  })
+
+  it('names the selected options in order', () => {
+    const options = [
+      { token: 'a', name: 'Ana' },
+      { token: 'b', name: 'Bruno' },
+    ]
+    expect(selectedNames(['b', 'a', 'gone'], options)).toBe('Bruno, Ana, gone')
   })
 })

@@ -1,5 +1,5 @@
 import { apiRequest } from '@/shared/datasource/httpClient'
-import type { BoardSummary, BoardView, Column, CreatedBoard } from '../domain/types'
+import type { BoardPatch, BoardSummary, BoardView, Column, CreatedBoard } from '../domain/types'
 
 const BOARDS_PATH = '/api/gentasks/v1/boards'
 const COLUMNS_PATH = '/api/gentasks/v1/columns'
@@ -16,8 +16,8 @@ export function readBoard(boardToken: string): Promise<BoardView> {
   return apiRequest<BoardView>('GET', `${BOARDS_PATH}/${encodeURIComponent(boardToken)}`)
 }
 
-export function renameBoard(boardToken: string, name: string): Promise<BoardSummary> {
-  return apiRequest<BoardSummary>('PATCH', `${BOARDS_PATH}/${encodeURIComponent(boardToken)}`, { body: { name } })
+export function updateBoard(boardToken: string, patch: BoardPatch): Promise<BoardSummary> {
+  return apiRequest<BoardSummary>('PATCH', `${BOARDS_PATH}/${encodeURIComponent(boardToken)}`, { body: patch })
 }
 
 export function deleteBoard(boardToken: string): Promise<void> {

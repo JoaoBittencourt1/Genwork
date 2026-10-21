@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { boardViewFixture } from '@/test/gentasksFixtures'
-import { columnDragId, isTaskDragEnabled, parseDragId, resolveDrop, taskDragId } from './dragAndDrop'
+import { columnDragId, isTaskDragEnabled, parseDragId, resolveDragOver, resolveDrop, taskDragId, taskListId } from './dragAndDrop'
 import { EMPTY_FILTER } from './filters'
 
 describe('drag ids', () => {
@@ -8,6 +8,7 @@ describe('drag ids', () => {
     expect(parseDragId(taskDragId('task-A'))).toEqual({ kind: 'task', token: 'task-A' })
     expect(parseDragId(columnDragId('column-todo'))).toEqual({ kind: 'column', token: 'column-todo' })
     expect(parseDragId('something')).toBeUndefined()
+    expect(parseDragId(taskListId('column-todo'))).toBeUndefined()
   })
 })
 
@@ -55,6 +56,38 @@ describe('resolveDrop', () => {
     expect(resolveDrop(view, taskDragId('task-A'), columnDragId('missing'))).toBeUndefined()
     expect(resolveDrop(view, taskDragId('task-A'), taskDragId('missing'))).toBeUndefined()
     expect(resolveDrop(view, columnDragId('column-todo'), taskDragId('missing'))).toBeUndefined()
+  })
+})
+
+describe('resolveDragOver', () => {
+  const view = boardViewFixture()
+
+  it('moves a task into the column it is dragged over, in the place of the hovered task', () => {
+    expect(resolveDragOver(view, taskDragId('task-A'), taskDragId('task-D'))).toEqual({
+      taskToken: 'task-A',
+      toColumnToken: 'column-todo',
+      toPosition: 0,
+    })
+  })
+
+  it('appends a task dragged over the empty part of another column', () => {
+    expect(resolveDragOver(view, taskDragId('task-D'), columnDragId('column-backlog'))).toEqual({
+      taskToken: 'task-D',
+      toColumnToken: 'column-backlog',
+      toPosition: 3,
+    })
+  })
+
+  it('leaves reordering within a column to the sortable list', () => {
+    expect(resolveDragOver(view, taskDragId('task-A'), taskDragId('task-C'))).toBeUndefined()
+    expect(resolveDragOver(view, taskDragId('task-A'), columnDragId('column-backlog'))).toBeUndefined()
+  })
+
+  it('ignores columns being dragged and unknown targets', () => {
+    expect(resolveDragOver(view, columnDragId('column-todo'), columnDragId('column-done'))).toBeUndefined()
+    expect(resolveDragOver(view, taskDragId('task-A'), undefined)).toBeUndefined()
+    expect(resolveDragOver(view, taskDragId('task-A'), columnDragId('missing'))).toBeUndefined()
+    expect(resolveDragOver(view, taskDragId('missing'), columnDragId('column-done'))).toBeUndefined()
   })
 })
 

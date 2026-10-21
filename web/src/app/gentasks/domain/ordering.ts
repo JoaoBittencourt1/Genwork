@@ -46,6 +46,11 @@ export function isSameLocation(view: BoardView, move: TaskMove): boolean {
   return location?.columnToken === move.toColumnToken && location.index === move.toPosition
 }
 
+// haveSameContent tells whether two versions of a task look the same on a card: a new position alone changes nothing.
+export function haveSameContent(left: Task, right: Task): boolean {
+  return left === right || (Object.keys(left) as (keyof Task)[]).every((key) => key === 'position' || left[key] === right[key])
+}
+
 function renumberTasks(tasks: Task[]): Task[] {
   return tasks.map((task, index) => (task.position === index ? task : { ...task, position: index }))
 }

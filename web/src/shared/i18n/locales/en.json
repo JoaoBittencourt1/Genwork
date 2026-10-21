@@ -108,7 +108,8 @@
     "task_archived": "Archived tasks cannot be moved. Restore it first.",
     "core_unavailable": "Could not check the assignee right now. Try again.",
     "service_unavailable": "The service is unavailable. Try again.",
-    "user_not_found": "User not found."
+    "user_not_found": "User not found.",
+    "task_prefix_taken": "Another board already uses this identifier."
   },
   "common": {
     "cancel": "Cancel",
@@ -128,17 +129,14 @@
       "empty": "No boards yet.",
       "create": "New board",
       "createTitle": "New board",
-      "rename": "Rename",
-      "renameTitle": "Rename board",
       "name": "Name",
       "actions": "Actions for {{name}}",
-      "updatedAt": "Updated {{date}}",
       "deleteTitle": "Delete board?",
-      "deleteDescription": "“{{name}}” and all its columns, tasks, and labels will be removed."
+      "deleteDescription": "“{{name}}” and all its columns, tasks, and labels will be removed.",
+      "updated": "Updated",
+      "actionsColumn": "Actions"
     },
     "board": {
-      "back": "Back to boards",
-      "labels": "Labels",
       "archived": "Archived",
       "addColumn": "Add column",
       "addColumnTitle": "New column",
@@ -151,7 +149,8 @@
       "columnName": "Column name",
       "columnActions": "Actions for column {{title}}",
       "dragColumn": "Move column {{title}}",
-      "addTask": "Add task"
+      "addTaskTo": "Add task to {{title}}",
+      "newTask": "New task"
     },
     "columnPresets": {
       "backlog": "Backlog",
@@ -178,7 +177,6 @@
     },
     "task": {
       "newTitle": "New task",
-      "editTitle": "Task",
       "title": "Title",
       "description": "Description",
       "assignee": "Assignee",
@@ -186,16 +184,22 @@
       "urgency": "Urgency",
       "labels": "Labels",
       "noLabels": "No labels",
-      "noLabelsOnBoard": "Create labels in “Labels” first",
+      "noLabelsOnBoard": "Create labels in the board settings first",
       "create": "Create task",
       "archive": "Archive",
       "deleteTitle": "Delete task?",
       "deleteDescription": "“{{title}}” will be deleted.",
-      "dragHandle": "Move task {{title}}"
+      "dragHandle": "Move task {{title}}",
+      "titlePlaceholder": "Task title",
+      "descriptionPlaceholder": "Add a description…",
+      "dialogDescription": "Edit the task title, description, and properties.",
+      "properties": "Properties",
+      "status": "Status",
+      "createdAt": "Created {{date}}"
     },
     "labels": {
       "title": "Labels",
-      "description": "Labels belong to this board.",
+      "description": "Labels belong to this board and can be attached to its tasks.",
       "name": "Label name",
       "color": "Color",
       "newPlaceholder": "New label",
@@ -214,7 +218,20 @@
       "labels": "Labels",
       "assignee": "Assignee",
       "clear": "Clear filters",
-      "dragDisabled": "Clear the filters to drag tasks."
+      "dragDisabled": "Clear the filters to drag tasks.",
+      "title": "Filter",
+      "remove": "Remove the {{label}} filter"
+    },
+    "settings": {
+      "title": "Settings",
+      "general": "General",
+      "generalDescription": "Name and task identifier of this board.",
+      "taskPrefix": "Identifier",
+      "taskPrefixDescription": "Tasks are shown as {{example}}. Use 1 to 10 letters or digits, starting with a letter. Changing it updates the identifier of every task.",
+      "saved": "Settings saved.",
+      "dangerZone": "Danger zone",
+      "dangerZoneDescription": "Deleting the board removes its columns, tasks, and labels.",
+      "deleteBoard": "Delete board"
     }
   }
 }
