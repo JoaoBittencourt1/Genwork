@@ -12,6 +12,7 @@ export const PERMISSIONS = {
   inviteCreate: 'core.invite.create',
   inviteRead: 'core.invite.read',
   inviteRevoke: 'core.invite.revoke',
+  userRead: 'core.user.read',
 } as const
 
 export type SessionGateway = {

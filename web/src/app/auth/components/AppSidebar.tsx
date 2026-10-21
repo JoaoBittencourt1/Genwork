@@ -1,6 +1,9 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { HomeIcon, UsersIcon } from 'lucide-react'
+import { HomeIcon, KanbanSquareIcon, UsersIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { GENTASKS_PERMISSIONS } from '@/app/gentasks/domain/permissions'
+import { useCapabilities } from '@/shared/components/CapabilitiesContext'
+import { isModuleEnabled, MODULE_IDS } from '@/shared/domain/capabilities'
 import { useInstanceName } from '@/shared/hooks/useInstanceName'
 import {
   Sidebar,
@@ -21,12 +24,19 @@ import { UserMenu } from './UserMenu'
 export function AppSidebar() {
   const { t } = useTranslation()
   const { can } = useAuth()
+  const { enabledModules } = useCapabilities()
   const { setOpenMobile } = useSidebar()
   const matchRoute = useMatchRoute()
   const instanceName = useInstanceName() ?? t('app.name')
 
   const navigationEntries = [
     { to: '/', label: t('app.nav.home'), icon: HomeIcon, visible: true },
+    {
+      to: '/tasks',
+      label: t('app.nav.tasks'),
+      icon: KanbanSquareIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.gentasks) && can(GENTASKS_PERMISSIONS.boardRead),
+    },
     { to: '/members', label: t('app.nav.members'), icon: UsersIcon, visible: can(PERMISSIONS.inviteRead) },
   ] as const
 

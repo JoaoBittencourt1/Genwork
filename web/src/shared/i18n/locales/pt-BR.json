@@ -2,7 +2,11 @@
   "app": {
     "name": "Genwork",
     "loading": "Carregando…",
-    "nav": { "home": "Início", "members": "Membros" },
+    "nav": {
+      "home": "Início",
+      "members": "Membros",
+      "tasks": "Tarefas"
+    },
     "navigation": "Navegação",
     "toggleSidebar": "Mostrar ou ocultar a barra lateral",
     "signOut": "Sair"
@@ -52,8 +56,20 @@
     "emailSent": "E-mail enviado para {{email}}.",
     "emailNotSent": "Não foi possível enviar o e-mail. Copie o link e envie manualmente.",
     "empty": "Nenhum convite ainda.",
-    "columns": { "email": "E-mail", "role": "Papel", "status": "Status", "invitedBy": "Convidado por", "expiresAt": "Expira em", "actions": "Ações" },
-    "status": { "pending": "Pendente", "accepted": "Aceito", "revoked": "Revogado", "expired": "Expirado" },
+    "columns": {
+      "email": "E-mail",
+      "role": "Papel",
+      "status": "Status",
+      "invitedBy": "Convidado por",
+      "expiresAt": "Expira em",
+      "actions": "Ações"
+    },
+    "status": {
+      "pending": "Pendente",
+      "accepted": "Aceito",
+      "revoked": "Revogado",
+      "expired": "Expirado"
+    },
     "resend": "Reenviar",
     "revoke": "Revogar"
   },
@@ -79,7 +95,126 @@
     "fields": {
       "invalid": "Valor inválido.",
       "unknown": "Opção desconhecida.",
-      "too_long": "Valor muito longo."
+      "too_long": "Valor muito longo.",
+      "required": "Obrigatório."
+    },
+    "board_not_found": "Quadro não encontrado.",
+    "column_not_found": "Coluna não encontrada.",
+    "column_not_empty": "Esta coluna ainda tem tarefas. Mova, arquive ou exclua as tarefas antes — as arquivadas também contam.",
+    "last_column": "Um quadro precisa de pelo menos uma coluna.",
+    "label_not_found": "Label não encontrada.",
+    "label_name_taken": "Este quadro já tem uma label com esse nome.",
+    "task_not_found": "Tarefa não encontrada.",
+    "task_archived": "Tarefas arquivadas não podem ser movidas. Restaure-a antes.",
+    "core_unavailable": "Não foi possível verificar o responsável agora. Tente novamente.",
+    "service_unavailable": "O serviço está indisponível. Tente novamente.",
+    "user_not_found": "Usuário não encontrado."
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "saving": "Salvando…",
+    "delete": "Excluir"
+  },
+  "modules": {
+    "unavailableTitle": "Módulo indisponível",
+    "unavailableDescription": "Este módulo não está habilitado nesta instalação."
+  },
+  "gentasks": {
+    "noPermissionTitle": "Sem permissão",
+    "noPermissionDescription": "Você não tem permissão para ver os quadros de tarefas.",
+    "boards": {
+      "title": "Quadros de tarefas",
+      "empty": "Nenhum quadro ainda.",
+      "create": "Novo quadro",
+      "createTitle": "Novo quadro",
+      "rename": "Renomear",
+      "renameTitle": "Renomear quadro",
+      "name": "Nome",
+      "actions": "Ações de {{name}}",
+      "updatedAt": "Atualizado em {{date}}",
+      "deleteTitle": "Excluir quadro?",
+      "deleteDescription": "“{{name}}” e todas as suas colunas, tarefas e labels serão removidos."
+    },
+    "board": {
+      "back": "Voltar aos quadros",
+      "labels": "Labels",
+      "archived": "Arquivadas",
+      "addColumn": "Adicionar coluna",
+      "addColumnTitle": "Nova coluna",
+      "renameColumn": "Renomear",
+      "renameColumnTitle": "Renomear coluna",
+      "resetColumnName": "Usar nome padrão",
+      "deleteColumn": "Excluir coluna",
+      "deleteColumnTitle": "Excluir coluna?",
+      "deleteColumnDescription": "A coluna “{{title}}” será removida. Ela não pode ter tarefas, nem arquivadas.",
+      "columnName": "Nome da coluna",
+      "columnActions": "Ações da coluna {{title}}",
+      "dragColumn": "Mover coluna {{title}}",
+      "addTask": "Adicionar tarefa"
+    },
+    "columnPresets": {
+      "backlog": "Backlog",
+      "todo": "A fazer",
+      "done": "Concluído"
+    },
+    "urgency": {
+      "none": "Sem urgência",
+      "low": "Baixa",
+      "medium": "Média",
+      "high": "Alta",
+      "urgent": "Urgente"
+    },
+    "labelColors": {
+      "gray": "Cinza",
+      "red": "Vermelho",
+      "orange": "Laranja",
+      "yellow": "Amarelo",
+      "green": "Verde",
+      "teal": "Verde-azulado",
+      "blue": "Azul",
+      "purple": "Roxo",
+      "pink": "Rosa"
+    },
+    "task": {
+      "newTitle": "Nova tarefa",
+      "editTitle": "Tarefa",
+      "title": "Título",
+      "description": "Descrição",
+      "assignee": "Responsável",
+      "unassigned": "Sem responsável",
+      "urgency": "Urgência",
+      "labels": "Labels",
+      "noLabels": "Sem labels",
+      "noLabelsOnBoard": "Crie labels em “Labels” primeiro",
+      "create": "Criar tarefa",
+      "archive": "Arquivar",
+      "deleteTitle": "Excluir tarefa?",
+      "deleteDescription": "“{{title}}” será excluída.",
+      "dragHandle": "Mover tarefa {{title}}"
+    },
+    "labels": {
+      "title": "Labels",
+      "description": "As labels pertencem a este quadro.",
+      "name": "Nome da label",
+      "color": "Cor",
+      "newPlaceholder": "Nova label",
+      "create": "Adicionar",
+      "empty": "Nenhuma label ainda.",
+      "delete": "Excluir label {{name}}"
+    },
+    "archived": {
+      "title": "Tarefas arquivadas",
+      "empty": "Nenhuma tarefa arquivada.",
+      "restore": "Restaurar",
+      "archivedAt": "Arquivada em {{date}}"
+    },
+    "filters": {
+      "urgency": "Urgência",
+      "labels": "Labels",
+      "assignee": "Responsável",
+      "clear": "Limpar filtros",
+      "dragDisabled": "Limpe os filtros para arrastar tarefas."
     }
   }
 }
