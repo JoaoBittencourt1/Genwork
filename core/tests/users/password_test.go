@@ -1,14 +1,15 @@
-package users
+package users_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/users"
 	"strings"
 	"testing"
 )
 
-var fastParams = PasswordParams{MemoryKiB: 8 * 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32}
+var fastParams = users.PasswordParams{MemoryKiB: 8 * 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32}
 
 func TestHashUsesArgon2idPHCFormatWithUniqueSalt(t *testing.T) {
-	hasher := NewPasswordHasher(fastParams, 2)
+	hasher := users.NewPasswordHasher(fastParams, 2)
 	first := hasher.Hash("correct horse battery")
 	second := hasher.Hash("correct horse battery")
 
@@ -24,7 +25,7 @@ func TestHashUsesArgon2idPHCFormatWithUniqueSalt(t *testing.T) {
 }
 
 func TestVerifyMatchesOnlyTheRightPassword(t *testing.T) {
-	hasher := NewPasswordHasher(fastParams, 2)
+	hasher := users.NewPasswordHasher(fastParams, 2)
 	encoded := hasher.Hash("correct horse battery")
 
 	if matches, _, err := hasher.Verify("correct horse battery", encoded); err != nil || !matches {
@@ -36,10 +37,10 @@ func TestVerifyMatchesOnlyTheRightPassword(t *testing.T) {
 }
 
 func TestVerifyFlagsHashesWithWeakerParameters(t *testing.T) {
-	weak := NewPasswordHasher(fastParams, 1).Hash("correct horse battery")
+	weak := users.NewPasswordHasher(fastParams, 1).Hash("correct horse battery")
 	stronger := fastParams
 	stronger.MemoryKiB = 16 * 1024
-	hasher := NewPasswordHasher(stronger, 1)
+	hasher := users.NewPasswordHasher(stronger, 1)
 
 	matches, needsRehash, err := hasher.Verify("correct horse battery", weak)
 	if err != nil || !matches || !needsRehash {
@@ -51,7 +52,7 @@ func TestVerifyFlagsHashesWithWeakerParameters(t *testing.T) {
 }
 
 func TestVerifyRejectsMalformedHashes(t *testing.T) {
-	hasher := NewPasswordHasher(fastParams, 1)
+	hasher := users.NewPasswordHasher(fastParams, 1)
 	for _, encoded := range []string{"", "plain", "$argon2i$v=19$m=1,t=1,p=1$c2FsdA$aGFzaA", "$argon2id$v=19$m=x$c2FsdA$aGFzaA"} {
 		if _, _, err := hasher.Verify("whatever password", encoded); err == nil {
 			t.Errorf("expected error for %q", encoded)
@@ -60,8 +61,8 @@ func TestVerifyRejectsMalformedHashes(t *testing.T) {
 }
 
 func TestDefaultParametersMeetTheConstitutionBaseline(t *testing.T) {
-	if DefaultPasswordParams.MemoryKiB < 64*1024 || DefaultPasswordParams.Iterations < 3 || DefaultPasswordParams.Parallelism < 2 {
-		t.Fatalf("default parameters below rule 66 baseline: %+v", DefaultPasswordParams)
+	if users.DefaultPasswordParams.MemoryKiB < 64*1024 || users.DefaultPasswordParams.Iterations < 3 || users.DefaultPasswordParams.Parallelism < 2 {
+		t.Fatalf("default parameters below rule 66 baseline: %+v", users.DefaultPasswordParams)
 	}
 }
 
@@ -74,14 +75,14 @@ func TestValidatePasswordLengthCountsCodePoints(t *testing.T) {
 		strings.Repeat("a", 129): false,
 	}
 	for password, valid := range cases {
-		if err := ValidatePasswordLength(password); (err == nil) != valid {
+		if err := users.ValidatePasswordLength(password); (err == nil) != valid {
 			t.Errorf("ValidatePasswordLength(%d runes) error=%v, want valid=%v", len([]rune(password)), err, valid)
 		}
 	}
 }
 
 func TestNormalizeAndValidateEmail(t *testing.T) {
-	if NormalizeEmail("  Ana@Example.COM ") != "ana@example.com" {
+	if users.NormalizeEmail("  Ana@Example.COM ") != "ana@example.com" {
 		t.Error("e-mail must be trimmed and lower-cased")
 	}
 	for email, valid := range map[string]bool{
@@ -90,7 +91,7 @@ func TestNormalizeAndValidateEmail(t *testing.T) {
 		"Ana <ana@example.com>": false,
 		"":                      false,
 	} {
-		if IsValidEmail(email) != valid {
+		if users.IsValidEmail(email) != valid {
 			t.Errorf("IsValidEmail(%q) = %v", email, !valid)
 		}
 	}

@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"bufio"
@@ -16,30 +16,30 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type adminCreateOptions struct {
-	email         string
-	name          string
-	passwordStdin bool
+type AdminCreateOptions struct {
+	Email         string
+	Name          string
+	PasswordStdin bool
 }
 
-func parseAdminCreateOptions(args []string) (adminCreateOptions, error) {
-	var options adminCreateOptions
+func ParseAdminCreateOptions(args []string) (AdminCreateOptions, error) {
+	var options AdminCreateOptions
 	flags := flag.NewFlagSet("admin create", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	flags.StringVar(&options.email, "email", "", "administrator e-mail")
-	flags.StringVar(&options.name, "name", "", "administrator name")
-	flags.BoolVar(&options.passwordStdin, "password-stdin", false, "read the password from standard input")
+	flags.StringVar(&options.Email, "email", "", "administrator e-mail")
+	flags.StringVar(&options.Name, "name", "", "administrator name")
+	flags.BoolVar(&options.PasswordStdin, "password-stdin", false, "read the password from standard input")
 	if err := flags.Parse(args); err != nil {
-		return adminCreateOptions{}, err
+		return AdminCreateOptions{}, err
 	}
-	if strings.TrimSpace(options.email) == "" || strings.TrimSpace(options.name) == "" || !options.passwordStdin {
-		return adminCreateOptions{}, errors.New("usage: core admin create --email <email> --name <name> --password-stdin")
+	if strings.TrimSpace(options.Email) == "" || strings.TrimSpace(options.Name) == "" || !options.PasswordStdin {
+		return AdminCreateOptions{}, errors.New("usage: core admin create --email <email> --name <name> --password-stdin")
 	}
 	return options, nil
 }
 
-// readPasswordLine keeps the password out of arguments and environment, where other processes could read it.
-func readPasswordLine(stdin io.Reader) (string, error) {
+// ReadPasswordLine keeps the password out of arguments and environment, where other processes could read it.
+func ReadPasswordLine(stdin io.Reader) (string, error) {
 	line, err := bufio.NewReader(stdin).ReadString('\n')
 	if err != nil && !errors.Is(err, io.EOF) {
 		return "", fmt.Errorf("read password: %w", err)
@@ -47,12 +47,12 @@ func readPasswordLine(stdin io.Reader) (string, error) {
 	return strings.TrimRight(line, "\r\n"), nil
 }
 
-func runAdminCreate(ctx context.Context, getenv platform.Getenv, schema string, args []string, stdin io.Reader, stdout io.Writer) error {
-	options, err := parseAdminCreateOptions(args)
+func RunAdminCreate(ctx context.Context, getenv platform.Getenv, schema string, args []string, stdin io.Reader, stdout io.Writer) error {
+	options, err := ParseAdminCreateOptions(args)
 	if err != nil {
 		return err
 	}
-	password, err := readPasswordLine(stdin)
+	password, err := ReadPasswordLine(stdin)
 	if err != nil {
 		return err
 	}
@@ -66,9 +66,9 @@ func runAdminCreate(ctx context.Context, getenv platform.Getenv, schema string, 
 	}
 	defer db.Close()
 
-	user, err := createAdministrator(ctx, db, users.DefaultPasswordParams, options.email, options.name, password)
+	user, err := CreateAdministrator(ctx, db, users.DefaultPasswordParams, options.Email, options.Name, password)
 	if err != nil {
-		return describeAdminCreateError(err)
+		return DescribeAdminCreateError(err)
 	}
 	_, err = fmt.Fprintf(stdout, "administrator created: %s (%s)\n", user.Email, user.Token)
 	return err
@@ -79,8 +79,8 @@ var adminCreateMessages = map[string]string{
 	"email_already_registered": "a user with this e-mail already exists",
 }
 
-// describeAdminCreateError keeps the machine-readable code and adds a sentence for the operator reading the terminal.
-func describeAdminCreateError(err error) error {
+// DescribeAdminCreateError keeps the machine-readable code and adds a sentence for the operator reading the terminal.
+func DescribeAdminCreateError(err error) error {
 	var apiErr *platform.APIError
 	if !errors.As(err, &apiErr) {
 		return err
@@ -99,7 +99,7 @@ func describeAdminCreateError(err error) error {
 	return apiErr
 }
 
-func createAdministrator(ctx context.Context, db *pgxpool.Pool, params users.PasswordParams, email, name, password string) (users.User, error) {
+func CreateAdministrator(ctx context.Context, db *pgxpool.Pool, params users.PasswordParams, email, name, password string) (users.User, error) {
 	adminRole, err := access.RoleRepository{}.FindByName(ctx, db, access.RoleNameAdmin)
 	if err != nil {
 		return users.User{}, err

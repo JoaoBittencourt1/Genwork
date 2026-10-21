@@ -1,6 +1,7 @@
-package platform
+package platform_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +15,7 @@ func (clock *fakeClock) advance(by time.Duration) { clock.current = clock.curren
 
 func TestRateLimiterAllowsBurstThenBlocksWithRetryAfter(t *testing.T) {
 	clock := &fakeClock{current: time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)}
-	limiter := NewRateLimiter(RateLimit{PerMinute: 6, Burst: 2}, clock.now)
+	limiter := platform.NewRateLimiter(platform.RateLimit{PerMinute: 6, Burst: 2}, clock.now)
 
 	for attempt := 1; attempt <= 2; attempt++ {
 		if allowed, _ := limiter.Allow("a"); !allowed {
@@ -39,8 +40,8 @@ func TestRateLimiterAllowsBurstThenBlocksWithRetryAfter(t *testing.T) {
 
 func TestRateLimitMiddlewareResponds429(t *testing.T) {
 	clock := &fakeClock{current: time.Now()}
-	limiter := NewRateLimiter(RateLimit{PerMinute: 1, Burst: 1}, clock.now)
-	handler := RateLimitByClientAddress(limiter, NewClientAddressResolver(nil), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	limiter := platform.NewRateLimiter(platform.RateLimit{PerMinute: 1, Burst: 1}, clock.now)
+	handler := platform.RateLimitByClientAddress(limiter, platform.NewClientAddressResolver(nil), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 

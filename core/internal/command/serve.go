@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/users"
 )
 
-func runServe(ctx context.Context, getenv platform.Getenv, schema string) error {
+func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error {
 	config, err := platform.LoadServeConfig(getenv)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func runServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	defer db.Close()
 
 	handler := app.New(app.Settings{
-		Version:        version,
+		Version:        Version,
 		PublicURL:      config.PublicURL,
 		InstanceName:   config.InstanceName,
 		DefaultLocale:  config.DefaultLocale,
@@ -51,7 +51,7 @@ func runServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	}
 	serverErrors := make(chan error, 1)
 	go func() {
-		slog.Info("core listening", "addr", config.HTTPAddr, "version", version)
+		slog.Info("core listening", "addr", config.HTTPAddr, "version", Version)
 		serverErrors <- server.ListenAndServe()
 	}()
 

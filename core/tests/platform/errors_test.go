@@ -1,7 +1,8 @@
-package platform
+package platform_test
 
 import (
 	"errors"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 func TestWriteErrorShapesAPIErrors(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	WriteError(recorder, httptest.NewRequest("GET", "/", nil), NewValidationError(map[string]string{"email": "invalid"}))
+	platform.WriteError(recorder, httptest.NewRequest("GET", "/", nil), platform.NewValidationError(map[string]string{"email": "invalid"}))
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d", recorder.Code)
@@ -23,7 +24,7 @@ func TestWriteErrorShapesAPIErrors(t *testing.T) {
 
 func TestWriteErrorHidesUnexpectedErrors(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	WriteError(recorder, httptest.NewRequest("GET", "/", nil), errors.New("connection refused to 10.0.0.5"))
+	platform.WriteError(recorder, httptest.NewRequest("GET", "/", nil), errors.New("connection refused to 10.0.0.5"))
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Fatalf("status = %d", recorder.Code)
@@ -39,14 +40,14 @@ func TestDecodeJSONRejectsUnknownFieldsAndTrailingData(t *testing.T) {
 	}
 	for _, body := range []string{`{"email":"a","extra":1}`, `{"email":"a"}{}`, `not json`} {
 		request := httptest.NewRequest("POST", "/", strings.NewReader(body))
-		if err := DecodeJSON(httptest.NewRecorder(), request, &target); err != ErrMalformedBody {
-			t.Errorf("DecodeJSON(%q) = %v, want ErrMalformedBody", body, err)
+		if err := platform.DecodeJSON(httptest.NewRecorder(), request, &target); err != platform.ErrMalformedBody {
+			t.Errorf("DecodeJSON(%q) = %v, want platform.ErrMalformedBody", body, err)
 		}
 	}
 }
 
 func TestAPIErrorMessageIsItsCode(t *testing.T) {
-	if got := NewAPIError(http.StatusConflict, "invite_not_pending").Error(); got != "invite_not_pending" {
+	if got := platform.NewAPIError(http.StatusConflict, "invite_not_pending").Error(); got != "invite_not_pending" {
 		t.Errorf("Error() = %q", got)
 	}
 }

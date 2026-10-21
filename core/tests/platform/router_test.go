@@ -1,6 +1,7 @@
-package platform
+package platform_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,10 +27,10 @@ func okHandler(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.Stat
 
 func TestRouterAppliesDeclaredPolicies(t *testing.T) {
 	guard := &recordingGuard{}
-	router := NewRouter(guard, guard)
-	router.HandleFunc("GET /public", Public, okHandler)
-	router.HandleFunc("GET /private", Authenticated, okHandler)
-	router.HandleFunc("GET /admin", RequirePermission("core.invite.read"), okHandler)
+	router := platform.NewRouter(guard, guard)
+	router.HandleFunc("GET /public", platform.Public, okHandler)
+	router.HandleFunc("GET /private", platform.Authenticated, okHandler)
+	router.HandleFunc("GET /admin", platform.RequirePermission("core.invite.read"), okHandler)
 
 	for _, path := range []string{"/public", "/private", "/admin"} {
 		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
@@ -48,7 +49,7 @@ func TestRouterPanicsWithoutPolicy(t *testing.T) {
 			t.Fatal("expected a panic for a route without policy")
 		}
 	}()
-	NewRouter(&recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", Policy{}, okHandler)
+	platform.NewRouter(&recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", platform.Policy{}, okHandler)
 }
 
 func TestRouterPanicsOnEmptyPermission(t *testing.T) {
@@ -57,5 +58,5 @@ func TestRouterPanicsOnEmptyPermission(t *testing.T) {
 			t.Fatal("expected a panic for an empty permission")
 		}
 	}()
-	NewRouter(&recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", RequirePermission(""), okHandler)
+	platform.NewRouter(&recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", platform.RequirePermission(""), okHandler)
 }

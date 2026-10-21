@@ -1,6 +1,7 @@
-package platform
+package platform_test
 
 import (
+	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"net/http/httptest"
 	"net/netip"
 	"testing"
@@ -22,7 +23,7 @@ func TestClientAddressResolver(t *testing.T) {
 		{"garbage entry falls back to peer", "10.0.0.2:5000", "not-an-ip", "10.0.0.2"},
 		{"trusted proxy without header", "10.0.0.2:5000", "", "10.0.0.2"},
 	}
-	resolver := NewClientAddressResolver(trusted)
+	resolver := platform.NewClientAddressResolver(trusted)
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			request := httptest.NewRequest("GET", "/", nil)

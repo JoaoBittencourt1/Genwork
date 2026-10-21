@@ -1,9 +1,10 @@
-package app
+package app_test
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/app"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,7 +29,7 @@ const (
 
 var testPasswordParams = users.PasswordParams{MemoryKiB: 8 * 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32}
 
-var generousRateLimits = RateLimits{
+var generousRateLimits = app.RateLimits{
 	Login:       platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	Refresh:     platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	Invitations: platform.RateLimit{PerMinute: 10000, Burst: 10000},
@@ -59,14 +60,14 @@ type testApp struct {
 	mailer  *mailtest.Recorder
 }
 
-type testAppOption func(*Settings)
+type testAppOption func(*app.Settings)
 
-func withRateLimits(limits RateLimits) testAppOption {
-	return func(settings *Settings) { settings.RateLimits = limits }
+func withRateLimits(limits app.RateLimits) testAppOption {
+	return func(settings *app.Settings) { settings.RateLimits = limits }
 }
 
 func withPasswordParams(params users.PasswordParams) testAppOption {
-	return func(settings *Settings) { settings.PasswordParams = params }
+	return func(settings *app.Settings) { settings.PasswordParams = params }
 }
 
 func newTestApp(t *testing.T, options ...testAppOption) *testApp {
@@ -75,7 +76,7 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 	if err != nil {
 		t.Fatalf("signing key: %v", err)
 	}
-	settings := Settings{
+	settings := app.Settings{
 		Version:        "test",
 		PublicURL:      testPublicURL,
 		InstanceName:   testInstanceName,
@@ -93,7 +94,7 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 	db := dbtest.NewMigratedSchema(t)
 	return &testApp{
 		t:       t,
-		handler: New(settings, Dependencies{DB: db, Mailer: mailer, Now: clock.Now}),
+		handler: app.New(settings, app.Dependencies{DB: db, Mailer: mailer, Now: clock.Now}),
 		db:      db,
 		clock:   clock,
 		mailer:  mailer,

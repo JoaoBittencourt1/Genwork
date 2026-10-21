@@ -3,56 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/command"
 )
-
-var version = "dev"
-
-const usage = `usage: core <command>
-
-commands:
-  serve          run the HTTP API
-  worker         run background jobs
-  migrate        apply database migrations
-  admin create   create an administrator (--email, --name, --password-stdin)
-  keygen         print a new JWT signing key`
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if err := run(ctx, os.Args[1:], os.Getenv, os.Stdin, os.Stdout); err != nil {
+	if err := command.Run(ctx, os.Args[1:], os.Getenv, os.Stdin, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	}
-}
-
-func run(ctx context.Context, args []string, getenv platform.Getenv, stdin io.Reader, stdout io.Writer) error {
-	if len(args) == 0 {
-		return fmt.Errorf("%s", usage)
-	}
-	switch args[0] {
-	case "serve":
-		return runServe(ctx, getenv, platform.CoreSchema)
-	case "worker":
-		return runWorker(ctx)
-	case "migrate":
-		return runMigrate(ctx, getenv, platform.CoreSchema)
-	case "admin":
-		if len(args) < 2 || args[1] != "create" {
-			return fmt.Errorf("%s", usage)
-		}
-		return runAdminCreate(ctx, getenv, platform.CoreSchema, args[2:], stdin, stdout)
-	case "keygen":
-		return runKeygen(stdout)
-	default:
-		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
 }
