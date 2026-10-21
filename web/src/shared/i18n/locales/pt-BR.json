@@ -1,0 +1,81 @@
+{
+  "app": {
+    "name": "Genwork",
+    "loading": "Carregando…",
+    "nav": { "home": "Início", "invites": "Convites" },
+    "signOut": "Sair"
+  },
+  "login": {
+    "title": "Entrar",
+    "subtitle": "Entre na sua conta de {{instance}}",
+    "email": "E-mail",
+    "password": "Senha",
+    "submit": "Entrar",
+    "submitting": "Entrando…"
+  },
+  "home": {
+    "greeting": "Olá, {{name}}!",
+    "description": "Você está conectado como {{email}} com o papel {{role}}."
+  },
+  "acceptInvite": {
+    "title": "Você foi convidado",
+    "subtitle": "Crie sua conta para entrar em {{instance}}.",
+    "email": "E-mail",
+    "name": "Nome",
+    "password": "Senha",
+    "passwordHint": "Entre 8 e 128 caracteres.",
+    "passwordConfirmation": "Confirme a senha",
+    "submit": "Criar conta e entrar",
+    "submitting": "Criando conta…",
+    "passwordMismatch": "As senhas não conferem.",
+    "notFoundTitle": "Convite não encontrado",
+    "notFoundDescription": "Este convite não existe, expirou, foi revogado ou já foi usado. Peça um novo convite a quem convidou você.",
+    "goToLogin": "Ir para o login"
+  },
+  "invites": {
+    "title": "Convites",
+    "newInvite": "Novo convite",
+    "email": "E-mail",
+    "role": "Papel",
+    "submit": "Convidar",
+    "submitting": "Convidando…",
+    "linkTitle": "Link do convite",
+    "linkDescription": "Envie este link para a pessoa convidada. Ele só pode ser usado uma vez.",
+    "copy": "Copiar link",
+    "copied": "Link copiado",
+    "emailSent": "E-mail enviado para {{email}}.",
+    "emailNotSent": "Não foi possível enviar o e-mail. Copie o link e envie manualmente.",
+    "empty": "Nenhum convite ainda.",
+    "columns": { "email": "E-mail", "role": "Papel", "status": "Status", "invitedBy": "Convidado por", "expiresAt": "Expira em", "actions": "Ações" },
+    "status": { "pending": "Pendente", "accepted": "Aceito", "revoked": "Revogado", "expired": "Expirado" },
+    "resend": "Reenviar",
+    "revoke": "Revogar",
+    "noPermissionTitle": "Sem permissão",
+    "noPermissionDescription": "Você não tem permissão para ver convites."
+  },
+  "errors": {
+    "invalid_credentials": "E-mail ou senha incorretos.",
+    "invalid_token": "Sua sessão terminou. Entre novamente.",
+    "session_revoked": "Sua sessão foi encerrada. Entre novamente.",
+    "session_expired": "Sua sessão expirou. Entre novamente.",
+    "rate_limited": "Muitas tentativas. Aguarde um pouco e tente de novo.",
+    "validation_failed": "Confira os campos destacados.",
+    "password_length_invalid": "A senha precisa ter entre 8 e 128 caracteres.",
+    "email_already_registered": "Este e-mail já tem uma conta.",
+    "invite_already_pending": "Este e-mail já tem um convite pendente. Use “Reenviar” na lista.",
+    "invite_not_pending": "Este convite não está mais pendente.",
+    "invite_not_found": "Convite não encontrado.",
+    "role_not_assignable": "Você não pode convidar alguém com esse papel.",
+    "forbidden": "Você não tem permissão para fazer isso.",
+    "not_found": "Não encontrado.",
+    "malformed_body": "Não foi possível processar a requisição.",
+    "internal_error": "Algo deu errado no servidor. Tente novamente.",
+    "network_error": "Não foi possível falar com o servidor. Verifique sua conexão.",
+    "unknown_error": "Algo deu errado. Tente novamente.",
+    "fields": {
+      "invalid": "Valor inválido.",
+      "unknown": "Opção desconhecida.",
+      "too_long": "Valor muito longo."
+    }
+  }
+}
