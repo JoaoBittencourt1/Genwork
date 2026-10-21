@@ -87,7 +87,7 @@ jobs:
       - run: make build-cli
 
   web:
-    name: Web · Audit · Lint · Test · Build
+    name: Web · Lint (audit) · Test · Build
     needs: changes
     if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
@@ -99,8 +99,6 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-        working-directory: web
-      - run: npm audit --audit-level=high
         working-directory: web
       - run: make lint-web
       - run: make test-web
