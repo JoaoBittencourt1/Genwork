@@ -1,5 +1,5 @@
 import { apiRequest } from '@/shared/datasource/httpClient'
-import type { NewTask, Task, TaskPatch } from '../domain/types'
+import type { AssignedTask, NewTask, Task, TaskPatch } from '../domain/types'
 
 const TASKS_PATH = '/api/gentasks/v1/tasks'
 
@@ -14,6 +14,10 @@ export function createTask(boardToken: string, task: NewTask): Promise<Task> {
 export async function listArchivedTasks(boardToken: string): Promise<Task[]> {
   const path = `/api/gentasks/v1/boards/${encodeURIComponent(boardToken)}/tasks?archived=true`
   return (await apiRequest<{ tasks: Task[] }>('GET', path)).tasks
+}
+
+export async function listAssignedTasks(limit: number): Promise<AssignedTask[]> {
+  return (await apiRequest<{ tasks: AssignedTask[] }>('GET', `/api/gentasks/v1/me/assigned-tasks?limit=${limit}`)).tasks
 }
 
 export function readTask(taskToken: string): Promise<Task> {

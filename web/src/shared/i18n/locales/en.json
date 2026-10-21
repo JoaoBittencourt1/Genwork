@@ -21,7 +21,56 @@
   },
   "home": {
     "greeting": "Hi, {{name}}!",
-    "description": "You are signed in as {{email}} with the {{role}} role."
+    "description": "You are signed in as {{email}} with the {{role}} role.",
+    "onboarding": {
+      "title": "Getting started",
+      "description": "A quick path to get Genwork working for your team.",
+      "progress": "{{done}} of {{total}} done",
+      "complete": "All set! You finished the getting-started steps.",
+      "start": "Start",
+      "stepDone": "Done",
+      "stepOpen": "Not done",
+      "steps": {
+        "createBoard": {
+          "title": "Create a task board",
+          "description": "In Tasks, click New board. It starts with the Backlog, To-do, and Done columns."
+        },
+        "getAssignedTask": {
+          "title": "Assign a task to yourself",
+          "description": "Open a board, create a task, and pick yourself as the assignee. It then shows up below, in Waiting on you."
+        },
+        "inviteTeam": {
+          "title": "Bring your team in",
+          "description": "In Members, invite people by e-mail. This step is done once someone accepts."
+        }
+      }
+    },
+    "boards": {
+      "title": "Boards",
+      "description": "The task boards available to you.",
+      "empty": "No boards yet.",
+      "create": "Create a board",
+      "viewAll": "View all"
+    },
+    "assignedTasks": {
+      "title": "Waiting on you",
+      "description": "The open tasks assigned to you for the longest time.",
+      "empty": "No open tasks assigned to you.",
+      "assigned": "{{board}} · assigned {{timeAgo}}"
+    },
+    "cli": {
+      "title": "Genwork CLI",
+      "description": "Commands to run and operate the instance. They work from any folder inside the Genwork repository.",
+      "commands": {
+        "up": "Starts everything: database, API, and web app (the web app keeps running in the terminal).",
+        "db": "Starts only PostgreSQL.",
+        "api": "Starts the gateway, the core API, and the modules, with their database, migrations, worker, and mail catcher.",
+        "web": "Runs the web app dev server in the terminal.",
+        "auth": "Creates an administrator (asks for e-mail, name, and password).",
+        "modules": "Chooses the installed modules: checked ones stay installed, unchecked ones are removed.",
+        "down": "Stops the database, API, and mail catcher. Data is kept."
+      }
+    }
   },
   "acceptInvite": {
     "title": "You were invited",

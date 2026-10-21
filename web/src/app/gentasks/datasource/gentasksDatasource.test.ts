@@ -1,7 +1,7 @@
 import { HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { setAccessToken } from '@/shared/datasource/httpClient'
-import { boardViewFixture, bugLabel, taskFixture } from '@/test/gentasksFixtures'
+import { assignedTaskFixture, boardViewFixture, bugLabel, taskFixture } from '@/test/gentasksFixtures'
 import { captureRequests, errorResponse } from '@/test/server'
 import {
   addColumn,
@@ -20,6 +20,7 @@ import {
   createTask,
   deleteTask,
   listArchivedTasks,
+  listAssignedTasks,
   moveTask,
   readTask,
   unarchiveTask,
@@ -139,6 +140,15 @@ describe('tasksDatasource', () => {
     expect(restored[0]?.path).toBe('/api/gentasks/v1/tasks/task-1/unarchive')
     expect(listed[0]?.search).toBe('?archived=true')
     expect(deleted[0]?.method).toBe('DELETE')
+  })
+
+  it('lists the tasks assigned to the caller with a limit', async () => {
+    const assigned = assignedTaskFixture()
+    const listed = captureRequests('get', '*/api/gentasks/v1/me/assigned-tasks', () => HttpResponse.json({ tasks: [assigned] }))
+
+    await expect(listAssignedTasks(3)).resolves.toEqual([assigned])
+
+    expect(listed[0]?.search).toBe('?limit=3')
   })
 
   it('surfaces archived-task and core errors', async () => {

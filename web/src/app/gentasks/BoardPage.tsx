@@ -4,10 +4,13 @@ import { ArchiveIcon, Columns3Icon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useAuth } from '@/app/auth/components/AuthContext'
+import { PERMISSIONS } from '@/app/auth/domain/session'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { PageContent } from '@/shared/components/PageContent'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { useDirectoryUsers } from '@/shared/hooks/useDirectoryUsers'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { Button } from '@/shared/ui/button'
 import { Spinner } from '@/shared/ui/spinner'
@@ -20,7 +23,6 @@ import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { NameDialog } from './components/NameDialog'
 import { gentasksQueryKeys } from './components/queryKeys'
 import { TaskDialog, type TaskDialogMode } from './components/TaskDialog'
-import { useDirectoryUsers } from './components/useDirectoryUsers'
 import { useGentasksAbilities } from './components/useGentasksAbilities'
 import { addColumn, deleteColumn, readBoard, renameColumn } from './datasource/boardsDatasource'
 import { resolveColumnTitle } from './domain/columnName'
@@ -36,7 +38,8 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   const abilities = useGentasksAbilities()
   const queryClient = useQueryClient()
   const board = useQuery({ queryKey: gentasksQueryKeys.board(boardToken), queryFn: () => readBoard(boardToken), enabled: abilities.canRead })
-  const users = useDirectoryUsers()
+  const { can } = useAuth()
+  const users = useDirectoryUsers(can(PERMISSIONS.userRead))
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER)
   const [taskDialog, setTaskDialog] = useState<TaskDialogMode | null>(null)
   const [columnEditing, setColumnEditing] = useState<ColumnNameEditing | null>(null)

@@ -1,10 +1,10 @@
-import type { BoardView, ColumnWithTasks, Label, Task } from '@/app/gentasks/domain/types'
+import type { AssignedTask, BoardView, ColumnWithTasks, Label, Task } from '@/app/gentasks/domain/types'
 import type { Capabilities } from '@/shared/datasource/capabilities'
 import type { DirectoryUser } from '@/shared/datasource/users'
 
 export const capabilitiesFixture: Capabilities = {
   core: { version: '1.0.0', api: '1.0.0' },
-  modules: [{ id: 'gentasks', version: '0.2.0', apiPrefix: '/api/gentasks/v1' }],
+  modules: [{ id: 'gentasks', version: '0.3.0', apiPrefix: '/api/gentasks/v1' }],
 }
 
 export const usersFixture: DirectoryUser[] = [
@@ -27,9 +27,19 @@ export function taskFixture(overrides: Partial<Task> = {}): Task {
     urgency: 'none',
     labels: [],
     createdBy: 'user-ana',
+    assignedAt: null,
     archivedAt: null,
     createdAt: '2026-10-21T12:00:00Z',
     updatedAt: '2026-10-21T12:00:00Z',
+    ...overrides,
+  }
+}
+
+export function assignedTaskFixture(overrides: Partial<AssignedTask> = {}): AssignedTask {
+  return {
+    ...taskFixture({ assigneeToken: 'user-ana', assignedAt: '2026-10-18T12:00:00Z' }),
+    board: { token: 'board-1', name: 'Platform', taskPrefix: 'PLA' },
+    column: { token: 'column-backlog', preset: 'backlog', name: null },
     ...overrides,
   }
 }

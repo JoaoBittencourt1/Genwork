@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { useAuth } from '@/app/auth/components/AuthContext'
-import { PERMISSIONS } from '@/app/auth/domain/session'
 import { listUsers } from '@/shared/datasource/users'
-import { directoryUsersQueryKey } from './queryKeys'
 
-export function useDirectoryUsers() {
-  const { can } = useAuth()
-  return useQuery({ queryKey: directoryUsersQueryKey, queryFn: listUsers, enabled: can(PERMISSIONS.userRead) })
+export const directoryUsersQueryKey = ['core', 'directory-users'] as const
+
+// useDirectoryUsers only fetches when the caller may read the directory (core.user.read).
+export function useDirectoryUsers(canReadDirectory: boolean) {
+  return useQuery({ queryKey: directoryUsersQueryKey, queryFn: listUsers, enabled: canReadDirectory })
 }

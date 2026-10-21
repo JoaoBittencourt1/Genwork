@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { KanbanSquareIcon, MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
@@ -14,8 +14,9 @@ import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { NameDialog } from './components/NameDialog'
 import { gentasksQueryKeys } from './components/queryKeys'
+import { useBoardList } from './components/useBoardList'
 import { useGentasksAbilities } from './components/useGentasksAbilities'
-import { createBoard, deleteBoard, listBoards } from './datasource/boardsDatasource'
+import { createBoard, deleteBoard } from './datasource/boardsDatasource'
 import { MAX_BOARD_NAME_LENGTH } from './domain/boardSettings'
 import type { BoardSummary } from './domain/types'
 
@@ -23,7 +24,7 @@ export function BoardsPage() {
   const { t, i18n } = useTranslation()
   const abilities = useGentasksAbilities()
   const queryClient = useQueryClient()
-  const boards = useQuery({ queryKey: gentasksQueryKeys.boards, queryFn: listBoards, enabled: abilities.canRead })
+  const boards = useBoardList(abilities.canRead)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<BoardSummary | null>(null)
   const formatDate = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' })
