@@ -5,7 +5,7 @@ Static SPA (Vite + React + TypeScript) served by the gateway in production. It c
 ```sh
 genwork web            # from anywhere in the repo; creates .env and installs dependencies on first run
 npm test               # domain and datasource tests
-npx shadcn@latest add <component>   # adds a component to src/shared/ui
+npx shadcn@latest add <component>   # adds a component to src/shared/ui (the CLI is not a dependency)
 ```
 
 Layout (constitution rules 72–74):
