@@ -1,6 +1,16 @@
 package tasks
 
-import "github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
+import (
+	"strconv"
+	"time"
+
+	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
+)
+
+const (
+	DefaultAssignedTasksLimit = 20
+	MaxAssignedTasksLimit     = 50
+)
 
 type CreateTaskRequest struct {
 	Title         string   `json:"title"`
@@ -109,7 +119,8 @@ func (request UpdateTaskRequest) Validate() (TaskChanges, error) {
 	return changes, nil
 }
 
-func (changes TaskChanges) ApplyTo(task Task) Task {
+// ApplyTo returns the task with the changes made at the given time; only a new assignee restarts the assignment time.
+func (changes TaskChanges) ApplyTo(task Task, at time.Time) Task {
 	if changes.Title != nil {
 		task.Title = *changes.Title
 	}
@@ -117,6 +128,7 @@ func (changes TaskChanges) ApplyTo(task Task) Task {
 		task.Description = changes.Description.Value
 	}
 	if changes.AssigneeToken != nil {
+		task.AssignedAt = assignmentTime(task, changes.AssigneeToken.Value, at)
 		task.AssigneeUserToken = changes.AssigneeToken.Value
 	}
 	if changes.Urgency != nil {
@@ -131,6 +143,33 @@ func (changes TaskChanges) NewAssigneeToken() *string {
 		return nil
 	}
 	return changes.AssigneeToken.Value
+}
+
+func assignmentTime(task Task, assigneeToken *string, at time.Time) *time.Time {
+	switch {
+	case assigneeToken == nil:
+		return nil
+	case task.AssigneeUserToken != nil && *task.AssigneeUserToken == *assigneeToken:
+		return task.AssignedAt
+	default:
+		return &at
+	}
+}
+
+// ListAssignedTasksRequest holds the raw query string; an empty Limit takes the default.
+type ListAssignedTasksRequest struct {
+	Limit string
+}
+
+func (request ListAssignedTasksRequest) Validate() (int, error) {
+	if request.Limit == "" {
+		return DefaultAssignedTasksLimit, nil
+	}
+	limit, err := strconv.Atoi(request.Limit)
+	if err != nil || limit < 1 || limit > MaxAssignedTasksLimit {
+		return 0, httpapi.NewValidationError(map[string]string{"limit": "invalid"})
+	}
+	return limit, nil
 }
 
 type MoveTaskRequest struct {

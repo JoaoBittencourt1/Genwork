@@ -21,7 +21,56 @@
   },
   "home": {
     "greeting": "Olá, {{name}}!",
-    "description": "Você está conectado como {{email}} com o papel {{role}}."
+    "description": "Você está conectado como {{email}} com o papel {{role}}.",
+    "onboarding": {
+      "title": "Primeiros passos",
+      "description": "Um roteiro rápido para colocar o Genwork para funcionar com o seu time.",
+      "progress": "{{done}} de {{total}} concluídos",
+      "complete": "Tudo pronto! Você concluiu os primeiros passos.",
+      "start": "Começar",
+      "stepDone": "Concluído",
+      "stepOpen": "Pendente",
+      "steps": {
+        "createBoard": {
+          "title": "Crie um quadro de tarefas",
+          "description": "Em Tarefas, clique em Novo quadro. Ele já vem com as colunas Backlog, A fazer e Concluído."
+        },
+        "getAssignedTask": {
+          "title": "Atribua uma tarefa a você",
+          "description": "Abra um quadro, crie uma tarefa e escolha você como responsável. Ela aparece aqui embaixo, em Esperando por você."
+        },
+        "inviteTeam": {
+          "title": "Traga o seu time",
+          "description": "Em Membros, convide pessoas por e-mail. O passo é concluído quando alguém aceita o convite."
+        }
+      }
+    },
+    "boards": {
+      "title": "Quadros",
+      "description": "Os quadros de tarefas disponíveis.",
+      "empty": "Nenhum quadro ainda.",
+      "create": "Criar um quadro",
+      "viewAll": "Ver todos"
+    },
+    "assignedTasks": {
+      "title": "Esperando por você",
+      "description": "As tarefas abertas atribuídas a você há mais tempo.",
+      "empty": "Nenhuma tarefa aberta atribuída a você.",
+      "assigned": "{{board}} · atribuída {{timeAgo}}"
+    },
+    "cli": {
+      "title": "Genwork CLI",
+      "description": "Comandos para rodar e operar a instância. Funcionam de qualquer pasta dentro do repositório do Genwork.",
+      "commands": {
+        "up": "Sobe tudo: banco de dados, API e app web (o app web fica rodando no terminal).",
+        "db": "Sobe só o PostgreSQL.",
+        "api": "Sobe o gateway, a API do core e os módulos, com banco, migrações, worker e o catcher de e-mails.",
+        "web": "Roda o servidor de desenvolvimento do app web no terminal.",
+        "auth": "Cria um administrador (pede e-mail, nome e senha).",
+        "modules": "Escolhe os módulos instalados: os marcados ficam instalados, os desmarcados são removidos.",
+        "down": "Para o banco, a API e o catcher de e-mails. Os dados são mantidos."
+      }
+    }
   },
   "acceptInvite": {
     "title": "Você foi convidado",

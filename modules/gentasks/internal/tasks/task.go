@@ -44,6 +44,7 @@ func (urgency Urgency) IsValid() bool {
 
 // Task.Position is nil once the task is archived: only active tasks take part in the column order.
 // Task.Number is unique within its board and, with the board's task prefix, forms the identifier people use.
+// Task.AssignedAt is when the current assignee got the task, and is nil exactly when there is no assignee.
 type Task struct {
 	ID                int64
 	Token             string
@@ -54,6 +55,7 @@ type Task struct {
 	Title             string
 	Description       *string
 	AssigneeUserToken *string
+	AssignedAt        *time.Time
 	Urgency           Urgency
 	Position          *int
 	CreatedBy         string

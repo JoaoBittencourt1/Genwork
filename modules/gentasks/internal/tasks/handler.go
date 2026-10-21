@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/access"
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/boards"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/labels"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 )
@@ -20,6 +21,7 @@ type TaskResponse struct {
 	Urgency       Urgency                `json:"urgency"`
 	Labels        []labels.LabelResponse `json:"labels"`
 	CreatedBy     string                 `json:"createdBy"`
+	AssignedAt    *time.Time             `json:"assignedAt"`
 	ArchivedAt    *time.Time             `json:"archivedAt"`
 	CreatedAt     time.Time              `json:"createdAt"`
 	UpdatedAt     time.Time              `json:"updatedAt"`
@@ -41,6 +43,7 @@ func NewTaskResponse(task TaskWithLabels) TaskResponse {
 		Urgency:       task.Urgency,
 		Labels:        labels.NewLabelResponses(task.Labels),
 		CreatedBy:     task.CreatedBy,
+		AssignedAt:    task.AssignedAt,
 		ArchivedAt:    task.ArchivedAt,
 		CreatedAt:     task.CreatedAt,
 		UpdatedAt:     task.UpdatedAt,
@@ -55,6 +58,40 @@ func NewTaskResponses(listed []TaskWithLabels) []TaskResponse {
 	return responses
 }
 
+type AssignedTaskBoardResponse struct {
+	Token      string `json:"token"`
+	Name       string `json:"name"`
+	TaskPrefix string `json:"taskPrefix"`
+}
+
+type AssignedTaskColumnResponse struct {
+	Token  string               `json:"token"`
+	Preset *boards.ColumnPreset `json:"preset"`
+	Name   *string              `json:"name"`
+}
+
+type AssignedTaskResponse struct {
+	TaskResponse
+	Board  AssignedTaskBoardResponse  `json:"board"`
+	Column AssignedTaskColumnResponse `json:"column"`
+}
+
+type AssignedTaskListResponse struct {
+	Tasks []AssignedTaskResponse `json:"tasks"`
+}
+
+func NewAssignedTaskListResponse(assigned []AssignedTask) AssignedTaskListResponse {
+	responses := make([]AssignedTaskResponse, 0, len(assigned))
+	for _, task := range assigned {
+		responses = append(responses, AssignedTaskResponse{
+			TaskResponse: NewTaskResponse(task.TaskWithLabels),
+			Board:        AssignedTaskBoardResponse{Token: task.Board.Token, Name: task.Board.Name, TaskPrefix: task.Board.TaskPrefix},
+			Column:       AssignedTaskColumnResponse{Token: task.Column.Token, Preset: task.Column.Preset, Name: task.Column.Name},
+		})
+	}
+	return AssignedTaskListResponse{Tasks: responses}
+}
+
 type TaskHandler struct {
 	service *TaskService
 }
@@ -66,6 +103,7 @@ func NewTaskHandler(service *TaskService) *TaskHandler {
 func (handler *TaskHandler) Register(router *httpapi.Router) {
 	router.HandleFunc("GET /api/gentasks/v1/boards/{token}/tasks", httpapi.RequirePermission(access.PermissionBoardRead), handler.listTasks)
 	router.HandleFunc("POST /api/gentasks/v1/boards/{token}/tasks", httpapi.RequirePermission(access.PermissionTaskWrite), handler.createTask)
+	router.HandleFunc("GET /api/gentasks/v1/me/assigned-tasks", httpapi.RequirePermission(access.PermissionBoardRead), handler.listAssignedTasks)
 	router.HandleFunc("GET /api/gentasks/v1/tasks/{token}", httpapi.RequirePermission(access.PermissionBoardRead), handler.findTask)
 	router.HandleFunc("PATCH /api/gentasks/v1/tasks/{token}", httpapi.RequirePermission(access.PermissionTaskWrite), handler.updateTask)
 	router.HandleFunc("POST /api/gentasks/v1/tasks/{token}/move", httpapi.RequirePermission(access.PermissionTaskWrite), handler.moveTask)
@@ -87,6 +125,20 @@ func (handler *TaskHandler) listTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpapi.WriteJSON(w, http.StatusOK, TaskListResponse{Tasks: NewTaskResponses(listed)})
+}
+
+func (handler *TaskHandler) listAssignedTasks(w http.ResponseWriter, r *http.Request) {
+	limit, err := ListAssignedTasksRequest{Limit: r.URL.Query().Get("limit")}.Validate()
+	if err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	assigned, err := handler.service.ListAssignedTasks(r.Context(), callerFrom(r), limit)
+	if err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	httpapi.WriteJSON(w, http.StatusOK, NewAssignedTaskListResponse(assigned))
 }
 
 func (handler *TaskHandler) createTask(w http.ResponseWriter, r *http.Request) {

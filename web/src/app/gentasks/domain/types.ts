@@ -40,9 +40,16 @@ export type Task = {
   urgency: Urgency
   labels: Label[]
   createdBy: string
+  assignedAt: string | null
   archivedAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+// AssignedTask is a task from the caller's assigned-tasks list, with the board and column it sits in.
+export type AssignedTask = Task & {
+  board: Pick<BoardSummary, 'token' | 'name' | 'taskPrefix'>
+  column: Pick<Column, 'token' | 'preset' | 'name'>
 }
 
 export type ColumnWithTasks = Column & { tasks: Task[] }

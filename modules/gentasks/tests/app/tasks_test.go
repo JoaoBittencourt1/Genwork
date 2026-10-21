@@ -379,6 +379,7 @@ func TestTaskRoutesRequirePermissions(t *testing.T) {
 	}{
 		{"GET", "/api/gentasks/v1/boards/" + board.Token + "/tasks", ""},
 		{"GET", "/api/gentasks/v1/tasks/" + task.Token, ""},
+		{"GET", "/api/gentasks/v1/me/assigned-tasks", ""},
 		{"POST", "/api/gentasks/v1/boards/" + board.Token + "/tasks", reader},
 		{"PATCH", "/api/gentasks/v1/tasks/" + task.Token, reader},
 		{"POST", "/api/gentasks/v1/tasks/" + task.Token + "/move", reader},
