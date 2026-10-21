@@ -1,13 +1,5 @@
-import type { Me } from '../core/auth/api'
-import type { Invite, InviteDelivery, Role } from '../core/invites/api'
-
-export const discoveryFixture = {
-  product: 'genwork',
-  name: 'Genwork da Empresa',
-  version: '0.1.0',
-  api: 'v1',
-  auth: { methods: ['password'] },
-}
+import type { Me } from '@/app/auth/domain/session'
+import type { Invite, InviteDelivery, Role } from '@/app/invites/domain/invite'
 
 const allInvitePermissions = ['core.invite.create', 'core.invite.read', 'core.invite.revoke']
 
@@ -54,8 +46,4 @@ export function deliveryFixture(overrides: Partial<InviteDelivery> = {}): Invite
   }
 }
 
-export const invitationFixture = {
-  instanceName: 'Genwork da Empresa',
-  email: 'carla@example.com',
-  expiresAt: '2026-10-27T12:00:00Z',
-}
+export const signInFixture = { accessToken: 'access-token', accessTokenExpiresAt: '2026-10-20T12:15:00Z', session: 'session-token' }
