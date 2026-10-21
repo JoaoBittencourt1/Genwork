@@ -40,14 +40,15 @@ Then, from anywhere inside the repository:
 
 | Command | What it does |
 | --- | --- |
-| `genwork up` | Starts database, API, and mail catcher, then runs the web app in the foreground |
+| `genwork up` | Starts database, gateway, API, installed modules, and mail catcher, then runs the web app in the foreground |
 | `genwork db` | Starts PostgreSQL only |
-| `genwork api` | Starts the core API (with database, migrations, worker, and Mailpit) |
+| `genwork api` | Starts the gateway, core API, and installed modules (with database, migrations, worker, and Mailpit) |
+| `genwork modules` | Opens the module checklist: checked modules are installed, unchecking one uninstalls it and deletes its data (asks first) |
 | `genwork web` | Runs the web app dev server (installs dependencies on first run) |
 | `genwork auth` | Creates an administrator; asks for e-mail, name, and password |
 | `genwork down` | Stops the containers; data is kept |
 
-The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new JWT signing key) and `web/.env` from their examples.
+The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new JWT signing key) and `web/.env` from their examples. The first `genwork up` or `api` also shows the module checklist; the choice is saved in `deploy/genwork.yaml` and can be changed any time with `genwork modules`. `deploy/genwork.yaml` and `deploy/Caddyfile` are generated for each installation and are not committed.
 
 | Service | URL |
 | --- | --- |
@@ -56,7 +57,7 @@ The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new 
 | Mailpit (captured e-mails) | http://localhost:8486 |
 | Postgres | localhost:5484 |
 
-Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, cli, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
+Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, cli, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
 
 ## Contributing
 
