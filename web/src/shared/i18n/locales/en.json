@@ -2,7 +2,9 @@
   "app": {
     "name": "Genwork",
     "loading": "Loading…",
-    "nav": { "home": "Home", "invites": "Invites" },
+    "nav": { "home": "Home", "members": "Members" },
+    "navigation": "Navigation",
+    "toggleSidebar": "Toggle sidebar",
     "signOut": "Sign out"
   },
   "login": {
@@ -32,8 +34,12 @@
     "notFoundDescription": "This invite does not exist, expired, was revoked, or was already used. Ask whoever invited you for a new one.",
     "goToLogin": "Go to sign in"
   },
+  "members": {
+    "title": "Members",
+    "noPermissionTitle": "No permission",
+    "noPermissionDescription": "You do not have permission to see members."
+  },
   "invites": {
-    "title": "Invites",
     "newInvite": "New invite",
     "email": "E-mail",
     "role": "Role",
@@ -49,9 +55,7 @@
     "columns": { "email": "E-mail", "role": "Role", "status": "Status", "invitedBy": "Invited by", "expiresAt": "Expires", "actions": "Actions" },
     "status": { "pending": "Pending", "accepted": "Accepted", "revoked": "Revoked", "expired": "Expired" },
     "resend": "Resend",
-    "revoke": "Revoke",
-    "noPermissionTitle": "No permission",
-    "noPermissionDescription": "You do not have permission to see invites."
+    "revoke": "Revoke"
   },
   "errors": {
     "invalid_credentials": "Wrong e-mail or password.",

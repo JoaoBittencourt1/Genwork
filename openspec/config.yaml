@@ -25,4 +25,4 @@ rules:
     - Split work into numbered phases, one branch and one PR per phase (constitution rules 42-48)
     - Start with the phased delivery table (| Phase | Contents | Depends on | Parallel with |)
     - Each phase starts with its tests and ends with lint, tests, and "Open PR"
-    - Name each phase's branch as tipo(N-<issue>)/short-slug
+    - Name each phase's branch as tipo/short-slug (constitution rule 39)

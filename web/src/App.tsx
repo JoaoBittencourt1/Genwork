@@ -3,6 +3,7 @@ import { RouterProvider } from '@tanstack/react-router'
 import { useState } from 'react'
 import { AuthProvider } from '@/app/auth/components/AuthProvider'
 import { Toaster } from '@/shared/ui/sonner'
+import { TooltipProvider } from '@/shared/ui/tooltip'
 import { createAppRouter } from './router'
 
 export function App() {
@@ -13,7 +14,9 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RouterProvider router={router} />
+        <TooltipProvider>
+          <RouterProvider router={router} />
+        </TooltipProvider>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

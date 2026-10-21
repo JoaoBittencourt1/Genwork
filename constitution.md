@@ -128,7 +128,7 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 ## Workflow
 
 38. **Spec before code.** Every feature starts as an OpenSpec change (`/opsx:propose`) before implementation.
-39. **Branches and commits** follow `tipo(N-<issue>)/short-slug-in-english` and `tipo(N-<issue>): mensagem em pt-BR`, where `tipo` is `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, etc. PRs link their GitHub issue.
+39. **Branches and commits** follow `tipo/short-slug-in-english` and `tipo(component): mensagem em pt-BR`, where `tipo` is `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, etc., and `component` is the touched component (`core`, `web`, `cli`, a module name) — omitted when the change spans several or none.
 40. **Run the component's lint at the end of every task and before every commit and push.** Never commit or push on a red lint, test, or build, and never bypass hooks with `--no-verify`.
 41. **Never commit or push without developer sign-off.** After lint and tests pass, stop and let the developer verify the behavior manually. Automated tests alone are not sufficient.
 75. **Local gates are the CI gates.** Every check CI runs is reachable through `make lint`, `make test`, and `make build`, and CI invokes only those targets — never a check that exists only in the workflow file (this includes `npm audit`, which runs inside `make lint-web`). Run all three before every push.
@@ -156,13 +156,13 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 `tasks.md`:
 
 ```markdown
-## Phase 1 (branch: feat(N-12)/task-crud-foundation)
+## Phase 1 (branch: feat/task-crud-foundation)
 - [ ] 1.1 Write tests for phase 1
 - [ ] 1.2 Implement …
 - [ ] 1.3 Run lint and tests
 - [ ] 1.4 Open PR
 
-## Phase 2 (branch: feat(N-12)/task-crud-api)
+## Phase 2 (branch: feat/task-crud-api)
 - [ ] 2.1 Write tests for phase 2
 - [ ] 2.2 Implement …
 - [ ] 2.3 Run lint and tests

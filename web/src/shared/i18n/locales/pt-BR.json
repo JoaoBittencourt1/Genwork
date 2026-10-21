@@ -2,7 +2,9 @@
   "app": {
     "name": "Genwork",
     "loading": "Carregando…",
-    "nav": { "home": "Início", "invites": "Convites" },
+    "nav": { "home": "Início", "members": "Membros" },
+    "navigation": "Navegação",
+    "toggleSidebar": "Mostrar ou ocultar a barra lateral",
     "signOut": "Sair"
   },
   "login": {
@@ -32,8 +34,12 @@
     "notFoundDescription": "Este convite não existe, expirou, foi revogado ou já foi usado. Peça um novo convite a quem convidou você.",
     "goToLogin": "Ir para o login"
   },
+  "members": {
+    "title": "Membros",
+    "noPermissionTitle": "Sem permissão",
+    "noPermissionDescription": "Você não tem permissão para ver membros."
+  },
   "invites": {
-    "title": "Convites",
     "newInvite": "Novo convite",
     "email": "E-mail",
     "role": "Papel",
@@ -49,9 +55,7 @@
     "columns": { "email": "E-mail", "role": "Papel", "status": "Status", "invitedBy": "Convidado por", "expiresAt": "Expira em", "actions": "Ações" },
     "status": { "pending": "Pendente", "accepted": "Aceito", "revoked": "Revogado", "expired": "Expirado" },
     "resend": "Reenviar",
-    "revoke": "Revogar",
-    "noPermissionTitle": "Sem permissão",
-    "noPermissionDescription": "Você não tem permissão para ver convites."
+    "revoke": "Revogar"
   },
   "errors": {
     "invalid_credentials": "E-mail ou senha incorretos.",

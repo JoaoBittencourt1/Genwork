@@ -4,21 +4,25 @@ import { RequireAuth } from '@/app/auth/components/RequireAuth'
 import { LoginPage } from '@/app/auth/LoginPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
-import { InvitesPage } from '@/app/invites/InvitesPage'
+import { MembersPage } from '@/app/members/MembersPage'
 
 const rootRoute = createRootRoute({ component: Outlet })
 
-const homeRoute = createRoute({
+const signedInLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  id: 'signed-in',
   component: () => (
     <RequireAuth>
       <AppShell>
-        <HomePage />
+        <Outlet />
       </AppShell>
     </RequireAuth>
   ),
 })
+
+const homeRoute = createRoute({ getParentRoute: () => signedInLayoutRoute, path: '/', component: HomePage })
+
+const membersRoute = createRoute({ getParentRoute: () => signedInLayoutRoute, path: '/members', component: MembersPage })
 
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage })
 
@@ -31,19 +35,11 @@ const acceptInviteRoute = createRoute({
   },
 })
 
-const invitesRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/invites',
-  component: () => (
-    <RequireAuth>
-      <AppShell>
-        <InvitesPage />
-      </AppShell>
-    </RequireAuth>
-  ),
-})
-
-const routeTree = rootRoute.addChildren([homeRoute, loginRoute, acceptInviteRoute, invitesRoute])
+const routeTree = rootRoute.addChildren([
+  signedInLayoutRoute.addChildren([homeRoute, membersRoute]),
+  loginRoute,
+  acceptInviteRoute,
+])
 
 export function createAppRouter(history?: RouterHistory) {
   return createRouter({ routeTree, history })
