@@ -15,7 +15,7 @@ func TestCreateBoardStartsWithDefaultColumns(t *testing.T) {
 
 	board := app.createBoard("  Platform  ")
 
-	if len(board.Token) != 22 || board.Name != "Platform" || board.CreatedBy != userToken || !board.CreatedAt.Equal(app.clock.Now()) {
+	if len(board.Token) != 22 || board.Name != "Platform" || board.TaskPrefix != "PLA" || board.CreatedBy != userToken || !board.CreatedAt.Equal(app.clock.Now()) {
 		t.Errorf("board = %+v", board.boardBody)
 	}
 	if labels := columnLabels(t, board.Columns); !slices.Equal(labels, []string{"backlog", "todo", "done"}) {
@@ -72,7 +72,7 @@ func TestRenameBoard(t *testing.T) {
 	expectStatus(t, resp, http.StatusOK)
 	var renamed boardBody
 	resp.decode(t, &renamed)
-	if renamed.Name != "New" || !renamed.UpdatedAt.Equal(app.clock.Now()) || renamed.CreatedBy != userToken {
+	if renamed.Name != "New" || renamed.TaskPrefix != board.TaskPrefix || !renamed.UpdatedAt.Equal(app.clock.Now()) || renamed.CreatedBy != userToken {
 		t.Errorf("renamed = %+v", renamed)
 	}
 	expectError(t, app.do(request{method: "PATCH", path: "/api/gentasks/v1/boards/" + board.Token, body: map[string]any{"name": nil}}), http.StatusBadRequest, "validation_failed")
@@ -92,6 +92,67 @@ func TestPatchBoardWithEmptyBodyChangesNothing(t *testing.T) {
 	if unchanged != board.boardBody {
 		t.Errorf("unchanged = %+v, want %+v", unchanged, board.boardBody)
 	}
+}
+
+func TestCreateBoardDerivesAFreeTaskPrefixFromItsName(t *testing.T) {
+	app := newTestApp(t)
+	cases := []struct{ name, prefix string }{
+		{"Platform", "PLA"},
+		{"plataforma", "PLA2"},
+		{"Plan B", "PLA3"},
+		{"2026 roadmap", "ROA"},
+		{"Ôx", "X"},
+		{"!!!", "TASK"},
+	}
+	for _, testCase := range cases {
+		if board := app.createBoard(testCase.name); board.TaskPrefix != testCase.prefix {
+			t.Errorf("prefix of %q = %q, want %q", testCase.name, board.TaskPrefix, testCase.prefix)
+		}
+	}
+}
+
+func TestCreateBoardWithTaskPrefix(t *testing.T) {
+	app := newTestApp(t)
+	path := "/api/gentasks/v1/boards"
+
+	resp := app.do(request{method: "POST", path: path, body: map[string]any{"name": "Vanepp", "taskPrefix": " van1 "}})
+
+	expectStatus(t, resp, http.StatusCreated)
+	var board boardDetailBody
+	resp.decode(t, &board)
+	if board.TaskPrefix != "VAN1" {
+		t.Errorf("prefix = %q", board.TaskPrefix)
+	}
+	for _, prefix := range []string{"", "1AB", "A-B", "ÃB", strings.Repeat("A", 11)} {
+		expectValidationError(t, app.do(request{method: "POST", path: path, body: map[string]any{"name": "x", "taskPrefix": prefix}}), "taskPrefix")
+	}
+	expectError(t, app.do(request{method: "POST", path: path, body: map[string]any{"name": "Other", "taskPrefix": "van1"}}), http.StatusConflict, "task_prefix_taken")
+
+	expectStatus(t, app.do(request{method: "DELETE", path: path + "/" + board.Token}), http.StatusNoContent)
+	expectStatus(t, app.do(request{method: "POST", path: path, body: map[string]any{"name": "Reuse", "taskPrefix": "VAN1"}}), http.StatusCreated)
+}
+
+func TestPatchBoardTaskPrefix(t *testing.T) {
+	app := newTestApp(t)
+	board := app.createBoard("Platform")
+	app.createBoard("Other")
+	app.clock.Advance(time.Minute)
+
+	resp := app.patchBoard(board.Token, map[string]any{"taskPrefix": "core"})
+
+	expectStatus(t, resp, http.StatusOK)
+	var updated boardBody
+	resp.decode(t, &updated)
+	if updated.TaskPrefix != "CORE" || updated.Name != "Platform" || !updated.UpdatedAt.Equal(app.clock.Now()) {
+		t.Errorf("updated = %+v", updated)
+	}
+	if read := app.readBoard(board.Token); read.TaskPrefix != "CORE" {
+		t.Errorf("read prefix = %q", read.TaskPrefix)
+	}
+	expectValidationError(t, app.patchBoard(board.Token, map[string]any{"taskPrefix": nil}), "taskPrefix")
+	expectValidationError(t, app.patchBoard(board.Token, map[string]any{"taskPrefix": "9X"}), "taskPrefix")
+	expectError(t, app.patchBoard(board.Token, map[string]any{"taskPrefix": "oth"}), http.StatusConflict, "task_prefix_taken")
+	expectStatus(t, app.patchBoard(board.Token, map[string]any{"taskPrefix": "CORE"}), http.StatusOK)
 }
 
 func TestDeleteBoardHidesEverythingUnderIt(t *testing.T) {

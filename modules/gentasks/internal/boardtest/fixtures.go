@@ -20,7 +20,9 @@ var FixedTime = time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC)
 func NewBoardWithDefaultColumns(t *testing.T, db platform.DBTX, name string) (boards.Board, []boards.Column) {
 	t.Helper()
 	ctx := context.Background()
-	board, err := boards.BoardRepository{}.Create(ctx, db, boards.NewBoard{Name: name, CreatedBy: CreatorToken, At: FixedTime})
+	board, err := boards.BoardRepository{}.Create(ctx, db, boards.NewBoard{
+		Name: name, TaskPrefix: boards.DeriveTaskPrefix(name), CreatedBy: CreatorToken, At: FixedTime,
+	})
 	if err != nil {
 		t.Fatalf("create board: %v", err)
 	}
@@ -47,8 +49,12 @@ func NewTasks(t *testing.T, db platform.DBTX, column boards.Column, titles ...st
 	}
 	created := make([]tasks.Task, 0, len(titles))
 	for offset, title := range titles {
+		number, err := boards.BoardRepository{}.TakeNextTaskNumber(ctx, db, column.BoardID)
+		if err != nil {
+			t.Fatalf("take task number: %v", err)
+		}
 		task, err := tasks.TaskRepository{}.Create(ctx, db, tasks.NewTask{
-			BoardID: column.BoardID, ColumnID: column.ID, Title: title, Urgency: tasks.UrgencyNone,
+			BoardID: column.BoardID, Number: number, ColumnID: column.ID, Title: title, Urgency: tasks.UrgencyNone,
 			Position: start + offset, CreatedBy: CreatorToken, At: FixedTime,
 		})
 		if err != nil {

@@ -7,11 +7,12 @@ import (
 )
 
 type boardBody struct {
-	Token     string    `json:"token"`
-	Name      string    `json:"name"`
-	CreatedBy string    `json:"createdBy"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Token      string    `json:"token"`
+	Name       string    `json:"name"`
+	TaskPrefix string    `json:"taskPrefix"`
+	CreatedBy  string    `json:"createdBy"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 type labelBody struct {
@@ -22,6 +23,7 @@ type labelBody struct {
 
 type taskBody struct {
 	Token         string      `json:"token"`
+	Number        int         `json:"number"`
 	ColumnToken   string      `json:"columnToken"`
 	Position      *int        `json:"position"`
 	Title         string      `json:"title"`
@@ -56,6 +58,10 @@ func (app *testApp) createBoard(name string) boardDetailBody {
 	var board boardDetailBody
 	resp.decode(app.t, &board)
 	return board
+}
+
+func (app *testApp) patchBoard(token string, body map[string]any) response {
+	return app.do(request{method: "PATCH", path: "/api/gentasks/v1/boards/" + token, body: body})
 }
 
 func (app *testApp) readBoard(token string) boardDetailBody {

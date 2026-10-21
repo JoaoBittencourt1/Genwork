@@ -66,8 +66,12 @@ func (service *TaskService) CreateTask(ctx context.Context, caller Caller, board
 		if err != nil {
 			return err
 		}
+		number, err := service.boards.TakeNextTaskNumber(ctx, tx, board.ID)
+		if err != nil {
+			return err
+		}
 		task, err := service.tasks.Create(ctx, tx, NewTask{
-			BoardID: board.ID, ColumnID: column.ID, Title: input.Title, Description: input.Description,
+			BoardID: board.ID, Number: number, ColumnID: column.ID, Title: input.Title, Description: input.Description,
 			AssigneeUserToken: input.AssigneeToken, Urgency: input.Urgency, Position: position,
 			CreatedBy: caller.UserToken, At: service.now(),
 		})

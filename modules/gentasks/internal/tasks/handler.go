@@ -11,6 +11,7 @@ import (
 
 type TaskResponse struct {
 	Token         string                 `json:"token"`
+	Number        int                    `json:"number"`
 	ColumnToken   string                 `json:"columnToken"`
 	Position      *int                   `json:"position"`
 	Title         string                 `json:"title"`
@@ -31,6 +32,7 @@ type TaskListResponse struct {
 func NewTaskResponse(task TaskWithLabels) TaskResponse {
 	return TaskResponse{
 		Token:         task.Token,
+		Number:        task.Number,
 		ColumnToken:   task.ColumnToken,
 		Position:      task.Position,
 		Title:         task.Title,
