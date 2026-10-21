@@ -21,7 +21,7 @@ lint-cli:
 	cd cli && go vet ./...
 
 lint-web:
-	cd web && npm run lint && npm run typecheck
+	cd web && npm audit --audit-level=high && npm run lint && npm run typecheck
 
 lint-fix:
 	cd core && gofmt -w .

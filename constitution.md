@@ -42,7 +42,7 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
     - `<Name>Page.tsx` files at the module root — one per route.
 
     Cross-module code lives in `web/src/shared/` with the same split (`datasource/`, `domain/`, `hooks/`, `components/`), plus `ui/` (rule 73), `lib/`, and `i18n/`. Root wiring (`App.tsx`, `router.tsx`, `main.tsx`) stays in `web/src/`.
-73. **The web UI is built from shadcn/ui components in `web/src/shared/ui/`**, added with `npx shadcn@latest add <component>` and never re-implemented by hand. Screens compose those components; reusable compositions (layouts, alerts with icons) live in `web/src/shared/components/`. Generated components may be adjusted in place, but never copied into a module.
+73. **The web UI is built from shadcn/ui components in `web/src/shared/ui/`**, added with `npx shadcn@latest add <component>` and never re-implemented by hand. Screens compose those components; reusable compositions (layouts, alerts with icons) live in `web/src/shared/components/`. Generated components may be adjusted in place, but never copied into a module. Before running `shadcn add`, every alias in `web/components.json` must resolve to an existing file — in particular `cn` in `web/src/shared/lib/utils.ts`; otherwise the CLI resolves the import to an unrelated npm package with the same name and installs it.
 
 ## Modules
 
@@ -106,3 +106,72 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 70. **Every component keeps at least 75% coverage**, measured over all of its own source files — statements for Go (`go test -coverpkg=./...`) and lines and statements for the web app (Vitest, v8) over its logic folders only (`domain/` and `datasource/`, rule 74). The minimum lives once, in `MIN_COVERAGE` in the Makefile; `make test` and CI fail below it. Only test-support code and generated files may be excluded. Never lower the minimum or add exclusions to make a change pass — write the missing tests.
 71. **Tests live next to the code they test.** In Go, `*_test.go` files sit in the same package directory, which is what lets them reach unexported code and count toward that package's coverage; cross-package HTTP integration tests live in `core/internal/app`, and reusable test doubles live in dedicated `*test` packages (e.g. `mailtest`, `dbtest`). In the web app, `*.test.ts(x)` sits beside the module it tests, and shared helpers, fixtures, and API mocks live in `web/src/test/`.
 74. **Web tests cover logic, not markup.** Only `domain/` and `datasource/` code is unit-tested — rules, mappings, request shapes, and error handling, with the API stubbed by MSW (rule 25). Components, pages, and `shared/ui` are not unit-tested and do not count toward coverage; keep them thin by moving every decision they make into `domain/`.
+
+## Code quality
+
+28. **Small functions, single purpose.** If you describe it with "and then… and after that…", split it.
+29. **Names say exactly what things do.** Functions start with a verb (`validateEmail`, not `handleData`); variables express intent (`taskIndex`, not `i` outside trivial loops). Avoid `process()`, `handle()`, `calculate()`.
+30. **Use consistent vocabulary.** Pick `find` *or* `get` for the same idea and stick to it.
+31. **Comment only when strictly necessary.** The default is no comment. A comment is justified only for a non-obvious external constraint, a business rule names cannot express, a workaround for an external bug, or a `TODO`/`FIXME` describing the debt and its fix. Explain the *why*, never the *what*. Longer rationale belongs in `openspec/` or the PR description.
+32. **Explicit error handling.** Return or throw meaningful errors; never swallow them; don't mix business logic with error-handling noise.
+33. **Delete dead code.** Leave code cleaner than you found it; refactoring is first-class work. When refactoring, prefer clarity over conciseness.
+34. **Do not use deprecated APIs**; fix deprecation warnings in the code you touch.
+
+## Language
+
+35. **Everything in source is English**: file names, identifiers, comments, log messages, error messages, test names. Specs in `openspec/` are written in English too.
+36. **User-facing copy is never hardcoded.** It goes through each component's localization mechanism (message keys + translation files); pt-BR is a first-class locale.
+37. **Commit messages and PR descriptions are written in pt-BR.**
+
+## Workflow
+
+38. **Spec before code.** Every feature starts as an OpenSpec change (`/opsx:propose`) before implementation.
+39. **Branches and commits** follow `tipo(N-<issue>)/short-slug-in-english` and `tipo(N-<issue>): mensagem em pt-BR`, where `tipo` is `feat`, `fix`, `chore`, `refactor`, `test`, `docs`, `ci`, etc. PRs link their GitHub issue.
+40. **Run the component's lint at the end of every task and before every commit and push.** Never commit or push on a red lint, test, or build, and never bypass hooks with `--no-verify`.
+41. **Never commit or push without developer sign-off.** After lint and tests pass, stop and let the developer verify the behavior manually. Automated tests alone are not sufficient.
+75. **Local gates are the CI gates.** Every check CI runs is reachable through `make lint`, `make test`, and `make build`, and CI invokes only those targets — never a check that exists only in the workflow file (this includes `npm audit`, which runs inside `make lint-web`). Run all three before every push.
+76. **Rename case-only changes with `git mv`.** macOS and Windows file systems ignore letter case, so deleting `Button.tsx` and creating `button.tsx` keeps the old name in git while everything works locally; CI runs on case-sensitive Linux and the import fails there. Use `git mv old new` (or `git mv -f` when only the case differs), and keep file names exactly as their generators emit them (shadcn components are lowercase).
+80. **Read the whole diff before every commit**, including files changed by scripts and generators. A scripted edit that rewrites a file must be checked against the base branch for anything removed unintentionally — once, a rule insertion silently dropped every section after it.
+
+## Dependencies
+
+77. **Review every dependency change before committing.** After any generator or package command (`npx shadcn add`, `npm install`, `go get`, `go mod tidy`), read the diff of `package.json`, the lockfile, or `go.mod` and justify each added package. Remove anything added by mistake or left unused.
+78. **Developer CLIs are not project dependencies.** Run code generators and scaffolding tools on demand (`npx <tool>@latest`, `go run`) instead of installing them; their transitive dependencies widen the audit surface without reaching the product. When a tool ships an asset the product needs (e.g. a stylesheet), copy the asset into the repository with a header naming its source and version, and refresh it when upgrading.
+79. **No known high-severity vulnerabilities.** `npm audit --audit-level=high` must pass for the web app (part of `make lint-web`). Fix by upgrading or removing the dependency; overriding a transitive version is a last resort and needs a comment explaining why.
+
+## Phased delivery
+
+42. **Split feature work into numbered phases** in the change's `tasks.md`; each phase ships on its own branch with one PR.
+43. **Before generating code, produce a dependency graph, layer assignment, and a PR plan table** (`| Phase | Contents | Depends on | Parallel with |`). Do not implement until the plan is approved.
+44. **Dependency first, one layer per PR.** Artifacts with zero internal dependencies form the first PR. Never mix layers in a PR, and never ship an interface and its implementation in the same PR. If an upper layer ships first, use stubs until the dependency merges.
+45. **PRs in the same layer may be reviewed in parallel** only when they do not depend on each other.
+46. **Cap each PR at ~600 productive lines and 10 new files**; subdivide before implementing if exceeded.
+47. **Go service phases (core and modules) implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
+48. **Every phase includes its own tests** covering only the code delivered in that phase. CI must pass after each phase.
+
+## Samples
+
+`tasks.md`:
+
+```markdown
+## Phase 1 (branch: feat(N-12)/task-crud-foundation)
+- [ ] 1.1 Write tests for phase 1
+- [ ] 1.2 Implement …
+- [ ] 1.3 Run lint and tests
+- [ ] 1.4 Open PR
+
+## Phase 2 (branch: feat(N-12)/task-crud-api)
+- [ ] 2.1 Write tests for phase 2
+- [ ] 2.2 Implement …
+- [ ] 2.3 Run lint and tests
+- [ ] 2.4 Open PR
+```
+
+Phased delivery table:
+
+```markdown
+| Phase | Contents | Depends on | Parallel with |
+|-------|----------|------------|---------------|
+| 1 | Migration + model + repository | — | — |
+| 2 | Service + handler + DTOs | Phase 1 merged | — |
+```
