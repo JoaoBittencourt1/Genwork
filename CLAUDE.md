@@ -1,4 +1,4 @@
-# Vanep Workspace
+# Genwork
 
 Project rules live in the constitution and are non-negotiable:
 

@@ -1,4 +1,4 @@
-# Vanep Workspace
+# Genwork
 
 A modular, self-hosted workspace platform designed to centralize task management, team workflows, infrastructure insights, and automation in a single ecosystem. Built with Go on the server and native desktop applications for macOS, Windows, and Linux, with independently versioned releases, optional modules, and extensible integrations.
 

@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Product: Vanep Workspace — a modular, self-hosted workspace platform that centralizes
+  Product: Genwork — a modular, self-hosted workspace platform that centralizes
   task management, team workflows, infrastructure insights, and automation.
   Monorepo: server/ (Go API + worker, PostgreSQL), web/ (Next.js), clients/macos (Swift/SwiftUI),
   clients/windows (C#/.NET, UI framework TBD), clients/linux (Rust/GTK 4), deploy/ (Docker Compose).

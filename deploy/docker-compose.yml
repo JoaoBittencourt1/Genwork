@@ -1,4 +1,4 @@
-name: vanep-workspace
+name: genwork
 
 services:
   postgres:
