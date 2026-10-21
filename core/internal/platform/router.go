@@ -12,6 +12,7 @@ const (
 	policyPublic
 	policyAuthenticated
 	policyPermission
+	policyModuleCredential
 )
 
 type Policy struct {
@@ -22,6 +23,8 @@ type Policy struct {
 var (
 	Public        = Policy{kind: policyPublic}
 	Authenticated = Policy{kind: policyAuthenticated}
+	// ModuleCredential guards routes that only module containers call, such as registration.
+	ModuleCredential = Policy{kind: policyModuleCredential}
 )
 
 func RequirePermission(permission string) Policy {
@@ -36,14 +39,21 @@ type Authorizer interface {
 	RequirePermission(permission string, next http.Handler) http.Handler
 }
 
-type Router struct {
-	mux           *http.ServeMux
-	authenticator Authenticator
-	authorizer    Authorizer
+type ModuleAuthenticator interface {
+	RequireModuleCredential(next http.Handler) http.Handler
 }
 
-func NewRouter(authenticator Authenticator, authorizer Authorizer) *Router {
-	return &Router{mux: http.NewServeMux(), authenticator: authenticator, authorizer: authorizer}
+type Router struct {
+	mux                 *http.ServeMux
+	authenticator       Authenticator
+	authorizer          Authorizer
+	moduleAuthenticator ModuleAuthenticator
+}
+
+func NewRouter(authenticator Authenticator, authorizer Authorizer, moduleAuthenticator ModuleAuthenticator) *Router {
+	return &Router{
+		mux: http.NewServeMux(), authenticator: authenticator, authorizer: authorizer, moduleAuthenticator: moduleAuthenticator,
+	}
 }
 
 // Handle panics on an undeclared policy so that a route can never become public by omission.
@@ -58,6 +68,8 @@ func (router *Router) Handle(pattern string, policy Policy, handler http.Handler
 			panic(fmt.Sprintf("route %q requires a permission name", pattern))
 		}
 		router.mux.Handle(pattern, router.authenticator.RequireAuthentication(router.authorizer.RequirePermission(policy.permission, handler)))
+	case policyModuleCredential:
+		router.mux.Handle(pattern, router.moduleAuthenticator.RequireModuleCredential(handler))
 	default:
 		panic(fmt.Sprintf("route %q has no access policy", pattern))
 	}

@@ -47,6 +47,24 @@ func (Repository) FindByID(ctx context.Context, db platform.DBTX, id int64) (Use
 	return scanSingleUser(db.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE id = $1 AND deleted_at IS NULL`, id))
 }
 
+func (Repository) FindByToken(ctx context.Context, db platform.DBTX, token string) (User, error) {
+	return scanSingleUser(db.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE token = $1 AND deleted_at IS NULL`, token))
+}
+
+func (Repository) ListActive(ctx context.Context, db platform.DBTX) ([]User, error) {
+	rows, err := db.Query(ctx, `SELECT `+userColumns+` FROM users WHERE deleted_at IS NULL ORDER BY name, email`)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	activeUsers, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (User, error) {
+		return scanUser(row)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	return activeUsers, nil
+}
+
 func (Repository) ExistsByEmail(ctx context.Context, db platform.DBTX, normalizedEmail string) (bool, error) {
 	var exists bool
 	err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1 AND deleted_at IS NULL)`, normalizedEmail).Scan(&exists)

@@ -10,6 +10,7 @@ const (
 	PermissionInviteCreate = "core.invite.create"
 	PermissionInviteRead   = "core.invite.read"
 	PermissionInviteRevoke = "core.invite.revoke"
+	PermissionUserRead     = "core.user.read"
 )
 
 const RoleNameAdmin = "admin"

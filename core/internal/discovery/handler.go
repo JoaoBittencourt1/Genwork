@@ -2,14 +2,21 @@ package discovery
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
 
 const (
-	ProductID  = "genwork"
-	APIVersion = "v1"
+	ProductID = "genwork"
+	// CoreAPIVersion is the semantic version of the contracts modules and clients consume (rule 61).
+	CoreAPIVersion = "1.0.0"
 )
+
+func APIMajorVersion() string {
+	major, _, _ := strings.Cut(CoreAPIVersion, ".")
+	return "v" + major
+}
 
 type AuthInfo struct {
 	Methods []string `json:"methods"`
@@ -32,7 +39,7 @@ func NewHandler(instanceName, version string) *Handler {
 		Product: ProductID,
 		Name:    instanceName,
 		Version: version,
-		API:     APIVersion,
+		API:     APIMajorVersion(),
 		Auth:    AuthInfo{Methods: []string{"password"}},
 	}}
 }

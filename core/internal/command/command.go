@@ -17,6 +17,8 @@ commands:
   worker         run background jobs
   migrate        apply database migrations
   admin create   create an administrator (--email, --name, --password-stdin)
+  module enable  publish a registered module in capabilities (<id>)
+  module disable stop publishing a registered module in capabilities (<id>)
   keygen         print a new JWT signing key`
 
 func Run(ctx context.Context, args []string, getenv platform.Getenv, stdin io.Reader, stdout io.Writer) error {
@@ -35,6 +37,8 @@ func Run(ctx context.Context, args []string, getenv platform.Getenv, stdin io.Re
 			return fmt.Errorf("%s", usage)
 		}
 		return RunAdminCreate(ctx, getenv, platform.CoreSchema, args[2:], stdin, stdout)
+	case "module":
+		return RunModuleState(ctx, getenv, platform.CoreSchema, args[1:], stdout)
 	case "keygen":
 		return RunKeygen(stdout)
 	default:

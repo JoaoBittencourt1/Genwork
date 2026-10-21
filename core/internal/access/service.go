@@ -22,6 +22,14 @@ func (service *Service) FindRoleByID(ctx context.Context, id int64) (Role, error
 	return service.roles.FindByID(ctx, service.db, id)
 }
 
+func (service *Service) FindRolePermissions(ctx context.Context, roleID int64) ([]string, error) {
+	role, err := service.roles.FindByID(ctx, service.db, roleID)
+	if err != nil {
+		return nil, err
+	}
+	return role.Permissions, nil
+}
+
 func (service *Service) ListRoles(ctx context.Context) ([]Role, error) {
 	return service.roles.List(ctx, service.db)
 }

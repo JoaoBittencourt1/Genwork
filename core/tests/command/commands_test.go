@@ -119,6 +119,7 @@ func TestServeAnswersUntilContextEnds(t *testing.T) {
 		"SMTP_PORT":              "1",
 		"SMTP_FROM":              "Genwork <no-reply@genwork.test>",
 		"SMTP_TLS":               "none",
+		"GENWORK_MODULE_SECRET":  "module-secret-0123456789abcdef",
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	stopped := make(chan error, 1)
@@ -154,6 +155,7 @@ func TestServeFailsFastOnInvalidConfiguration(t *testing.T) {
 		"DATABASE_URL": "postgres://unused", "CORE_HTTP_ADDR": ":0", "GENWORK_PUBLIC_URL": "http://localhost",
 		"GENWORK_INSTANCE_NAME": "x", "GENWORK_DEFAULT_LOCALE": "en", "JWT_SIGNING_KEY": "not-a-key",
 		"SMTP_HOST": "localhost", "SMTP_PORT": "25", "SMTP_FROM": "a@b.c", "SMTP_TLS": "none",
+		"GENWORK_MODULE_SECRET": "module-secret-0123456789abcdef",
 	}
 	if err := command.RunServe(ctx, envFrom(env), "unused"); err == nil || !strings.Contains(err.Error(), "JWT_SIGNING_KEY") {
 		t.Errorf("invalid key error = %v", err)
