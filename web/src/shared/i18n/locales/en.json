@@ -2,7 +2,11 @@
   "app": {
     "name": "Genwork",
     "loading": "Loading…",
-    "nav": { "home": "Home", "members": "Members" },
+    "nav": {
+      "home": "Home",
+      "members": "Members",
+      "tasks": "Tasks"
+    },
     "navigation": "Navigation",
     "toggleSidebar": "Toggle sidebar",
     "signOut": "Sign out"
@@ -52,8 +56,20 @@
     "emailSent": "E-mail sent to {{email}}.",
     "emailNotSent": "The e-mail could not be sent. Copy the link and share it manually.",
     "empty": "No invites yet.",
-    "columns": { "email": "E-mail", "role": "Role", "status": "Status", "invitedBy": "Invited by", "expiresAt": "Expires", "actions": "Actions" },
-    "status": { "pending": "Pending", "accepted": "Accepted", "revoked": "Revoked", "expired": "Expired" },
+    "columns": {
+      "email": "E-mail",
+      "role": "Role",
+      "status": "Status",
+      "invitedBy": "Invited by",
+      "expiresAt": "Expires",
+      "actions": "Actions"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "revoked": "Revoked",
+      "expired": "Expired"
+    },
     "resend": "Resend",
     "revoke": "Revoke"
   },
@@ -79,7 +95,126 @@
     "fields": {
       "invalid": "Invalid value.",
       "unknown": "Unknown option.",
-      "too_long": "Value is too long."
+      "too_long": "Value is too long.",
+      "required": "Required."
+    },
+    "board_not_found": "Board not found.",
+    "column_not_found": "Column not found.",
+    "column_not_empty": "This column still has tasks. Move, archive, or delete them first — archived tasks count too.",
+    "last_column": "A board needs at least one column.",
+    "label_not_found": "Label not found.",
+    "label_name_taken": "This board already has a label with that name.",
+    "task_not_found": "Task not found.",
+    "task_archived": "Archived tasks cannot be moved. Restore it first.",
+    "core_unavailable": "Could not check the assignee right now. Try again.",
+    "service_unavailable": "The service is unavailable. Try again.",
+    "user_not_found": "User not found."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete"
+  },
+  "modules": {
+    "unavailableTitle": "Module unavailable",
+    "unavailableDescription": "This module is not enabled on this installation."
+  },
+  "gentasks": {
+    "noPermissionTitle": "No permission",
+    "noPermissionDescription": "You do not have permission to see task boards.",
+    "boards": {
+      "title": "Task boards",
+      "empty": "No boards yet.",
+      "create": "New board",
+      "createTitle": "New board",
+      "rename": "Rename",
+      "renameTitle": "Rename board",
+      "name": "Name",
+      "actions": "Actions for {{name}}",
+      "updatedAt": "Updated {{date}}",
+      "deleteTitle": "Delete board?",
+      "deleteDescription": "“{{name}}” and all its columns, tasks, and labels will be removed."
+    },
+    "board": {
+      "back": "Back to boards",
+      "labels": "Labels",
+      "archived": "Archived",
+      "addColumn": "Add column",
+      "addColumnTitle": "New column",
+      "renameColumn": "Rename",
+      "renameColumnTitle": "Rename column",
+      "resetColumnName": "Use default name",
+      "deleteColumn": "Delete column",
+      "deleteColumnTitle": "Delete column?",
+      "deleteColumnDescription": "The column “{{title}}” will be removed. It must have no tasks, including archived ones.",
+      "columnName": "Column name",
+      "columnActions": "Actions for column {{title}}",
+      "dragColumn": "Move column {{title}}",
+      "addTask": "Add task"
+    },
+    "columnPresets": {
+      "backlog": "Backlog",
+      "todo": "To-do",
+      "done": "Done"
+    },
+    "urgency": {
+      "none": "No urgency",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "labelColors": {
+      "gray": "Gray",
+      "red": "Red",
+      "orange": "Orange",
+      "yellow": "Yellow",
+      "green": "Green",
+      "teal": "Teal",
+      "blue": "Blue",
+      "purple": "Purple",
+      "pink": "Pink"
+    },
+    "task": {
+      "newTitle": "New task",
+      "editTitle": "Task",
+      "title": "Title",
+      "description": "Description",
+      "assignee": "Assignee",
+      "unassigned": "Unassigned",
+      "urgency": "Urgency",
+      "labels": "Labels",
+      "noLabels": "No labels",
+      "noLabelsOnBoard": "Create labels in “Labels” first",
+      "create": "Create task",
+      "archive": "Archive",
+      "deleteTitle": "Delete task?",
+      "deleteDescription": "“{{title}}” will be deleted.",
+      "dragHandle": "Move task {{title}}"
+    },
+    "labels": {
+      "title": "Labels",
+      "description": "Labels belong to this board.",
+      "name": "Label name",
+      "color": "Color",
+      "newPlaceholder": "New label",
+      "create": "Add",
+      "empty": "No labels yet.",
+      "delete": "Delete label {{name}}"
+    },
+    "archived": {
+      "title": "Archived tasks",
+      "empty": "No archived tasks.",
+      "restore": "Restore",
+      "archivedAt": "Archived {{date}}"
+    },
+    "filters": {
+      "urgency": "Urgency",
+      "labels": "Labels",
+      "assignee": "Assignee",
+      "clear": "Clear filters",
+      "dragDisabled": "Clear the filters to drag tasks."
     }
   }
 }

@@ -1,0 +1,7 @@
+id: reports
+version: 1.0.0
+core: ">=1.0.0"
+apiPrefix: /api/reports/v1
+requires:
+  - id: gentasks
+    version: ">=0.1.0"

@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"errors"
 
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
@@ -47,4 +48,16 @@ func (service *Service) Create(ctx context.Context, db platform.DBTX, input Crea
 		PasswordHash: service.hasher.Hash(input.Password),
 		RoleID:       input.RoleID,
 	})
+}
+
+func (service *Service) ListDirectory(ctx context.Context, db platform.DBTX) ([]User, error) {
+	return service.users.ListActive(ctx, db)
+}
+
+func (service *Service) FindInDirectory(ctx context.Context, db platform.DBTX, token string) (User, error) {
+	user, err := service.users.FindByToken(ctx, db, token)
+	if errors.Is(err, ErrUserNotFound) {
+		return User{}, ErrDirectoryUserNotFound
+	}
+	return user, err
 }

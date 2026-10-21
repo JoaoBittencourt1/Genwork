@@ -28,7 +28,7 @@ func TestIssueAndVerifyAccessToken(t *testing.T) {
 	now := time.Date(2026, 10, 20, 12, 0, 0, 0, time.UTC)
 	issuer := auth.NewAccessTokenIssuer(newTestKey(t), "http://localhost:8485", func() time.Time { return now })
 
-	token, expiresAt, err := issuer.Issue("user-token", "session-token")
+	token, expiresAt, err := issuer.Issue("user-token", "session-token", []string{"core.user.read", "gentasks.board.read"})
 	if err != nil {
 		t.Fatalf("issue: %v", err)
 	}
@@ -39,7 +39,8 @@ func TestIssueAndVerifyAccessToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("verify: %v", err)
 	}
-	if claims.Subject != "user-token" || claims.SessionToken != "session-token" {
+	if claims.Subject != "user-token" || claims.SessionToken != "session-token" ||
+		len(claims.Permissions) != 2 || claims.Permissions[1] != "gentasks.board.read" {
 		t.Errorf("claims = %+v", claims)
 	}
 }
@@ -49,10 +50,10 @@ func TestVerifyRejectsInvalidTokens(t *testing.T) {
 	clock := func() time.Time { return now }
 	key := newTestKey(t)
 	issuer := auth.NewAccessTokenIssuer(key, "http://localhost:8485", clock)
-	valid, _, _ := issuer.Issue("user-token", "session-token")
+	valid, _, _ := issuer.Issue("user-token", "session-token", nil)
 
-	otherKeyToken, _, _ := auth.NewAccessTokenIssuer(newTestKey(t), "http://localhost:8485", clock).Issue("user-token", "session-token")
-	otherIssuerToken, _, _ := auth.NewAccessTokenIssuer(key, "http://elsewhere", clock).Issue("user-token", "session-token")
+	otherKeyToken, _, _ := auth.NewAccessTokenIssuer(newTestKey(t), "http://localhost:8485", clock).Issue("user-token", "session-token", nil)
+	otherIssuerToken, _, _ := auth.NewAccessTokenIssuer(key, "http://elsewhere", clock).Issue("user-token", "session-token", nil)
 	tampered := valid[:len(valid)-4] + strings.Repeat("A", 4)
 
 	cases := map[string]string{

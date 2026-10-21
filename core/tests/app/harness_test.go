@@ -85,6 +85,7 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 		TrustedProxies: platform.NewClientAddressResolver(nil),
 		PasswordParams: testPasswordParams,
 		RateLimits:     generousRateLimits,
+		ModuleSecret:   testModuleSecret,
 	}
 	for _, option := range options {
 		option(&settings)
@@ -102,12 +103,13 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 }
 
 type request struct {
-	method      string
-	path        string
-	body        any
-	accessToken string
-	webClient   bool
-	cookies     []*http.Cookie
+	method       string
+	path         string
+	body         any
+	accessToken  string
+	moduleSecret string
+	webClient    bool
+	cookies      []*http.Cookie
 }
 
 type response struct {
@@ -131,6 +133,9 @@ func (app *testApp) do(req request) response {
 	httpRequest.Header.Set("Content-Type", "application/json")
 	if req.accessToken != "" {
 		httpRequest.Header.Set("Authorization", "Bearer "+req.accessToken)
+	}
+	if req.moduleSecret != "" {
+		httpRequest.Header.Set("Authorization", "Bearer "+req.moduleSecret)
 	}
 	if req.webClient {
 		httpRequest.Header.Set(auth.ClientHeader, "web")

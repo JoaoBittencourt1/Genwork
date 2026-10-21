@@ -15,8 +15,10 @@ const (
 
 var errInvalidAccessToken = errors.New("invalid access token")
 
+// AccessClaims.Permissions lets modules authorize requests without calling core (rule 57).
 type AccessClaims struct {
-	SessionToken string `json:"sid"`
+	SessionToken string   `json:"sid"`
+	Permissions  []string `json:"permissions"`
 	jwt.RegisteredClaims
 }
 
@@ -30,11 +32,12 @@ func NewAccessTokenIssuer(key SigningKey, issuer string, now func() time.Time) *
 	return &AccessTokenIssuer{key: key, issuer: issuer, now: now}
 }
 
-func (issuer *AccessTokenIssuer) Issue(userToken, sessionToken string) (string, time.Time, error) {
+func (issuer *AccessTokenIssuer) Issue(userToken, sessionToken string, permissions []string) (string, time.Time, error) {
 	issuedAt := issuer.now()
 	expiresAt := issuedAt.Add(AccessTokenLifetime)
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA, AccessClaims{
 		SessionToken: sessionToken,
+		Permissions:  permissions,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    issuer.issuer,
 			Audience:  jwt.ClaimStrings{TokenAudience},

@@ -39,6 +39,7 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 		TrustedProxies: platform.NewClientAddressResolver(config.TrustedProxies),
 		PasswordParams: users.DefaultPasswordParams,
 		RateLimits:     app.DefaultRateLimits,
+		ModuleSecret:   config.ModuleSecret,
 	}, app.Dependencies{DB: db, Mailer: mail.NewSMTPSender(config.SMTP), Now: time.Now})
 
 	server := &http.Server{

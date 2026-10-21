@@ -12,7 +12,10 @@ import (
 
 const MaxNameLength = 120
 
-var ErrEmailAlreadyRegistered = platform.NewAPIError(http.StatusConflict, "email_already_registered")
+var (
+	ErrEmailAlreadyRegistered = platform.NewAPIError(http.StatusConflict, "email_already_registered")
+	ErrDirectoryUserNotFound  = platform.NewAPIError(http.StatusNotFound, "user_not_found")
+)
 
 type User struct {
 	ID               int64

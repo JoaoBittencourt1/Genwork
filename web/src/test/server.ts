@@ -12,12 +12,13 @@ export function errorResponse(status: number, code: string, fields?: Record<stri
 export type CapturedRequest = {
   method: string
   path: string
+  search: string
   headers: Headers
   body: unknown
 }
 
 // captureRequests records every call to the given path pattern and answers with the provided body.
-export function captureRequests(method: 'get' | 'post' | 'delete', pattern: string, respond: () => Response): CapturedRequest[] {
+export function captureRequests(method: 'get' | 'post' | 'patch' | 'delete', pattern: string, respond: () => Response): CapturedRequest[] {
   const captured: CapturedRequest[] = []
   server.use(
     http[method](pattern, async ({ request }) => {
@@ -25,6 +26,7 @@ export function captureRequests(method: 'get' | 'post' | 'delete', pattern: stri
       captured.push({
         method: request.method,
         path: new URL(request.url).pathname,
+        search: new URL(request.url).search,
         headers: request.headers,
         body: text ? JSON.parse(text) : undefined,
       })

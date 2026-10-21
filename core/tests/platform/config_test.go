@@ -18,6 +18,7 @@ func validServeEnv() map[string]string {
 		"SMTP_PORT":              "1025",
 		"SMTP_FROM":              "Genwork <no-reply@genwork.local>",
 		"SMTP_TLS":               "none",
+		"GENWORK_MODULE_SECRET":  "module-secret-0123456789abcdef",
 	}
 }
 
@@ -96,5 +97,17 @@ func TestLoadServeConfigRequiresSMTPCredentialsTogether(t *testing.T) {
 func TestLoadDatabaseURLRequiresVariable(t *testing.T) {
 	if _, err := platform.LoadDatabaseURL(getenvFrom(map[string]string{})); err == nil {
 		t.Fatal("expected missing DATABASE_URL to fail")
+	}
+}
+
+func TestLoadServeConfigRequiresStrongModuleSecret(t *testing.T) {
+	env := validServeEnv()
+	delete(env, "GENWORK_MODULE_SECRET")
+	if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "GENWORK_MODULE_SECRET") {
+		t.Errorf("expected missing GENWORK_MODULE_SECRET, got %v", err)
+	}
+	env["GENWORK_MODULE_SECRET"] = "short"
+	if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "GENWORK_MODULE_SECRET") {
+		t.Errorf("expected invalid GENWORK_MODULE_SECRET, got %v", err)
 	}
 }

@@ -27,9 +27,13 @@ type ServeConfig struct {
 	InstanceName   string
 	DefaultLocale  string
 	JWTSigningKey  string
+	ModuleSecret   string
 	SMTP           SMTPConfig
 	TrustedProxies []netip.Prefix
 }
+
+// MinModuleSecretLength matches 128 bits of entropy encoded as base64url.
+const MinModuleSecretLength = 22
 
 var supportedLocales = []string{"pt-BR", "en"}
 var supportedSMTPTLS = []string{"none", "starttls", "tls"}
@@ -85,7 +89,11 @@ func LoadServeConfig(getenv Getenv) (ServeConfig, error) {
 		InstanceName:  reader.required("GENWORK_INSTANCE_NAME"),
 		DefaultLocale: reader.required("GENWORK_DEFAULT_LOCALE"),
 		JWTSigningKey: reader.required("JWT_SIGNING_KEY"),
+		ModuleSecret:  reader.required("GENWORK_MODULE_SECRET"),
 		SMTP:          readSMTPConfig(reader),
+	}
+	if cfg.ModuleSecret != "" && len(cfg.ModuleSecret) < MinModuleSecretLength {
+		reader.markInvalid("GENWORK_MODULE_SECRET (at least 22 characters)")
 	}
 	if cfg.PublicURL != "" && !isAbsoluteHTTPURL(cfg.PublicURL) {
 		reader.markInvalid("GENWORK_PUBLIC_URL")

@@ -18,7 +18,7 @@ SELECT roles.id, roles.token, roles.name,
        coalesce(array_agg(permissions.name ORDER BY permissions.name) FILTER (WHERE permissions.id IS NOT NULL), '{}')
 FROM roles
 LEFT JOIN role_permissions ON role_permissions.role_id = roles.id
-LEFT JOIN permissions ON permissions.id = role_permissions.permission_id`
+LEFT JOIN permissions ON permissions.id = role_permissions.permission_id AND permissions.retired_at IS NULL`
 
 func (RoleRepository) FindByID(ctx context.Context, db platform.DBTX, id int64) (Role, error) {
 	return scanSingleRole(db.QueryRow(ctx, roleSelect+` WHERE roles.id = $1 GROUP BY roles.id`, id))
@@ -44,6 +44,18 @@ func (RoleRepository) List(ctx context.Context, db platform.DBTX) ([]Role, error
 		return nil, fmt.Errorf("list roles: %w", err)
 	}
 	return roles, nil
+}
+
+func (RoleRepository) FindExistingNames(ctx context.Context, db platform.DBTX, names []string) ([]string, error) {
+	rows, err := db.Query(ctx, `SELECT name FROM roles WHERE name = ANY($1)`, names)
+	if err != nil {
+		return nil, fmt.Errorf("find role names: %w", err)
+	}
+	existing, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("find role names: %w", err)
+	}
+	return existing, nil
 }
 
 func scanSingleRole(row pgx.Row) (Role, error) {

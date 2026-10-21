@@ -142,7 +142,7 @@ func TestInvitePermissions(t *testing.T) {
 
 func TestCannotInviteWithMorePowerfulRole(t *testing.T) {
 	app := newTestApp(t)
-	app.createRole("inviter", access.PermissionInviteCreate)
+	app.createRole("inviter", access.PermissionInviteCreate, access.PermissionUserRead)
 	app.createUser("dora@example.com", "Dora", "inviter")
 	inviter := app.loginNative("dora@example.com")
 

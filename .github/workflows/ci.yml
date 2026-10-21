@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       core: ${{ steps.filter.outputs.core }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      gentasks: ${{ steps.filter.outputs.gentasks }}
       cli: ${{ steps.filter.outputs.cli }}
       web: ${{ steps.filter.outputs.web }}
     steps:
@@ -29,10 +31,23 @@ jobs:
           filters: |
             core:
               - 'core/**'
+              - 'sdk/go/coretest/fixtures/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            sdk:
+              - 'sdk/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            gentasks:
+              - 'modules/gentasks/**'
+              - 'sdk/**'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             cli:
               - 'cli/**'
+              - 'sdk/**'
+              - 'modules/*/module.yaml'
+              - 'deploy/docker-compose.yml'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             web:
@@ -70,6 +85,51 @@ jobs:
       - run: make lint-core
       - run: make test-core
       - run: make build-core
+
+  sdk:
+    name: SDK · Lint · Test
+    needs: changes
+    if: needs.changes.outputs.sdk == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: sdk/go/go.mod
+          cache-dependency-path: sdk/go/go.sum
+      - run: make lint-sdk
+      - run: make test-sdk
+
+  gentasks:
+    name: Gentasks · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.gentasks == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: genwork
+          POSTGRES_PASSWORD: genwork
+          POSTGRES_DB: genwork_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genwork"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://genwork:genwork@localhost:5432/genwork_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: modules/gentasks/go.mod
+          cache-dependency-path: modules/gentasks/go.sum
+      - run: make lint-gentasks
+      - run: make test-gentasks
+      - run: make build-gentasks
 
   cli:
     name: CLI · Lint · Test · Build

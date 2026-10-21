@@ -7,13 +7,21 @@ import (
 )
 
 type Dependencies struct {
-	Runner     CommandRunner
-	Prompter   Prompter
-	WorkingDir func() (string, error)
+	Runner        CommandRunner
+	Prompter      Prompter
+	Selector      ModuleSelector
+	IsInteractive func() bool
+	WorkingDir    func() (string, error)
 }
 
 func DefaultDependencies() Dependencies {
-	return Dependencies{Runner: ExecRunner{}, Prompter: NewTerminalPrompter(), WorkingDir: os.Getwd}
+	return Dependencies{
+		Runner:        ExecRunner{},
+		Prompter:      NewTerminalPrompter(),
+		Selector:      HuhModuleSelector{},
+		IsInteractive: isInteractiveTerminal,
+		WorkingDir:    os.Getwd,
+	}
 }
 
 func NewRootCommand(dependencies Dependencies) *cobra.Command {
@@ -30,6 +38,7 @@ func NewRootCommand(dependencies Dependencies) *cobra.Command {
 		newUpCommand(dependencies),
 		newDownCommand(dependencies),
 		newAuthCommand(dependencies),
+		newModulesCommand(dependencies),
 	)
 	return root
 }

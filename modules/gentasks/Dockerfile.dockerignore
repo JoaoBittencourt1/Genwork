@@ -1,0 +1,5 @@
+*
+!sdk/go
+!modules/gentasks
+modules/gentasks/bin
+**/coverage.out

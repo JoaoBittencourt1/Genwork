@@ -29,17 +29,22 @@ type SignIn struct {
 	Session              sessions.Session
 }
 
+type RolePermissionFinder interface {
+	FindRolePermissions(ctx context.Context, roleID int64) ([]string, error)
+}
+
 type Service struct {
 	db       *pgxpool.Pool
 	hasher   *users.PasswordHasher
 	issuer   *AccessTokenIssuer
 	sessions *sessions.Service
+	roles    RolePermissionFinder
 	users    users.Repository
 	now      func() time.Time
 }
 
-func NewService(db *pgxpool.Pool, hasher *users.PasswordHasher, issuer *AccessTokenIssuer, sessionService *sessions.Service, now func() time.Time) *Service {
-	return &Service{db: db, hasher: hasher, issuer: issuer, sessions: sessionService, now: now}
+func NewService(db *pgxpool.Pool, hasher *users.PasswordHasher, issuer *AccessTokenIssuer, sessionService *sessions.Service, roles RolePermissionFinder, now func() time.Time) *Service {
+	return &Service{db: db, hasher: hasher, issuer: issuer, sessions: sessionService, roles: roles, now: now}
 }
 
 type ClientInput struct {
@@ -122,7 +127,7 @@ func (service *Service) StartSignIn(ctx context.Context, db platform.DBTX, userI
 	if err != nil {
 		return SignIn{}, err
 	}
-	return service.issueAccessToken(session, refreshToken)
+	return service.issueAccessToken(ctx, session, refreshToken)
 }
 
 func (service *Service) Refresh(ctx context.Context, refreshToken string) (SignIn, error) {
@@ -130,11 +135,15 @@ func (service *Service) Refresh(ctx context.Context, refreshToken string) (SignI
 	if err != nil {
 		return SignIn{}, err
 	}
-	return service.issueAccessToken(session, rotatedRefreshToken)
+	return service.issueAccessToken(ctx, session, rotatedRefreshToken)
 }
 
-func (service *Service) issueAccessToken(session sessions.Session, refreshToken string) (SignIn, error) {
-	accessToken, expiresAt, err := service.issuer.Issue(session.UserToken, session.Token)
+func (service *Service) issueAccessToken(ctx context.Context, session sessions.Session, refreshToken string) (SignIn, error) {
+	permissions, err := service.roles.FindRolePermissions(ctx, session.RoleID)
+	if err != nil {
+		return SignIn{}, err
+	}
+	accessToken, expiresAt, err := service.issuer.Issue(session.UserToken, session.Token, permissions)
 	if err != nil {
 		return SignIn{}, err
 	}
