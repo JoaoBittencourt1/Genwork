@@ -108,7 +108,8 @@
     "task_archived": "Tarefas arquivadas não podem ser movidas. Restaure-a antes.",
     "core_unavailable": "Não foi possível verificar o responsável agora. Tente novamente.",
     "service_unavailable": "O serviço está indisponível. Tente novamente.",
-    "user_not_found": "Usuário não encontrado."
+    "user_not_found": "Usuário não encontrado.",
+    "task_prefix_taken": "Outro quadro já usa este identificador."
   },
   "common": {
     "cancel": "Cancelar",
@@ -128,17 +129,14 @@
       "empty": "Nenhum quadro ainda.",
       "create": "Novo quadro",
       "createTitle": "Novo quadro",
-      "rename": "Renomear",
-      "renameTitle": "Renomear quadro",
       "name": "Nome",
       "actions": "Ações de {{name}}",
-      "updatedAt": "Atualizado em {{date}}",
       "deleteTitle": "Excluir quadro?",
-      "deleteDescription": "“{{name}}” e todas as suas colunas, tarefas e labels serão removidos."
+      "deleteDescription": "“{{name}}” e todas as suas colunas, tarefas e labels serão removidos.",
+      "updated": "Atualizado",
+      "actionsColumn": "Ações"
     },
     "board": {
-      "back": "Voltar aos quadros",
-      "labels": "Labels",
       "archived": "Arquivadas",
       "addColumn": "Adicionar coluna",
       "addColumnTitle": "Nova coluna",
@@ -151,7 +149,8 @@
       "columnName": "Nome da coluna",
       "columnActions": "Ações da coluna {{title}}",
       "dragColumn": "Mover coluna {{title}}",
-      "addTask": "Adicionar tarefa"
+      "addTaskTo": "Adicionar tarefa em {{title}}",
+      "newTask": "Nova tarefa"
     },
     "columnPresets": {
       "backlog": "Backlog",
@@ -178,7 +177,6 @@
     },
     "task": {
       "newTitle": "Nova tarefa",
-      "editTitle": "Tarefa",
       "title": "Título",
       "description": "Descrição",
       "assignee": "Responsável",
@@ -186,16 +184,22 @@
       "urgency": "Urgência",
       "labels": "Labels",
       "noLabels": "Sem labels",
-      "noLabelsOnBoard": "Crie labels em “Labels” primeiro",
+      "noLabelsOnBoard": "Crie labels nas configurações do quadro primeiro",
       "create": "Criar tarefa",
       "archive": "Arquivar",
       "deleteTitle": "Excluir tarefa?",
       "deleteDescription": "“{{title}}” será excluída.",
-      "dragHandle": "Mover tarefa {{title}}"
+      "dragHandle": "Mover tarefa {{title}}",
+      "titlePlaceholder": "Título da tarefa",
+      "descriptionPlaceholder": "Adicione uma descrição…",
+      "dialogDescription": "Edite o título, a descrição e as propriedades da tarefa.",
+      "properties": "Propriedades",
+      "status": "Status",
+      "createdAt": "Criada em {{date}}"
     },
     "labels": {
       "title": "Labels",
-      "description": "As labels pertencem a este quadro.",
+      "description": "As labels pertencem a este quadro e podem ser usadas nas tarefas dele.",
       "name": "Nome da label",
       "color": "Cor",
       "newPlaceholder": "Nova label",
@@ -214,7 +218,20 @@
       "labels": "Labels",
       "assignee": "Responsável",
       "clear": "Limpar filtros",
-      "dragDisabled": "Limpe os filtros para arrastar tarefas."
+      "dragDisabled": "Limpe os filtros para arrastar tarefas.",
+      "title": "Filtrar",
+      "remove": "Remover o filtro de {{label}}"
+    },
+    "settings": {
+      "title": "Configurações",
+      "general": "Geral",
+      "generalDescription": "Nome e identificador das tarefas deste quadro.",
+      "taskPrefix": "Identificador",
+      "taskPrefixDescription": "As tarefas aparecem como {{example}}. Use de 1 a 10 letras ou números, começando por uma letra. Ao mudar, o identificador de todas as tarefas muda junto.",
+      "saved": "Configurações salvas.",
+      "dangerZone": "Zona de perigo",
+      "dangerZoneDescription": "Excluir o quadro remove as colunas, tarefas e labels dele.",
+      "deleteBoard": "Excluir quadro"
     }
   }
 }

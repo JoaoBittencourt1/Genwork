@@ -9,11 +9,12 @@ import (
 )
 
 type BoardResponse struct {
-	Token     string    `json:"token"`
-	Name      string    `json:"name"`
-	CreatedBy string    `json:"createdBy"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Token      string    `json:"token"`
+	Name       string    `json:"name"`
+	TaskPrefix string    `json:"taskPrefix"`
+	CreatedBy  string    `json:"createdBy"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 type BoardListResponse struct {
@@ -33,7 +34,10 @@ type CreatedBoardResponse struct {
 }
 
 func NewBoardResponse(board Board) BoardResponse {
-	return BoardResponse{Token: board.Token, Name: board.Name, CreatedBy: board.CreatedBy, CreatedAt: board.CreatedAt, UpdatedAt: board.UpdatedAt}
+	return BoardResponse{
+		Token: board.Token, Name: board.Name, TaskPrefix: board.TaskPrefix,
+		CreatedBy: board.CreatedBy, CreatedAt: board.CreatedAt, UpdatedAt: board.UpdatedAt,
+	}
 }
 
 func NewColumnResponse(column Column) ColumnResponse {
@@ -78,13 +82,13 @@ func (handler *BoardHandler) createBoard(w http.ResponseWriter, r *http.Request)
 		httpapi.WriteError(w, r, err)
 		return
 	}
-	name, err := request.NormalizedName()
+	input, err := request.Validate()
 	if err != nil {
 		httpapi.WriteError(w, r, err)
 		return
 	}
 	principal, _ := httpapi.PrincipalFrom(r.Context())
-	board, columns, err := handler.service.CreateBoard(r.Context(), name, principal.UserToken)
+	board, columns, err := handler.service.CreateBoard(r.Context(), input, principal.UserToken)
 	if err != nil {
 		httpapi.WriteError(w, r, err)
 		return
@@ -102,12 +106,12 @@ func (handler *BoardHandler) updateBoard(w http.ResponseWriter, r *http.Request)
 		httpapi.WriteError(w, r, err)
 		return
 	}
-	newName, err := request.NormalizedName()
+	changes, err := request.Validate()
 	if err != nil {
 		httpapi.WriteError(w, r, err)
 		return
 	}
-	board, err := handler.service.UpdateBoard(r.Context(), r.PathValue("token"), newName)
+	board, err := handler.service.UpdateBoard(r.Context(), r.PathValue("token"), changes)
 	if err != nil {
 		httpapi.WriteError(w, r, err)
 		return

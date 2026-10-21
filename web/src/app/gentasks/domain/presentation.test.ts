@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { usersFixture } from '@/test/gentasksFixtures'
 import { findAssignee, initials } from './assignees'
-import { canClearColumnName, columnTitle, resolveColumnTitle } from './columnName'
+import { canClearColumnName, columnStatus, columnTitle, resolveColumnTitle, statusColorVariable } from './columnName'
 import { labelColorTranslationKey, labelColorVariable, urgencyColorVariable } from './labelPalette'
 import { gentasksAbilities } from './permissions'
 import { isUrgencyShown, urgencyRank, urgencyTranslationKey } from './urgency'
@@ -12,6 +12,14 @@ describe('column titles', () => {
     expect(columnTitle({ preset: 'todo', name: 'Next up' })).toEqual({ kind: 'custom', name: 'Next up' })
     expect(resolveColumnTitle({ preset: 'done', name: null }, (key) => `t:${key}`)).toBe('t:gentasks.columnPresets.done')
     expect(resolveColumnTitle({ preset: null, name: 'Review' }, (key) => key)).toBe('Review')
+  })
+
+  it('shows a status for each preset and treats custom columns as in progress', () => {
+    expect(columnStatus({ preset: 'backlog' })).toBe('backlog')
+    expect(columnStatus({ preset: 'todo' })).toBe('todo')
+    expect(columnStatus({ preset: 'done' })).toBe('done')
+    expect(columnStatus({ preset: null })).toBe('started')
+    expect(statusColorVariable('done')).toBe('var(--status-done)')
   })
 
   it('lets only renamed preset columns clear their name', () => {

@@ -34,19 +34,45 @@ func TestBoardRepositoryHidesDeletedBoards(t *testing.T) {
 	}
 }
 
-func TestBoardRepositoryRenames(t *testing.T) {
+func TestBoardRepositoryUpdatesNameAndTaskPrefix(t *testing.T) {
 	db := dbtest.NewMigratedSchema(t)
 	board, _ := boardtest.NewBoardWithDefaultColumns(t, db, "Old")
+	taken, _ := boardtest.NewBoardWithDefaultColumns(t, db, "Taken")
 	later := boardtest.FixedTime.Add(time.Hour)
+	board.Name, board.TaskPrefix = "New", "NEW"
 
-	renamed, err := boards.BoardRepository{}.Rename(context.Background(), db, board.ID, "New", later)
+	updated, err := boards.BoardRepository{}.Update(context.Background(), db, board, later)
 
-	if err != nil || renamed.Name != "New" || !renamed.UpdatedAt.Equal(later) || renamed.CreatedBy != boardtest.CreatorToken {
-		t.Errorf("renamed = %+v, err = %v", renamed, err)
+	if err != nil || updated.Name != "New" || updated.TaskPrefix != "NEW" || !updated.UpdatedAt.Equal(later) || updated.CreatedBy != boardtest.CreatorToken {
+		t.Errorf("updated = %+v, err = %v", updated, err)
 	}
 	found, _ := boards.BoardRepository{}.FindByID(context.Background(), db, board.ID)
-	if found.Name != "New" {
+	if found.Name != "New" || found.TaskPrefix != "NEW" {
 		t.Errorf("found = %+v", found)
+	}
+	board.TaskPrefix = taken.TaskPrefix
+	if _, err := (boards.BoardRepository{}).Update(context.Background(), db, board, later); err != boards.ErrTaskPrefixTaken {
+		t.Errorf("taken prefix error = %v", err)
+	}
+}
+
+func TestBoardRepositoryHandsOutTaskNumbersInSequence(t *testing.T) {
+	db := dbtest.NewMigratedSchema(t)
+	ctx := context.Background()
+	repository := boards.BoardRepository{}
+	board, _ := boardtest.NewBoardWithDefaultColumns(t, db, "Board")
+	other, _ := boardtest.NewBoardWithDefaultColumns(t, db, "Other")
+
+	first, _ := repository.TakeNextTaskNumber(ctx, db, board.ID)
+	second, _ := repository.TakeNextTaskNumber(ctx, db, board.ID)
+	otherFirst, err := repository.TakeNextTaskNumber(ctx, db, other.ID)
+
+	if err != nil || first != 1 || second != 2 || otherFirst != 1 {
+		t.Errorf("numbers = %d, %d, %d, err = %v", first, second, otherFirst, err)
+	}
+	prefixes, err := repository.ListTaskPrefixesStartingWith(ctx, db, "BOA")
+	if err != nil || len(prefixes) != 1 || prefixes[0] != board.TaskPrefix {
+		t.Errorf("prefixes = %v, err = %v", prefixes, err)
 	}
 }
 

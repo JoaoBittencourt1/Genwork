@@ -13,19 +13,23 @@ import (
 type BoardRepository struct{}
 
 type NewBoard struct {
-	Name      string
-	CreatedBy string
-	At        time.Time
+	Name       string
+	TaskPrefix string
+	CreatedBy  string
+	At         time.Time
 }
 
-const boardColumns = `id, token, name, created_by, created_at, updated_at`
+const boardColumns = `id, token, name, task_prefix, created_by, created_at, updated_at`
 
 func (BoardRepository) Create(ctx context.Context, db platform.DBTX, newBoard NewBoard) (Board, error) {
 	board, err := scanBoard(db.QueryRow(ctx, `
-		INSERT INTO boards (token, name, created_by, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $4)
+		INSERT INTO boards (token, name, task_prefix, created_by, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $5)
 		RETURNING `+boardColumns,
-		platform.NewPublicToken(), newBoard.Name, newBoard.CreatedBy, newBoard.At))
+		platform.NewPublicToken(), newBoard.Name, newBoard.TaskPrefix, newBoard.CreatedBy, newBoard.At))
+	if platform.IsUniqueViolation(err) {
+		return Board{}, ErrTaskPrefixTaken
+	}
 	if err != nil {
 		return Board{}, fmt.Errorf("create board: %w", err)
 	}
@@ -54,11 +58,43 @@ func (BoardRepository) List(ctx context.Context, db platform.DBTX) ([]Board, err
 	return boards, nil
 }
 
-func (BoardRepository) Rename(ctx context.Context, db platform.DBTX, id int64, name string, at time.Time) (Board, error) {
-	return scanSingleBoard(db.QueryRow(ctx, `
-		UPDATE boards SET name = $2, updated_at = $3
+func (BoardRepository) Update(ctx context.Context, db platform.DBTX, board Board, at time.Time) (Board, error) {
+	updated, err := scanSingleBoard(db.QueryRow(ctx, `
+		UPDATE boards SET name = $2, task_prefix = $3, updated_at = $4
 		WHERE id = $1 AND deleted_at IS NULL
-		RETURNING `+boardColumns, id, name, at))
+		RETURNING `+boardColumns, board.ID, board.Name, board.TaskPrefix, at))
+	if platform.IsUniqueViolation(err) {
+		return Board{}, ErrTaskPrefixTaken
+	}
+	return updated, err
+}
+
+// ListTaskPrefixesStartingWith lists the prefixes active boards use that begin with start.
+func (BoardRepository) ListTaskPrefixesStartingWith(ctx context.Context, db platform.DBTX, start string) ([]string, error) {
+	rows, err := db.Query(ctx, `
+		SELECT task_prefix FROM boards
+		WHERE deleted_at IS NULL AND starts_with(task_prefix, $1)`, start)
+	if err != nil {
+		return nil, fmt.Errorf("list task prefixes: %w", err)
+	}
+	prefixes, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("list task prefixes: %w", err)
+	}
+	return prefixes, nil
+}
+
+// TakeNextTaskNumber hands out the board's next task number; numbers are never reused, even after a task is deleted.
+func (BoardRepository) TakeNextTaskNumber(ctx context.Context, db platform.DBTX, boardID int64) (int, error) {
+	var number int
+	err := db.QueryRow(ctx, `
+		UPDATE boards SET next_task_number = next_task_number + 1
+		WHERE id = $1
+		RETURNING next_task_number - 1`, boardID).Scan(&number)
+	if err != nil {
+		return 0, fmt.Errorf("take next task number: %w", err)
+	}
+	return number, nil
 }
 
 func (BoardRepository) SoftDelete(ctx context.Context, db platform.DBTX, id int64, at time.Time) error {
@@ -81,6 +117,6 @@ func scanSingleBoard(row pgx.Row) (Board, error) {
 
 func scanBoard(row pgx.Row) (Board, error) {
 	var board Board
-	err := row.Scan(&board.ID, &board.Token, &board.Name, &board.CreatedBy, &board.CreatedAt, &board.UpdatedAt)
+	err := row.Scan(&board.ID, &board.Token, &board.Name, &board.TaskPrefix, &board.CreatedBy, &board.CreatedAt, &board.UpdatedAt)
 	return board, err
 }

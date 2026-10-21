@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/boards"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/boardtest"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform/dbtest"
@@ -107,9 +108,13 @@ func appendTaskUnderBoardLock(ctx context.Context, db *pgxpool.Pool, boardID, co
 		if err != nil {
 			return err
 		}
+		number, err := boards.BoardRepository{}.TakeNextTaskNumber(ctx, tx, boardID)
+		if err != nil {
+			return err
+		}
 		time.Sleep(5 * time.Millisecond)
 		_, err = tasks.TaskRepository{}.Create(ctx, tx, tasks.NewTask{
-			BoardID: boardID, ColumnID: columnID, Title: title, Urgency: tasks.UrgencyNone, Position: count,
+			BoardID: boardID, Number: number, ColumnID: columnID, Title: title, Urgency: tasks.UrgencyNone, Position: count,
 			CreatedBy: boardtest.CreatorToken, At: boardtest.FixedTime,
 		})
 		return err

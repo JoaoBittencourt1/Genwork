@@ -14,6 +14,7 @@ type TaskRepository struct{}
 
 type NewTask struct {
 	BoardID           int64
+	Number            int
 	ColumnID          int64
 	Title             string
 	Description       *string
@@ -25,7 +26,7 @@ type NewTask struct {
 }
 
 const taskSelect = `
-SELECT tasks.id, tasks.token, tasks.board_id, tasks.column_id, board_columns.token, tasks.title, tasks.description,
+SELECT tasks.id, tasks.token, tasks.number, tasks.board_id, tasks.column_id, board_columns.token, tasks.title, tasks.description,
        tasks.assignee_user_token, tasks.urgency, tasks.position, tasks.created_by, tasks.created_at, tasks.updated_at,
        tasks.archived_at
 FROM tasks
@@ -35,11 +36,11 @@ JOIN boards ON boards.id = tasks.board_id`
 func (repository TaskRepository) Create(ctx context.Context, db platform.DBTX, newTask NewTask) (Task, error) {
 	var id int64
 	err := db.QueryRow(ctx, `
-		INSERT INTO tasks (token, board_id, column_id, title, description, assignee_user_token, urgency, position,
+		INSERT INTO tasks (token, number, board_id, column_id, title, description, assignee_user_token, urgency, position,
 		                   created_by, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 		RETURNING id`,
-		platform.NewPublicToken(), newTask.BoardID, newTask.ColumnID, newTask.Title, newTask.Description,
+		platform.NewPublicToken(), newTask.Number, newTask.BoardID, newTask.ColumnID, newTask.Title, newTask.Description,
 		newTask.AssigneeUserToken, newTask.Urgency, newTask.Position, newTask.CreatedBy, newTask.At).Scan(&id)
 	if err != nil {
 		return Task{}, fmt.Errorf("create task: %w", err)
@@ -160,7 +161,7 @@ func scanSingleTask(row pgx.Row) (Task, error) {
 
 func scanTask(row pgx.Row) (Task, error) {
 	var task Task
-	err := row.Scan(&task.ID, &task.Token, &task.BoardID, &task.ColumnID, &task.ColumnToken, &task.Title, &task.Description,
+	err := row.Scan(&task.ID, &task.Token, &task.Number, &task.BoardID, &task.ColumnID, &task.ColumnToken, &task.Title, &task.Description,
 		&task.AssigneeUserToken, &task.Urgency, &task.Position, &task.CreatedBy, &task.CreatedAt, &task.UpdatedAt, &task.ArchivedAt)
 	return task, err
 }

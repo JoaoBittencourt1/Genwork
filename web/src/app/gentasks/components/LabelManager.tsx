@@ -4,7 +4,6 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { Button } from '@/shared/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { createLabel, deleteLabel, updateLabel } from '../datasource/labelsDatasource'
@@ -12,14 +11,12 @@ import { labelColorTranslationKey, labelColorVariable } from '../domain/labelPal
 import { LABEL_COLORS, type Label, type LabelColor, type LabelPatch } from '../domain/types'
 import { gentasksQueryKeys } from './queryKeys'
 
-type LabelManagerDialogProps = {
+type LabelManagerProps = {
   boardToken: string
   labels: Label[]
-  open: boolean
-  onOpenChange: (open: boolean) => void
 }
 
-export function LabelManagerDialog({ boardToken, labels, open, onOpenChange }: LabelManagerDialogProps) {
+export function LabelManager({ boardToken, labels }: LabelManagerProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const refresh = () => queryClient.invalidateQueries({ queryKey: gentasksQueryKeys.board(boardToken) })
@@ -30,22 +27,20 @@ export function LabelManagerDialog({ boardToken, labels, open, onOpenChange }: L
   const remove = useMutation({ mutationFn: (label: Label) => deleteLabel(label.token), onSuccess: refresh })
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{t('gentasks.labels.title')}</DialogTitle>
-          <DialogDescription>{t('gentasks.labels.description')}</DialogDescription>
-        </DialogHeader>
-        <NewLabelForm boardToken={boardToken} onCreated={refresh} />
-        <ErrorAlert error={update.error ?? remove.error} />
-        {labels.length === 0 ? <p className="text-sm text-muted-foreground">{t('gentasks.labels.empty')}</p> : null}
-        <ul className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      <NewLabelForm boardToken={boardToken} onCreated={refresh} />
+      <ErrorAlert error={update.error ?? remove.error} />
+      {labels.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t('gentasks.labels.empty')}</p>
+      ) : (
+        <ul className="flex flex-col divide-y rounded-lg border">
           {labels.map((label) => (
-            <li key={label.token} className="flex items-center gap-2">
+            <li key={label.token} className="flex items-center gap-2 p-2">
               <Input
                 defaultValue={label.name}
                 maxLength={40}
                 aria-label={t('gentasks.labels.name')}
+                className="border-none bg-transparent shadow-none dark:bg-transparent"
                 onBlur={(event) => {
                   const name = event.target.value.trim()
                   if (name !== '' && name !== label.name) update.mutate({ label, patch: { name } })
@@ -54,7 +49,7 @@ export function LabelManagerDialog({ boardToken, labels, open, onOpenChange }: L
               <ColorSelect value={label.color} onChange={(color) => update.mutate({ label, patch: { color } })} />
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 aria-label={t('gentasks.labels.delete', { name: label.name })}
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(label)}
@@ -64,8 +59,8 @@ export function LabelManagerDialog({ boardToken, labels, open, onOpenChange }: L
             </li>
           ))}
         </ul>
-      </DialogContent>
-    </Dialog>
+      )}
+    </div>
   )
 }
 

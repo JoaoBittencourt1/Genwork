@@ -85,6 +85,29 @@ func TestCreateTaskWithEveryField(t *testing.T) {
 	}
 }
 
+func TestTasksAreNumberedPerBoardWithoutReuse(t *testing.T) {
+	app := newTestApp(t)
+	board := app.createBoard("Board")
+	other := app.createBoard("Other")
+
+	first := app.createTask(board.Token, map[string]any{"title": "First"})
+	second := app.createTask(board.Token, map[string]any{"title": "Second"})
+	elsewhere := app.createTask(other.Token, map[string]any{"title": "Elsewhere"})
+	expectStatus(t, app.do(request{method: "DELETE", path: "/api/gentasks/v1/tasks/" + second.Token}), http.StatusNoContent)
+	third := app.createTask(board.Token, map[string]any{"title": "Third"})
+
+	if first.Number != 1 || second.Number != 2 || third.Number != 3 || elsewhere.Number != 1 {
+		t.Errorf("numbers = %d, %d, %d, elsewhere %d", first.Number, second.Number, third.Number, elsewhere.Number)
+	}
+	if listed := app.readBoard(board.Token).Columns[0].Tasks; len(listed) != 2 || listed[1].Number != 3 {
+		t.Errorf("listed = %+v", listed)
+	}
+	app.patchBoard(board.Token, map[string]any{"taskPrefix": "NEW"})
+	if found := app.findTask(first.Token); found.Number != 1 {
+		t.Errorf("number after a prefix change = %d", found.Number)
+	}
+}
+
 func TestCreateTaskValidatesInput(t *testing.T) {
 	app := newTestApp(t)
 	board := app.createBoard("Board")
@@ -149,7 +172,7 @@ func TestPatchTaskWithSingleFieldLeavesEverythingElse(t *testing.T) {
 }
 
 func sameTask(left, right taskBody) bool {
-	return left.Token == right.Token && left.ColumnToken == right.ColumnToken && *left.Position == *right.Position &&
+	return left.Token == right.Token && left.Number == right.Number && left.ColumnToken == right.ColumnToken && *left.Position == *right.Position &&
 		left.Title == right.Title && *left.Description == *right.Description && *left.AssigneeToken == *right.AssigneeToken &&
 		left.Urgency == right.Urgency && slices.Equal(left.Labels, right.Labels) && left.CreatedBy == right.CreatedBy &&
 		left.CreatedAt.Equal(right.CreatedAt) && left.UpdatedAt.Equal(right.UpdatedAt)

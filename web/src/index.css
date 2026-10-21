@@ -95,6 +95,10 @@
     --urgency-medium: oklch(0.75 0.15 90);
     --urgency-high: oklch(0.68 0.17 55);
     --urgency-urgent: oklch(0.6 0.22 25);
+    --status-backlog: oklch(0.6 0 0);
+    --status-todo: oklch(0.45 0 0);
+    --status-started: oklch(0.72 0.15 85);
+    --status-done: var(--primary);
 }
 
 .dark {
@@ -143,6 +147,10 @@
     --urgency-medium: oklch(0.85 0.14 90);
     --urgency-high: oklch(0.76 0.15 55);
     --urgency-urgent: oklch(0.7 0.2 25);
+    --status-backlog: oklch(0.6 0 0);
+    --status-todo: oklch(0.85 0 0);
+    --status-started: oklch(0.85 0.14 90);
+    --status-done: var(--primary);
 }
 
 @layer base {

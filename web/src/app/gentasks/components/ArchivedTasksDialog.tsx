@@ -6,17 +6,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/di
 import { Spinner } from '@/shared/ui/spinner'
 import { deleteTask, listArchivedTasks, unarchiveTask } from '../datasource/tasksDatasource'
 import type { GentasksAbilities } from '../domain/permissions'
+import { taskIdentifier } from '../domain/taskPrefix'
 import type { Task } from '../domain/types'
 import { gentasksQueryKeys } from './queryKeys'
 
 type ArchivedTasksDialogProps = {
   boardToken: string
+  taskPrefix: string
   abilities: GentasksAbilities
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function ArchivedTasksDialog({ boardToken, abilities, open, onOpenChange }: ArchivedTasksDialogProps) {
+export function ArchivedTasksDialog({ boardToken, taskPrefix, abilities, open, onOpenChange }: ArchivedTasksDialogProps) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const archived = useQuery({ queryKey: gentasksQueryKeys.archived(boardToken), queryFn: () => listArchivedTasks(boardToken), enabled: open })
@@ -42,7 +44,10 @@ export function ArchivedTasksDialog({ boardToken, abilities, open, onOpenChange 
           {archived.data?.map((task) => (
             <li key={task.token} className="flex items-center gap-2 rounded-lg border p-2">
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{task.title}</p>
+                <p className="truncate text-sm font-medium">
+                  <span className="mr-2 text-muted-foreground tabular-nums">{taskIdentifier(taskPrefix, task.number)}</span>
+                  {task.title}
+                </p>
                 {task.archivedAt ? (
                   <p className="text-xs text-muted-foreground">
                     {t('gentasks.archived.archivedAt', { date: formatDate.format(new Date(task.archivedAt)) })}

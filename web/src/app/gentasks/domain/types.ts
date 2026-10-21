@@ -10,6 +10,7 @@ export type ColumnPreset = (typeof COLUMN_PRESETS)[number]
 export type BoardSummary = {
   token: string
   name: string
+  taskPrefix: string
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -30,6 +31,7 @@ export type Label = {
 
 export type Task = {
   token: string
+  number: number
   columnToken: string
   position: number | null
   title: string
@@ -68,6 +70,12 @@ export type TaskPatch = {
   assigneeToken?: string | null
   urgency?: Urgency
   labelTokens?: string[]
+}
+
+// BoardPatch follows the API's PATCH rules: an omitted key leaves the field unchanged; neither field is nullable.
+export type BoardPatch = {
+  name?: string
+  taskPrefix?: string
 }
 
 export type LabelPatch = {

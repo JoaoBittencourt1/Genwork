@@ -3,6 +3,7 @@ import { AppShell } from '@/app/auth/components/AppShell'
 import { RequireAuth } from '@/app/auth/components/RequireAuth'
 import { LoginPage } from '@/app/auth/LoginPage'
 import { BoardPage } from '@/app/gentasks/BoardPage'
+import { BoardSettingsPage } from '@/app/gentasks/BoardSettingsPage'
 import { BoardsPage } from '@/app/gentasks/BoardsPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
@@ -54,6 +55,19 @@ const boardRoute = createRoute({
   },
 })
 
+const boardSettingsRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/tasks/$boardToken/settings',
+  component: function BoardSettingsRoute() {
+    const { boardToken } = boardSettingsRoute.useParams()
+    return (
+      <RequireModule moduleId={MODULE_IDS.gentasks}>
+        <BoardSettingsPage key={boardToken} boardToken={boardToken} />
+      </RequireModule>
+    )
+  },
+})
+
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage })
 
 const acceptInviteRoute = createRoute({
@@ -66,7 +80,7 @@ const acceptInviteRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  signedInLayoutRoute.addChildren([homeRoute, membersRoute, boardsRoute, boardRoute]),
+  signedInLayoutRoute.addChildren([homeRoute, membersRoute, boardsRoute, boardRoute, boardSettingsRoute]),
   loginRoute,
   acceptInviteRoute,
 ])

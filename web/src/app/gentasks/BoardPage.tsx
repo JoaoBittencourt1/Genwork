@@ -1,18 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArchiveIcon, ArrowLeftIcon, PlusIcon, TagIcon } from 'lucide-react'
-import { useState } from 'react'
+import { ArchiveIcon, Columns3Icon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
+import { PageContent } from '@/shared/components/PageContent'
+import { PageHeader } from '@/shared/components/PageHeader'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { Button } from '@/shared/ui/button'
 import { Spinner } from '@/shared/ui/spinner'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip'
 import { ArchivedTasksDialog } from './components/ArchivedTasksDialog'
+import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { BoardCanvas } from './components/BoardCanvas'
-import { BoardFilters } from './components/BoardFilters'
-import { LabelManagerDialog } from './components/LabelManagerDialog'
+import { ActiveFilterBar, BoardFilterMenu } from './components/BoardFilters'
+import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { NameDialog } from './components/NameDialog'
 import { gentasksQueryKeys } from './components/queryKeys'
 import { TaskDialog, type TaskDialogMode } from './components/TaskDialog'
@@ -21,7 +25,7 @@ import { useGentasksAbilities } from './components/useGentasksAbilities'
 import { addColumn, deleteColumn, readBoard, renameColumn } from './datasource/boardsDatasource'
 import { resolveColumnTitle } from './domain/columnName'
 import { isTaskDragEnabled } from './domain/dragAndDrop'
-import { EMPTY_FILTER, filterBoardView, isFilterActive, type TaskFilter } from './domain/filters'
+import { EMPTY_FILTER, filterBoardView, type TaskFilter } from './domain/filters'
 import type { Column } from './domain/types'
 
 type ColumnNameEditing = { kind: 'add' } | { kind: 'rename'; column: Column }
@@ -37,7 +41,6 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   const [taskDialog, setTaskDialog] = useState<TaskDialogMode | null>(null)
   const [columnEditing, setColumnEditing] = useState<ColumnNameEditing | null>(null)
   const [columnDeleting, setColumnDeleting] = useState<Column | null>(null)
-  const [labelsOpen, setLabelsOpen] = useState(false)
   const [archivedOpen, setArchivedOpen] = useState(false)
   const refresh = () => queryClient.invalidateQueries({ queryKey: gentasksQueryKeys.board(boardToken) })
 
@@ -60,63 +63,68 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
     onError: (error) => toast.error(describeError(error)),
   })
 
-  if (!abilities.canRead) {
+  if (!abilities.canRead) return <GentasksNoPermission />
+  if (board.isPending || board.isError) {
     return (
-      <section className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">{t('gentasks.noPermissionTitle')}</h1>
-        <p className="text-muted-foreground">{t('gentasks.noPermissionDescription')}</p>
-      </section>
+      <>
+        <PageHeader>
+          <BoardBreadcrumb />
+        </PageHeader>
+        <PageContent>{board.isPending ? <Spinner /> : <ErrorAlert error={board.error} />}</PageContent>
+      </>
     )
   }
-  if (board.isPending) return <Spinner />
-  if (board.isError) return <ErrorAlert error={board.error} />
 
   function openColumnEditing(next: ColumnNameEditing) {
     saveColumnName.reset()
     setColumnEditing(next)
   }
 
-  const taskDragEnabled = isTaskDragEnabled(abilities.canWriteTasks, filter)
+  const firstColumn = board.data.columns[0]
 
   return (
-    <section className="flex h-[calc(100svh-8rem)] flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <Button variant="ghost" size="icon-sm" asChild>
-          <Link to="/tasks" aria-label={t('gentasks.board.back')}>
-            <ArrowLeftIcon />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight">{board.data.name}</h1>
-        <div className="ml-auto flex flex-wrap gap-2">
-          {abilities.canManageBoards ? (
-            <Button variant="outline" size="sm" onClick={() => setLabelsOpen(true)}>
-              <TagIcon />
-              {t('gentasks.board.labels')}
-            </Button>
-          ) : null}
-          <Button variant="outline" size="sm" onClick={() => setArchivedOpen(true)}>
-            <ArchiveIcon />
-            {t('gentasks.board.archived')}
-          </Button>
-          {abilities.canManageBoards ? (
-            <Button size="sm" onClick={() => openColumnEditing({ kind: 'add' })}>
-              <PlusIcon />
-              {t('gentasks.board.addColumn')}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <BoardFilters filter={filter} labels={board.data.labels} users={users.data} onChange={setFilter} />
-        {abilities.canWriteTasks && isFilterActive(filter) ? (
-          <p className="text-xs text-muted-foreground">{t('gentasks.filters.dragDisabled')}</p>
-        ) : null}
-      </div>
+    <>
+      <PageHeader
+        actions={
+          <>
+            <BoardFilterMenu filter={filter} labels={board.data.labels} users={users.data} onChange={setFilter} />
+            <IconAction label={t('gentasks.board.archived')} onClick={() => setArchivedOpen(true)}>
+              <ArchiveIcon />
+            </IconAction>
+            {abilities.canManageBoards ? (
+              <>
+                <IconAction label={t('gentasks.board.addColumn')} onClick={() => openColumnEditing({ kind: 'add' })}>
+                  <Columns3Icon />
+                </IconAction>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon-sm" asChild>
+                      <Link to="/tasks/$boardToken/settings" params={{ boardToken }} aria-label={t('gentasks.settings.title')}>
+                        <SettingsIcon />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{t('gentasks.settings.title')}</TooltipContent>
+                </Tooltip>
+              </>
+            ) : null}
+            {abilities.canWriteTasks && firstColumn ? (
+              <Button size="sm" className="ml-1" onClick={() => setTaskDialog({ kind: 'create', columnToken: firstColumn.token })}>
+                <PlusIcon />
+                <span className="hidden sm:inline">{t('gentasks.board.newTask')}</span>
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <BoardBreadcrumb board={board.data} />
+      </PageHeader>
+      <ActiveFilterBar filter={filter} labels={board.data.labels} users={users.data} onChange={setFilter} />
       <BoardCanvas
         board={board.data}
         visibleBoard={filterBoardView(board.data, filter)}
         abilities={abilities}
-        taskDragEnabled={taskDragEnabled}
+        taskDragEnabled={isTaskDragEnabled(abilities.canWriteTasks, filter)}
         users={users.data}
         actions={{
           onAddTask: (column) => setTaskDialog({ kind: 'create', columnToken: column.token }),
@@ -126,14 +134,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
           onDelete: setColumnDeleting,
         }}
       />
-      <TaskDialog
-        boardToken={boardToken}
-        mode={taskDialog}
-        labels={board.data.labels}
-        users={users.data}
-        abilities={abilities}
-        onClose={() => setTaskDialog(null)}
-      />
+      <TaskDialog board={board.data} mode={taskDialog} users={users.data} abilities={abilities} onClose={() => setTaskDialog(null)} />
       <NameDialog
         open={columnEditing !== null}
         title={columnEditing?.kind === 'rename' ? t('gentasks.board.renameColumnTitle') : t('gentasks.board.addColumnTitle')}
@@ -154,8 +155,26 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
         onConfirm={() => columnDeleting && removeColumn.mutate(columnDeleting)}
         onOpenChange={(open) => (open ? undefined : setColumnDeleting(null))}
       />
-      <LabelManagerDialog boardToken={boardToken} labels={board.data.labels} open={labelsOpen} onOpenChange={setLabelsOpen} />
-      <ArchivedTasksDialog boardToken={boardToken} abilities={abilities} open={archivedOpen} onOpenChange={setArchivedOpen} />
-    </section>
+      <ArchivedTasksDialog
+        boardToken={boardToken}
+        taskPrefix={board.data.taskPrefix}
+        abilities={abilities}
+        open={archivedOpen}
+        onOpenChange={setArchivedOpen}
+      />
+    </>
+  )
+}
+
+function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label={label} onClick={onClick}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }

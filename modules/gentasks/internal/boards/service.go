@@ -26,13 +26,16 @@ func NewBoardService(db *pgxpool.Pool, taskCounter ColumnTaskCounter, now func()
 	return &BoardService{db: db, tasks: taskCounter, now: now}
 }
 
-func (service *BoardService) CreateBoard(ctx context.Context, name, createdBy string) (Board, []Column, error) {
+func (service *BoardService) CreateBoard(ctx context.Context, input CreateBoardInput, createdBy string) (Board, []Column, error) {
 	at := service.now()
 	var board Board
 	var columns []Column
 	err := pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
-		var err error
-		board, err = service.boards.Create(ctx, tx, NewBoard{Name: name, CreatedBy: createdBy, At: at})
+		taskPrefix, err := service.chooseTaskPrefix(ctx, tx, input)
+		if err != nil {
+			return err
+		}
+		board, err = service.boards.Create(ctx, tx, NewBoard{Name: input.Name, TaskPrefix: taskPrefix, CreatedBy: createdBy, At: at})
 		if err != nil {
 			return err
 		}
@@ -56,13 +59,13 @@ func (service *BoardService) FindBoard(ctx context.Context, token string) (Board
 	return service.boards.FindByToken(ctx, service.db, token)
 }
 
-// UpdateBoard leaves the board unchanged when newName is nil.
-func (service *BoardService) UpdateBoard(ctx context.Context, token string, newName *string) (Board, error) {
+// UpdateBoard leaves the board unchanged when changes is empty.
+func (service *BoardService) UpdateBoard(ctx context.Context, token string, changes BoardChanges) (Board, error) {
 	board, err := service.boards.FindByToken(ctx, service.db, token)
-	if err != nil || newName == nil {
+	if err != nil || changes.IsEmpty() {
 		return board, err
 	}
-	return service.boards.Rename(ctx, service.db, board.ID, *newName, service.now())
+	return service.boards.Update(ctx, service.db, changes.ApplyTo(board), service.now())
 }
 
 func (service *BoardService) DeleteBoard(ctx context.Context, token string) error {
@@ -142,6 +145,19 @@ func (service *BoardService) DeleteColumn(ctx context.Context, token string) err
 		}
 		return service.columns.ShiftPositions(ctx, tx, column.BoardID, column.Position+1, platform.EndOfList, -1)
 	})
+}
+
+// chooseTaskPrefix keeps the prefix the client chose, or derives a free one from the board name.
+func (service *BoardService) chooseTaskPrefix(ctx context.Context, tx pgx.Tx, input CreateBoardInput) (string, error) {
+	if input.TaskPrefix != nil {
+		return *input.TaskPrefix, nil
+	}
+	base := DeriveTaskPrefix(input.Name)
+	taken, err := service.boards.ListTaskPrefixesStartingWith(ctx, tx, base)
+	if err != nil {
+		return "", err
+	}
+	return FirstFreeTaskPrefix(base, taken), nil
 }
 
 // withLockedColumn re-reads the column after locking its board, so the position it acts on is current.

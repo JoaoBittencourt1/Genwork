@@ -30,14 +30,15 @@ export function AppSidebar() {
   const instanceName = useInstanceName() ?? t('app.name')
 
   const navigationEntries = [
-    { to: '/', label: t('app.nav.home'), icon: HomeIcon, visible: true },
+    { to: '/', label: t('app.nav.home'), icon: HomeIcon, visible: true, matchesNested: false },
     {
       to: '/tasks',
       label: t('app.nav.tasks'),
       icon: KanbanSquareIcon,
       visible: isModuleEnabled(enabledModules, MODULE_IDS.gentasks) && can(GENTASKS_PERMISSIONS.boardRead),
+      matchesNested: true,
     },
-    { to: '/members', label: t('app.nav.members'), icon: UsersIcon, visible: can(PERMISSIONS.inviteRead) },
+    { to: '/members', label: t('app.nav.members'), icon: UsersIcon, visible: can(PERMISSIONS.inviteRead), matchesNested: true },
   ] as const
 
   return (
@@ -62,7 +63,7 @@ export function AppSidebar() {
                 .filter((entry) => entry.visible)
                 .map((entry) => (
                   <SidebarMenuItem key={entry.to}>
-                    <SidebarMenuButton asChild tooltip={entry.label} isActive={Boolean(matchRoute({ to: entry.to }))}>
+                    <SidebarMenuButton asChild tooltip={entry.label} isActive={Boolean(matchRoute({ to: entry.to, fuzzy: entry.matchesNested }))}>
                       <Link to={entry.to} onClick={() => setOpenMobile(false)}>
                         <entry.icon />
                         <span>{entry.label}</span>

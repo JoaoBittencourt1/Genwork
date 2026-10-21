@@ -37,3 +37,8 @@ export function filterBoardView(view: BoardView, filter: TaskFilter): BoardView 
 export function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value]
 }
+
+// selectedNames lists the names of the selected options in selection order; unknown tokens show as-is.
+export function selectedNames(tokens: string[], options: { token: string; name: string }[]): string {
+  return tokens.map((token) => options.find((option) => option.token === token)?.name ?? token).join(', ')
+}
