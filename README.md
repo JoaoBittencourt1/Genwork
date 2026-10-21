@@ -7,7 +7,7 @@ A modular, self-hosted workspace platform designed to centralize task management
 | Path | Description | Stack |
 | --- | --- | --- |
 | `server/` | API and background worker | Go |
-| `web/` | Self-hosted web frontend | Next.js |
+| `web/` | Web app (static SPA) | Vite + React (TypeScript) |
 | `clients/macos/` | macOS desktop app | Swift / SwiftUI |
 | `clients/windows/` | Windows desktop app | C# / .NET (UI framework TBD) |
 | `clients/linux/` | Linux desktop app | Rust / GTK |

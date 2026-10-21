@@ -2,12 +2,17 @@
 
 Rules that MUST be followed in this repository. They are non-negotiable.
 
+Genwork is a self-hosted platform built from **modules**: a small core plus optional modules (kanban, infra insights, automation, …) that each installation picks through the installer CLI. See the Modules section — it shapes every other rule.
+
 This is a monorepo. Components and stacks:
 
 | Path | Stack |
 | --- | --- |
-| `server/` | Go (API + worker), PostgreSQL |
-| `web/` | Next.js (TypeScript) |
+| `core/` | Go service: auth, users, workspaces & teams, roles & permissions, projects, module registry, settings |
+| `modules/<name>/` | Go service per module, each its own container and release |
+| `sdk/go/` | Shared Go library modules use to talk to core (registration, token validation, events) |
+| `cli/` | Go installer CLI for self-hosted setups |
+| `web/` | SPA: Vite + React (TypeScript), served as static files |
 | `clients/macos/` | Swift / SwiftUI |
 | `clients/windows/` | C# / .NET (UI framework TBD) |
 | `clients/linux/` | Rust / GTK 4 |
@@ -22,13 +27,42 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 
 ## Architecture & code organization
 
-4. **Organize business code by feature, not by type.** On the server, each feature lives in `server/internal/<feature>/`; entrypoints live in `server/cmd/<binary>/`. Code shared by two or more features moves to a shared package instead of being duplicated.
+4. **Organize business code by feature, not by type.** In every Go service (core and each module), each feature lives in `internal/<feature>/`; entrypoints live in `cmd/<binary>/`. Code shared by two or more features moves to a shared package instead of being duplicated.
 5. **Name every file and type for exactly what it is**, with its architectural role (`TaskHandler`, `TaskService`, `TaskRepository`, `CreateTaskRequest`, `TaskResponse`). No generic names like `Manager`, `Util`, `Helper`, `Data`, or `Misc`.
 6. **Search before adding.** Before creating a type, package, migration, component, or config entry, look for existing code that can be reused or extended. Reuse or refactor before duplicating.
 7. **Single source of truth.** Every fact, state slice, label, mapping, or identifier has exactly one canonical owner; everything else derives from it. If two sources already exist, consolidate them in the same change — never add a third.
 8. **Keep handlers/controllers thin** — parse the request, delegate, write the response. Business logic lives in services.
 9. **Keep framework and transport details out of business rules.** HTTP types, SQL drivers, UI frameworks, and storage APIs must not leak into domain logic. Depend on small interfaces at the boundary; wire concrete implementations at the composition root (`cmd/`, app entrypoints).
-10. **Optional features ship as modules** under `server/internal/modules` and must be disableable without breaking the core.
+10. **Everything that is not core is a module** — see the Modules section (rules 49–64).
+65. **The web app is a static SPA** (Vite + React), served by the gateway — no Node process runs in production. It calls the API on the same origin through relative `/api/...` paths, so no API URL is baked in at build time and one build works for every installation.
+
+## Modules
+
+49. **Core is minimal; everything else is a module.** Core owns only: auth, users, workspaces & teams, roles & permissions, projects, the module registry, and settings. Kanban, infra insights, automation, and any future feature are modules. When in doubt, it is a module. **Core must run and pass its tests with zero modules installed.**
+50. **One module = one container.** Each module lives in `modules/<name>/` with its own `go.mod`, `cmd/`, `internal/`, `migrations/`, `Dockerfile`, and `module.yaml`; it is built into its own image and released with its own semantic version, independent of core and of other modules.
+51. **`module.yaml` is the module's single source of truth** (rule 7): id, version, compatible core API range, required modules with version ranges, permissions it defines, events it publishes and consumes, and its API prefix. Nothing else may restate these facts.
+52. **Core never contains module-specific code.** No `if module == "kanban"` in core. Core exposes generic extension points (registry, permissions, events, settings, capabilities) and modules plug into them.
+53. **Each module owns its data in isolation.** One Postgres schema per module (named after the module), accessed through a dedicated database role that cannot read any other schema. No cross-schema foreign keys, joins, or queries. Core entities (user, workspace, project) are referenced by their opaque token (rule 14).
+54. **Modules talk to each other only through public contracts**: the other module's versioned HTTP API or published events. Never through its database, never by importing its Go code. Code shared by several modules lives in `sdk/go/`.
+55. **Module dependencies are declared, acyclic, and enforced by the installer.** A module may require another only if `module.yaml` lists it. Installing or enabling a module enables its required modules; disabling a module is refused while an enabled module requires it. An *optional* integration ("works better if X is present") is not a dependency: it must degrade gracefully — hide the feature, never error — when X is not enabled.
+56. **Disable is not uninstall.** Disabling stops the module's container and hides it from clients; its data stays intact and re-enabling resumes where it left off. Uninstall is a separate, explicit action that confirms data removal. Enabling or disabling a module never requires a code or config change in core or in any other module.
+57. **One public entrypoint.** A gateway routes `/api/core/...` to core and `/api/<module>/v<N>/...` to each module; module containers are never exposed directly. Core issues access tokens; modules validate them with core's public keys and never store credentials.
+58. **Clients follow the enabled set at runtime.** Modules register with core on startup (manifest + health). Core publishes the enabled modules and their versions through a capabilities endpoint. The web app and desktop clients ship UI for every module, read capabilities, and show only enabled modules — no client code path may assume a module is enabled.
+59. **Module code is isolated in every component.** Each client keeps a module's UI in a dedicated folder (e.g. `web/src/modules/<name>/`), and one module's UI never imports another's. Shared UI belongs to the client's shared design system.
+60. **Permissions are namespaced `<module>.<resource>.<action>`** (e.g. `kanban.issue.create`), declared in `module.yaml`, and stored and assigned to roles by core.
+61. **Public contracts are versioned.** A breaking change to a module's API or events — or to a core contract modules consume — ships as a new major version (`/v2`, new event version) while the previous one keeps working through a deprecation window.
+62. **Modules are tested in isolation.** A module's suite runs against a stubbed core and stubbed dependency APIs built from recorded contract fixtures — no other real module running. CI runs: core alone; each module with only its declared dependencies; all modules together.
+63. **Every OpenSpec change states which components it touches** (core, which modules, which clients). A change spanning core and a module, or several modules, justifies why, and its phases are split per component.
+64. **The installer CLI is the supported way to choose modules.** `cli/` resolves dependencies, writes the deployment config and `.env` (rules 1–3), pulls the selected images, runs each module's migrations, and enables or disables modules.
+
+### Open decisions — do not assume
+
+These are not decided yet. Do not pick one silently in code or specs; raise it with the developer.
+
+- Gateway technology (e.g. Caddy, Traefik, or a Go gateway inside core).
+- Event bus technology (e.g. Postgres outbox + `LISTEN/NOTIFY`, NATS).
+- Migration tool for Go services.
+- Windows client UI framework.
 
 ## API design
 
@@ -37,13 +71,13 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 13. **Shape responses with explicit response types** — never serialize persistence models to clients.
 14. **Expose public resource identifiers as opaque tokens**, never internal sequential IDs.
 15. **Represent fixed sets of values as typed enums/constants**, not loose strings or ints.
-16. **Prefix REST routes with `/api`.**
+16. **Prefix REST routes with `/api`**, followed by the owning component (rule 57).
 17. **Partial update is `PATCH` and must distinguish "omitted" from "explicit null".** Omitted field → stored value unchanged. Present non-null → persist. Present `null` → clear if nullable, HTTP 400 if not. `PUT` is a full replace. Every `PATCH` endpoint has a test proving that a single-field body leaves every other stored field unchanged.
 18. **Authorization is part of the feature, not a follow-up.** Every new endpoint declares its authorization rule when it is added; nothing is publicly reachable by omission. Resource-ownership checks live in one central place, not in per-feature copies.
 
 ## Persistence
 
-19. **All schema changes go through versioned migrations** in `server/migrations/`. Never alter the database manually; never recreate existing tables.
+19. **All schema changes go through versioned migrations** in the owning service's `migrations/` directory (`core/migrations/`, `modules/<name>/migrations/`). Never alter the database manually; never recreate existing tables.
 20. **Never edit a migration that has already been applied** — including whitespace or comment-only edits, which change its checksum. Add a new migration instead. Formatters and comment-stripping tools must exclude the migrations directory.
 21. **Avoid N+1 queries** when returning related data: join or batch — never query in a loop over results.
 22. **Use soft delete for removable domain records** (`deleted_at` nullable timestamp). Unique constraints on soft-deletable tables use partial indexes `WHERE deleted_at IS NULL`. Physical deletes are reserved for test cleanup, or for an explicitly documented exception in the feature's spec.
@@ -86,7 +120,7 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 44. **Dependency first, one layer per PR.** Artifacts with zero internal dependencies form the first PR. Never mix layers in a PR, and never ship an interface and its implementation in the same PR. If an upper layer ships first, use stubs until the dependency merges.
 45. **PRs in the same layer may be reviewed in parallel** only when they do not depend on each other.
 46. **Cap each PR at ~600 productive lines and 10 new files**; subdivide before implementing if exceeded.
-47. **Server phases implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
+47. **Go service phases (core and modules) implement in this order:** test → migration → model → repository → authorization → request type → service → handler → response type.
 48. **Every phase includes its own tests** covering only the code delivered in that phase. CI must pass after each phase.
 
 ## Samples
