@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/JoaoBittencourt1/Genwork/cli/internal/modules"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +22,11 @@ func newDatabaseCommand(dependencies Dependencies) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := startServices(command, dependencies, workspace, "postgres"); err != nil {
+			setup, err := loadModuleSetup(command, dependencies, workspace)
+			if err != nil {
+				return err
+			}
+			if err := setup.startDatabase(); err != nil {
 				return err
 			}
 			printEndpoints(command, workspace, endpointDatabase)
@@ -33,16 +38,16 @@ func newDatabaseCommand(dependencies Dependencies) *cobra.Command {
 func newAPICommand(dependencies Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",
-		Short: "Start the core API with its database, migrations, worker, and mail catcher",
+		Short: "Start the gateway, core API, and modules with their database, migrations, worker, and mail catcher",
 		RunE: func(command *cobra.Command, _ []string) error {
 			workspace, err := prepareWorkspace(command, dependencies)
 			if err != nil {
 				return err
 			}
-			if err := startServices(command, dependencies, workspace, "core", "core-worker"); err != nil {
+			if err := startStack(command, dependencies, workspace, "core", "core-worker", gatewayService); err != nil {
 				return err
 			}
-			printEndpoints(command, workspace, endpointAPI, endpointMail, endpointDatabase)
+			printEndpoints(command, workspace, endpointGateway, endpointAPI, endpointMail, endpointDatabase)
 			return nil
 		},
 	}
@@ -71,10 +76,10 @@ func newUpCommand(dependencies Dependencies) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := startServices(command, dependencies, workspace); err != nil {
+			if err := startStack(command, dependencies, workspace); err != nil {
 				return err
 			}
-			printEndpoints(command, workspace, endpointAPI, endpointMail, endpointDatabase)
+			printEndpoints(command, workspace, endpointGateway, endpointAPI, endpointMail, endpointDatabase)
 			return runWebDevServer(command, dependencies, workspace)
 		},
 	}
@@ -89,7 +94,7 @@ func newDownCommand(dependencies Dependencies) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runCompose(command, dependencies, workspace, "down")
+			return runCompose(command, dependencies, workspace, "--profile", "*", "down")
 		},
 	}
 }
@@ -102,9 +107,39 @@ func prepareWorkspace(command *cobra.Command, dependencies Dependencies) (Worksp
 	return workspace, workspace.EnsureEnvFiles(command.ErrOrStderr())
 }
 
-// startServices with no names starts every service in the stack.
-func startServices(command *cobra.Command, dependencies Dependencies, workspace Workspace, services ...string) error {
-	return runCompose(command, dependencies, workspace, append([]string{"up", "-d", "--build"}, services...)...)
+// startStack starts the given services plus every installed module; with no names it starts the whole stack.
+// On an installation that never chose its modules, it asks first.
+func startStack(command *cobra.Command, dependencies Dependencies, workspace Workspace, services ...string) error {
+	setup, err := loadModuleSetup(command, dependencies, workspace)
+	if err != nil {
+		return err
+	}
+	firstRun := !setup.config.Chosen
+	if err := chooseModulesOnFirstRun(setup); err != nil {
+		return err
+	}
+	if err := setup.startDatabase(); err != nil {
+		return err
+	}
+	if err := setup.writeGatewayConfig(); err != nil {
+		return err
+	}
+	if len(services) > 0 {
+		for _, id := range setup.config.Modules {
+			services = append(services, modules.ConventionsFor(id).Services()...)
+		}
+	}
+	if err := setup.compose(append([]string{"up", "-d", "--build"}, services...)...); err != nil {
+		return err
+	}
+	if firstRun {
+		for _, id := range setup.config.Modules {
+			if err := setup.setModuleState(id, "enable"); err != nil {
+				return err
+			}
+		}
+	}
+	return setup.restartGatewayIfRunning()
 }
 
 func runCompose(command *cobra.Command, dependencies Dependencies, workspace Workspace, args ...string) error {
@@ -134,6 +169,7 @@ func runWebDevServer(command *cobra.Command, dependencies Dependencies, workspac
 			return ErrReported
 		}
 	}
+	warnWhenProxySkipsGateway(command, workspace)
 	fmt.Fprintf(command.ErrOrStderr(), "Web app: http://localhost:%s (Ctrl+C to stop; containers keep running, use `genwork down`)\n",
 		workspace.WebEnvValue("DEV_SERVER_PORT"))
 	if err := run("run", "dev"); err != nil && command.Context().Err() == nil {
@@ -142,10 +178,19 @@ func runWebDevServer(command *cobra.Command, dependencies Dependencies, workspac
 	return nil
 }
 
+// warnWhenProxySkipsGateway flags web/.env files written before the gateway existed: module APIs are only reachable through it.
+func warnWhenProxySkipsGateway(command *cobra.Command, workspace Workspace) {
+	gateway := "http://localhost:" + workspace.StackEnvValue("GATEWAY_PORT")
+	if target := workspace.WebEnvValue("DEV_API_PROXY_TARGET"); target != gateway {
+		fmt.Fprintf(command.ErrOrStderr(), "Warning: web/.env sets DEV_API_PROXY_TARGET=%s; set it to %s so module APIs work\n", target, gateway)
+	}
+}
+
 type endpoint int
 
 const (
-	endpointAPI endpoint = iota
+	endpointGateway endpoint = iota
+	endpointAPI
 	endpointMail
 	endpointDatabase
 )
@@ -154,6 +199,8 @@ func printEndpoints(command *cobra.Command, workspace Workspace, endpoints ...en
 	output := command.ErrOrStderr()
 	for _, which := range endpoints {
 		switch which {
+		case endpointGateway:
+			fmt.Fprintf(output, "Gateway:  http://localhost:%s\n", workspace.StackEnvValue("GATEWAY_PORT"))
 		case endpointAPI:
 			fmt.Fprintf(output, "Core API: http://localhost:%s\n", workspace.StackEnvValue("CORE_PORT"))
 		case endpointMail:

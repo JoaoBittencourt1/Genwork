@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"errors"
 	"slices"
 	"strings"
@@ -73,15 +72,8 @@ func runAuth(command *cobra.Command, dependencies Dependencies, options authOpti
 }
 
 func ensureCoreIsRunning(command *cobra.Command, dependencies Dependencies, workspace Workspace) error {
-	var services bytes.Buffer
-	err := dependencies.Runner.Run(command.Context(), RunRequest{
-		Name:   "docker",
-		Args:   []string{"compose", "-f", workspace.ComposeFile(), "ps", "--status", "running", "--services"},
-		Dir:    workspace.Root,
-		Stdout: &services,
-		Stderr: command.ErrOrStderr(),
-	})
-	if err != nil || !slices.Contains(strings.Fields(services.String()), coreService) {
+	running, err := runningServices(command, dependencies, workspace)
+	if err != nil || !slices.Contains(running, coreService) {
 		return ErrStackNotRunning
 	}
 	return nil
