@@ -135,6 +135,7 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 75. **Local gates are the CI gates.** Every check CI runs is reachable through `make lint`, `make test`, and `make build`, and CI invokes only those targets — never a check that exists only in the workflow file (this includes `npm audit`, which runs inside `make lint-web`). Run all three before every push.
 76. **Rename case-only changes with `git mv`.** macOS and Windows file systems ignore letter case, so deleting `Button.tsx` and creating `button.tsx` keeps the old name in git while everything works locally; CI runs on case-sensitive Linux and the import fails there. Use `git mv old new` (or `git mv -f` when only the case differs), and keep file names exactly as their generators emit them (shadcn components are lowercase).
 80. **Read the whole diff before every commit**, including files changed by scripts and generators. A scripted edit that rewrites a file must be checked against the base branch for anything removed unintentionally — once, a rule insertion silently dropped every section after it.
+83. **Work in the developer's checkout, never in a separate git worktree.** Each task switches the main working tree to its own branch, so the developer tests it with the usual commands (`genwork up`, `make test`) without extra setup — code in another directory is invisible to the running stack. When uncommitted work blocks the switch, stash it under a name that says which branch it belongs to and tell the developer; never discard it without asking.
 
 ## Dependencies
 
