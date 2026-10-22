@@ -1,7 +1,7 @@
 import type { Capabilities } from '@/shared/datasource/capabilities'
 
 // Module ids as their module.yaml declares them; clients never assume a module is enabled (rule 58).
-export const MODULE_IDS = { gentasks: 'gentasks' } as const
+export const MODULE_IDS = { gentasks: 'gentasks', genmonitor: 'genmonitor' } as const
 export type ModuleId = (typeof MODULE_IDS)[keyof typeof MODULE_IDS]
 
 export type EnabledModules = ReadonlySet<string>

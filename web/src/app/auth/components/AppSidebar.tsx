@@ -1,6 +1,7 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { HomeIcon, KanbanSquareIcon, UsersIcon } from 'lucide-react'
+import { HomeIcon, KanbanSquareIcon, ServerIcon, UsersIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { GENMONITOR_PERMISSIONS } from '@/app/genmonitor/domain/permissions'
 import { GENTASKS_PERMISSIONS } from '@/app/gentasks/domain/permissions'
 import { useCapabilities } from '@/shared/components/CapabilitiesContext'
 import { isModuleEnabled, MODULE_IDS } from '@/shared/domain/capabilities'
@@ -37,6 +38,13 @@ export function AppSidebar() {
       icon: KanbanSquareIcon,
       visible: isModuleEnabled(enabledModules, MODULE_IDS.gentasks) && can(GENTASKS_PERMISSIONS.boardRead),
       matchesNested: true,
+    },
+    {
+      to: '/host',
+      label: t('app.nav.host'),
+      icon: ServerIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genmonitor) && can(GENMONITOR_PERMISSIONS.hostRead),
+      matchesNested: false,
     },
     {
       to: '/members',

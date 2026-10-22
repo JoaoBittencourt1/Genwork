@@ -5,7 +5,8 @@
     "nav": {
       "home": "Home",
       "members": "Members",
-      "tasks": "Tasks"
+      "tasks": "Tasks",
+      "host": "Server"
     },
     "navigation": "Navigation",
     "toggleSidebar": "Toggle sidebar",
@@ -216,7 +217,8 @@
     "unavailableTitle": "Module unavailable",
     "unavailableDescription": "This module is not enabled on this installation.",
     "names": {
-      "gentasks": "Tasks"
+      "gentasks": "Tasks",
+      "genmonitor": "Server"
     }
   },
   "gentasks": {
@@ -384,6 +386,44 @@
           "invalidName": "Branch names cannot contain spaces."
         }
       }
+    }
+  },
+  "genmonitor": {
+    "title": "Server",
+    "description": "Resources of the machine running Genwork, refreshed every {{seconds}} s.",
+    "noPermissionTitle": "No access to the server",
+    "noPermissionDescription": "Ask an administrator for permission to see the server resources.",
+    "usage": "{{used}} of {{total}} in use",
+    "available": "{{available}} free",
+    "cpu": {
+      "title": "CPU",
+      "logicalCpus": "Logical cores: {{count}}"
+    },
+    "memory": {
+      "title": "Memory"
+    },
+    "disk": {
+      "title": "Disk"
+    },
+    "network": {
+      "title": "Network",
+      "received": "In",
+      "transmitted": "Out",
+      "totals": "{{name}}: {{received}} received and {{transmitted}} sent in total",
+      "noDefaultRoute": "The server has no default route, so there is no interface to measure."
+    },
+    "system": {
+      "title": "System",
+      "operatingSystem": "Operating system",
+      "kernel": "Kernel",
+      "hostname": "Hostname",
+      "uptime": "Up for",
+      "unknown": "Unknown"
+    },
+    "uptime": {
+      "days": "{{count}} d",
+      "hours": "{{count}} h",
+      "minutes": "{{count}} min"
     }
   }
 }
