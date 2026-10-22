@@ -1,5 +1,6 @@
 import type { Me } from '@/app/auth/domain/session'
-import type { Invite, InviteDelivery, Role } from '@/app/invites/domain/invite'
+import type { Invite, InviteDelivery } from '@/app/invites/domain/invite'
+import type { Role } from '@/shared/domain/role'
 
 const allInvitePermissions = ['core.invite.create', 'core.invite.read', 'core.invite.revoke']
 

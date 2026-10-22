@@ -22,24 +22,19 @@ type AcceptRequest struct {
 	DeviceName *string `json:"deviceName"`
 }
 
-type RoleSummaryResponse struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
-}
-
 type InviterResponse struct {
 	Token string `json:"token"`
 	Name  string `json:"name"`
 }
 
 type InviteResponse struct {
-	Token     string              `json:"token"`
-	Email     string              `json:"email"`
-	Role      RoleSummaryResponse `json:"role"`
-	InvitedBy InviterResponse     `json:"invitedBy"`
-	Status    Status              `json:"status"`
-	CreatedAt time.Time           `json:"createdAt"`
-	ExpiresAt time.Time           `json:"expiresAt"`
+	Token     string                     `json:"token"`
+	Email     string                     `json:"email"`
+	Role      access.RoleSummaryResponse `json:"role"`
+	InvitedBy InviterResponse            `json:"invitedBy"`
+	Status    Status                     `json:"status"`
+	CreatedAt time.Time                  `json:"createdAt"`
+	ExpiresAt time.Time                  `json:"expiresAt"`
 }
 
 type DeliveryResponse struct {
@@ -164,7 +159,7 @@ func newInviteResponse(invite Invite, now time.Time) InviteResponse {
 	return InviteResponse{
 		Token:     invite.Token,
 		Email:     invite.Email,
-		Role:      RoleSummaryResponse{Token: invite.RoleToken, Name: invite.RoleName},
+		Role:      access.RoleSummaryResponse{Token: invite.RoleToken, Name: invite.RoleName},
 		InvitedBy: InviterResponse{Token: invite.InviterToken, Name: invite.InviterName},
 		Status:    invite.StatusAt(now),
 		CreatedAt: invite.CreatedAt,

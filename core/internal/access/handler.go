@@ -12,6 +12,12 @@ type RoleResponse struct {
 	Permissions []string `json:"permissions"`
 }
 
+// RoleSummaryResponse names a role where its permissions are not needed, such as on an invite or a member.
+type RoleSummaryResponse struct {
+	Token string `json:"token"`
+	Name  string `json:"name"`
+}
+
 type RoleListResponse struct {
 	Roles []RoleResponse `json:"roles"`
 }
@@ -29,7 +35,7 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (handler *Handler) Register(router *platform.Router) {
-	router.HandleFunc("GET /api/core/v1/roles", platform.RequirePermission(PermissionInviteCreate), handler.listRoles)
+	router.HandleFunc("GET /api/core/v1/roles", platform.RequireAnyPermission(PermissionInviteCreate, PermissionMemberManage), handler.listRoles)
 }
 
 func (handler *Handler) listRoles(w http.ResponseWriter, r *http.Request) {

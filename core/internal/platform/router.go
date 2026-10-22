@@ -3,6 +3,7 @@ package platform
 import (
 	"fmt"
 	"net/http"
+	"slices"
 )
 
 type policyKind int
@@ -16,8 +17,8 @@ const (
 )
 
 type Policy struct {
-	kind       policyKind
-	permission string
+	kind        policyKind
+	permissions []string
 }
 
 var (
@@ -28,7 +29,12 @@ var (
 )
 
 func RequirePermission(permission string) Policy {
-	return Policy{kind: policyPermission, permission: permission}
+	return RequireAnyPermission(permission)
+}
+
+// RequireAnyPermission lets the caller through when their role grants at least one of the permissions.
+func RequireAnyPermission(permissions ...string) Policy {
+	return Policy{kind: policyPermission, permissions: permissions}
 }
 
 type Authenticator interface {
@@ -36,7 +42,7 @@ type Authenticator interface {
 }
 
 type Authorizer interface {
-	RequirePermission(permission string, next http.Handler) http.Handler
+	RequireAnyPermission(permissions []string, next http.Handler) http.Handler
 }
 
 type ModuleAuthenticator interface {
@@ -64,10 +70,10 @@ func (router *Router) Handle(pattern string, policy Policy, handler http.Handler
 	case policyAuthenticated:
 		router.mux.Handle(pattern, router.authenticator.RequireAuthentication(handler))
 	case policyPermission:
-		if policy.permission == "" {
+		if len(policy.permissions) == 0 || slices.Contains(policy.permissions, "") {
 			panic(fmt.Sprintf("route %q requires a permission name", pattern))
 		}
-		router.mux.Handle(pattern, router.authenticator.RequireAuthentication(router.authorizer.RequirePermission(policy.permission, handler)))
+		router.mux.Handle(pattern, router.authenticator.RequireAuthentication(router.authorizer.RequireAnyPermission(policy.permissions, handler)))
 	case policyModuleCredential:
 		router.mux.Handle(pattern, router.moduleAuthenticator.RequireModuleCredential(handler))
 	default:

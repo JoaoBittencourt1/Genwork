@@ -4,6 +4,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -23,9 +24,9 @@ func (guard *recordingGuard) RequireAuthentication(next http.Handler) http.Handl
 	})
 }
 
-func (guard *recordingGuard) RequirePermission(permission string, next http.Handler) http.Handler {
+func (guard *recordingGuard) RequireAnyPermission(permissions []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		guard.authorized = append(guard.authorized, permission)
+		guard.authorized = append(guard.authorized, strings.Join(permissions, "|"))
 		next.ServeHTTP(w, r)
 	})
 }
@@ -38,15 +39,16 @@ func TestRouterAppliesDeclaredPolicies(t *testing.T) {
 	router.HandleFunc("GET /public", platform.Public, okHandler)
 	router.HandleFunc("GET /private", platform.Authenticated, okHandler)
 	router.HandleFunc("GET /admin", platform.RequirePermission("core.invite.read"), okHandler)
+	router.HandleFunc("GET /either", platform.RequireAnyPermission("core.invite.create", "core.member.manage"), okHandler)
 	router.HandleFunc("GET /internal", platform.ModuleCredential, okHandler)
 
-	for _, path := range []string{"/public", "/private", "/admin", "/internal"} {
+	for _, path := range []string{"/public", "/private", "/admin", "/either", "/internal"} {
 		router.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
 	}
-	if len(guard.authenticated) != 2 || guard.authenticated[0] != "/private" || guard.authenticated[1] != "/admin" {
+	if len(guard.authenticated) != 3 || guard.authenticated[0] != "/private" || guard.authenticated[1] != "/admin" || guard.authenticated[2] != "/either" {
 		t.Errorf("authenticated paths = %v", guard.authenticated)
 	}
-	if len(guard.authorized) != 1 || guard.authorized[0] != "core.invite.read" {
+	if len(guard.authorized) != 2 || guard.authorized[0] != "core.invite.read" || guard.authorized[1] != "core.invite.create|core.member.manage" {
 		t.Errorf("authorized permissions = %v", guard.authorized)
 	}
 	if len(guard.moduleCalls) != 1 || guard.moduleCalls[0] != "/internal" {
@@ -70,4 +72,13 @@ func TestRouterPanicsOnEmptyPermission(t *testing.T) {
 		}
 	}()
 	platform.NewRouter(&recordingGuard{}, &recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", platform.RequirePermission(""), okHandler)
+}
+
+func TestRouterPanicsWithoutAnyPermission(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected a panic for an empty permission list")
+		}
+	}()
+	platform.NewRouter(&recordingGuard{}, &recordingGuard{}, &recordingGuard{}).HandleFunc("GET /oops", platform.RequireAnyPermission(), okHandler)
 }

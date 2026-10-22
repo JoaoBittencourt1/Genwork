@@ -94,7 +94,40 @@
   "members": {
     "title": "Members",
     "noPermissionTitle": "No permission",
-    "noPermissionDescription": "You do not have permission to see members."
+    "noPermissionDescription": "You do not have permission to see members.",
+    "sectionTitle": "Members",
+    "sectionDescription": "People who joined this installation. Change their role, choose which modules they can use, or take their access away.",
+    "you": "You",
+    "roleFor": "Role of {{name}}",
+    "actionsFor": "Actions for {{name}}",
+    "neverSignedIn": "Never",
+    "columns": {
+      "member": "Member",
+      "role": "Role",
+      "status": "Status",
+      "modules": "Modules",
+      "lastSignIn": "Last sign-in",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "deactivated": "Deactivated"
+    },
+    "modules": {
+      "all": "All modules",
+      "none": "No modules",
+      "manage": "Module access",
+      "dialogTitle": "Module access for {{name}}",
+      "dialogDescription": "Turned-off modules disappear for this member. Changes apply within 15 minutes, when their session renews.",
+      "noneEnabled": "No module is enabled on this installation."
+    },
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate",
+    "remove": "Remove",
+    "deactivateTitle": "Deactivate {{name}}?",
+    "deactivateDescription": "{{name}} is signed out everywhere and cannot sign in until reactivated. Their role, module access, and data stay as they are.",
+    "removeTitle": "Remove {{name}}?",
+    "removeDescription": "{{name}} loses access to this installation and is signed out everywhere. They can only come back through a new invite."
   },
   "invites": {
     "newInvite": "New invite",
@@ -124,7 +157,9 @@
       "expired": "Expired"
     },
     "resend": "Resend",
-    "revoke": "Revoke"
+    "revoke": "Revoke",
+    "sectionTitle": "Invites",
+    "sectionDescription": "Invite people by e-mail and follow the invites you sent."
   },
   "errors": {
     "invalid_credentials": "Wrong e-mail or password.",
@@ -138,7 +173,7 @@
     "invite_already_pending": "This e-mail already has a pending invite. Use “Resend” in the list.",
     "invite_not_pending": "This invite is no longer pending.",
     "invite_not_found": "Invite not found.",
-    "role_not_assignable": "You cannot invite someone with that role.",
+    "role_not_assignable": "You cannot assign that role.",
     "forbidden": "You do not have permission to do that.",
     "not_found": "Not found.",
     "malformed_body": "The request could not be processed.",
@@ -149,7 +184,9 @@
       "invalid": "Invalid value.",
       "unknown": "Unknown option.",
       "too_long": "Value is too long.",
-      "required": "Required."
+      "required": "Required.",
+      "not_nullable": "This value cannot be empty.",
+      "unknown_module": "Unknown module."
     },
     "board_not_found": "Board not found.",
     "column_not_found": "Column not found.",
@@ -164,7 +201,10 @@
     "user_not_found": "User not found.",
     "task_prefix_taken": "Another board already uses this identifier.",
     "github_already_connected": "GitHub is already connected.",
-    "github_unavailable": "GitHub did not respond. Try again in a moment."
+    "github_unavailable": "GitHub did not respond. Try again in a moment.",
+    "cannot_manage_self": "You cannot change your own membership.",
+    "member_not_manageable": "You cannot manage a member whose role has more permissions than yours.",
+    "member_not_found": "Member not found. They may have been removed."
   },
   "common": {
     "cancel": "Cancel",
@@ -174,7 +214,10 @@
   },
   "modules": {
     "unavailableTitle": "Module unavailable",
-    "unavailableDescription": "This module is not enabled on this installation."
+    "unavailableDescription": "This module is not enabled on this installation.",
+    "names": {
+      "gentasks": "Tasks"
+    }
   },
   "gentasks": {
     "noPermissionTitle": "No permission",

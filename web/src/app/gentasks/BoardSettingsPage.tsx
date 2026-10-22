@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { PageContent } from '@/shared/components/PageContent'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { PageSection } from '@/shared/components/PageSection'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { Button } from '@/shared/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field'
@@ -51,34 +52,22 @@ export function BoardSettingsPage({ boardToken }: { boardToken: string }) {
         {board.isError ? <ErrorAlert error={board.error} /> : null}
         {board.data ? (
           <div className="flex flex-col gap-10">
-            <SettingsSection title={t('gentasks.settings.general')} description={t('gentasks.settings.generalDescription')}>
+            <PageSection title={t('gentasks.settings.general')} description={t('gentasks.settings.generalDescription')}>
               <GeneralSettingsForm key={board.data.updatedAt} board={board.data} />
-            </SettingsSection>
-            <SettingsSection title={t('gentasks.labels.title')} description={t('gentasks.labels.description')}>
+            </PageSection>
+            <PageSection title={t('gentasks.labels.title')} description={t('gentasks.labels.description')}>
               <LabelManager boardToken={boardToken} labels={board.data.labels} />
-            </SettingsSection>
-            <SettingsSection title={t('gentasks.github.settings.title')} description={t('gentasks.github.settings.description')}>
+            </PageSection>
+            <PageSection title={t('gentasks.github.settings.title')} description={t('gentasks.github.settings.description')}>
               <GithubSettingsSection board={board.data} canManageGithub={abilities.canManageGithub} />
-            </SettingsSection>
-            <SettingsSection title={t('gentasks.settings.dangerZone')} description={t('gentasks.settings.dangerZoneDescription')}>
+            </PageSection>
+            <PageSection title={t('gentasks.settings.dangerZone')} description={t('gentasks.settings.dangerZoneDescription')}>
               <DeleteBoardButton board={board.data} />
-            </SettingsSection>
+            </PageSection>
           </div>
         ) : null}
       </PageContent>
     </>
-  )
-}
-
-function SettingsSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return (
-    <section className="flex flex-col gap-4">
-      <div className="border-b pb-3">
-        <h2 className="text-base font-semibold">{title}</h2>
-        <p className="text-sm text-muted-foreground">{description}</p>
-      </div>
-      {children}
-    </section>
   )
 }
 

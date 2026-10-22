@@ -84,12 +84,17 @@ func (handler *Handler) me(w http.ResponseWriter, r *http.Request) {
 		platform.WriteError(w, r, err)
 		return
 	}
+	permissions, err := handler.access.FindUserPermissions(r.Context(), user.ID)
+	if err != nil {
+		platform.WriteError(w, r, err)
+		return
+	}
 	platform.WriteJSON(w, http.StatusOK, MeResponse{
 		Token:       user.Token,
 		Email:       user.Email,
 		Name:        user.Name,
 		AvatarColor: user.AvatarColor(),
 		Role:        access.NewRoleResponse(role),
-		Permissions: role.Permissions,
+		Permissions: permissions,
 	})
 }

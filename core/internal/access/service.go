@@ -4,14 +4,17 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Service struct {
-	db    *pgxpool.Pool
-	roles RoleRepository
+	db           *pgxpool.Pool
+	roles        RoleRepository
+	permissions  PermissionRepository
+	restrictions ModuleRestrictionRepository
 }
 
 func NewService(db *pgxpool.Pool) *Service {
@@ -22,12 +25,16 @@ func (service *Service) FindRoleByID(ctx context.Context, id int64) (Role, error
 	return service.roles.FindByID(ctx, service.db, id)
 }
 
-func (service *Service) FindRolePermissions(ctx context.Context, roleID int64) ([]string, error) {
-	role, err := service.roles.FindByID(ctx, service.db, roleID)
+func (service *Service) FindUserPermissions(ctx context.Context, userID int64) ([]string, error) {
+	return service.permissions.FindEffectiveForUser(ctx, service.db, userID)
+}
+
+func (service *Service) FindRestrictedModuleNames(ctx context.Context, userID int64) ([]string, error) {
+	namesByUser, err := service.restrictions.ListModuleNamesByUserIDs(ctx, service.db, []int64{userID})
 	if err != nil {
 		return nil, err
 	}
-	return role.Permissions, nil
+	return namesByUser[userID], nil
 }
 
 func (service *Service) ListRoles(ctx context.Context) ([]Role, error) {
@@ -53,7 +60,7 @@ func (service *Service) FindAssignableRole(ctx context.Context, assignerRoleID i
 	return target, nil
 }
 
-func (service *Service) RequirePermission(permission string, next http.Handler) http.Handler {
+func (service *Service) RequireAnyPermission(permissions []string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		principal, authenticated := platform.PrincipalFrom(r.Context())
 		if !authenticated {
@@ -65,7 +72,7 @@ func (service *Service) RequirePermission(permission string, next http.Handler) 
 			platform.WriteError(w, r, err)
 			return
 		}
-		if !role.Grants(permission) {
+		if !slices.ContainsFunc(permissions, role.Grants) {
 			platform.WriteError(w, r, platform.ErrForbidden)
 			return
 		}

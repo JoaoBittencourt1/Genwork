@@ -1,13 +1,9 @@
 import type { SignInResponse } from '@/app/auth/datasource/authDatasource'
 import { apiRequest } from '@/shared/datasource/httpClient'
-import type { Invitation, Invite, InviteDelivery, Role } from '../domain/invite'
+import type { Invitation, Invite, InviteDelivery } from '../domain/invite'
 
 export async function listInvites(): Promise<Invite[]> {
   return (await apiRequest<{ invites: Invite[] }>('GET', '/api/core/v1/invites')).invites
-}
-
-export async function listRoles(): Promise<Role[]> {
-  return (await apiRequest<{ roles: Role[] }>('GET', '/api/core/v1/roles')).roles
 }
 
 export function createInvite(email: string, roleToken: string): Promise<InviteDelivery> {

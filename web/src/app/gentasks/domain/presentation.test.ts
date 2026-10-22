@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { usersFixture } from '@/test/gentasksFixtures'
-import { findAssignee, initials } from './assignees'
+import { findAssignee } from './assignees'
 import { canClearColumnName, columnStatus, columnTitle, resolveColumnTitle, statusColorVariable } from './columnName'
 import { labelColorTranslationKey, labelColorVariable, urgencyColorVariable } from './labelPalette'
 import { gentasksAbilities } from './permissions'
@@ -56,11 +56,9 @@ describe('abilities and assignees', () => {
     })
   })
 
-  it('finds assignees and builds initials', () => {
+  it('finds assignees', () => {
     expect(findAssignee(usersFixture, 'user-bruno')?.name).toBe('Bruno')
     expect(findAssignee(usersFixture, null)).toBeUndefined()
     expect(findAssignee(undefined, 'user-ana')).toBeUndefined()
-    expect(initials('Ana Souza')).toBe('AS')
-    expect(initials('Bruno')).toBe('BR')
   })
 })
