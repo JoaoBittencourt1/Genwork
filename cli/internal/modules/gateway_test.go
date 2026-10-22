@@ -11,7 +11,7 @@ func TestConventionsFollowTheModuleID(t *testing.T) {
 	conventions := ConventionsFor("time-tracking")
 	if conventions.Profile != "time-tracking" || conventions.MigrateService != "time-tracking-migrate" || conventions.DatabaseRole != "time-tracking" ||
 		conventions.PasswordVariable != "TIME_TRACKING_DB_PASSWORD" || conventions.DatabaseURLVariable != "TIME_TRACKING_DATABASE_URL" ||
-		conventions.UpstreamVariable != "TIME_TRACKING_UPSTREAM" {
+		conventions.UpstreamVariable != "TIME_TRACKING_UPSTREAM" || conventions.EncryptionKeyVariable != "TIME_TRACKING_ENCRYPTION_KEY" {
 		t.Errorf("conventions = %+v", conventions)
 	}
 	if services := ConventionsFor("gentasks").Services(); len(services) != 2 || services[0] != "gentasks-migrate" || services[1] != "gentasks" {

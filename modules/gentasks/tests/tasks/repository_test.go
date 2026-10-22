@@ -144,3 +144,45 @@ func TestBoardLockSerializesConcurrentPositionChanges(t *testing.T) {
 		t.Errorf("titles = %v", titles)
 	}
 }
+
+func TestMoveTaskToColumnEndKeepsBothColumnsContiguous(t *testing.T) {
+	db := dbtest.NewMigratedSchema(t)
+	ctx := context.Background()
+	board, columns := boardtest.NewBoardWithDefaultColumns(t, db, "Board")
+	moving := boardtest.NewTasks(t, db, columns[0], "A", "Moving", "C")[1]
+	boardtest.NewTasks(t, db, columns[2], "Done")
+	service := tasks.NewTaskService(db, nil, func() time.Time { return boardtest.FixedTime })
+
+	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+		return service.MoveTaskToColumnEnd(ctx, tx, moving.ID, columns[2].ID)
+	})
+
+	if err != nil {
+		t.Fatalf("move: %v", err)
+	}
+	if titles := boardtest.ActiveTitlesByColumn(t, db, board.ID, columns[0].ID); !slices.Equal(titles, []string{"A", "C"}) {
+		t.Errorf("source titles = %v", titles)
+	}
+	if titles := boardtest.ActiveTitlesByColumn(t, db, board.ID, columns[2].ID); !slices.Equal(titles, []string{"Done", "Moving"}) {
+		t.Errorf("target titles = %v", titles)
+	}
+}
+
+func TestMoveTaskToColumnEndRefusesArchivedTasks(t *testing.T) {
+	db := dbtest.NewMigratedSchema(t)
+	ctx := context.Background()
+	_, columns := boardtest.NewBoardWithDefaultColumns(t, db, "Board")
+	archived := boardtest.NewTasks(t, db, columns[0], "Archived")[0]
+	if err := (tasks.TaskRepository{}).Archive(ctx, db, archived.ID, boardtest.FixedTime); err != nil {
+		t.Fatal(err)
+	}
+	service := tasks.NewTaskService(db, nil, func() time.Time { return boardtest.FixedTime })
+
+	err := pgx.BeginFunc(ctx, db, func(tx pgx.Tx) error {
+		return service.MoveTaskToColumnEnd(ctx, tx, archived.ID, columns[2].ID)
+	})
+
+	if err != tasks.ErrTaskArchived {
+		t.Errorf("error = %v", err)
+	}
+}

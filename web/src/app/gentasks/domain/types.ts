@@ -89,3 +89,34 @@ export type LabelPatch = {
   name?: string
   color?: LabelColor
 }
+
+export const GITHUB_CONNECTION_STATES = ['disconnected', 'connected', 'unreadable'] as const
+export type GithubConnectionState = (typeof GITHUB_CONNECTION_STATES)[number]
+
+// GithubConnection carries the App fields only while an App is stored; webhookUrl is always there so screens can warn early.
+export type GithubConnection = {
+  state: GithubConnectionState
+  webhookUrl: string
+  appSlug?: string
+  ownerLogin?: string
+  appUrl?: string
+  installUrl?: string
+}
+
+// GithubManifestStart.manifest is opaque to the web app: it is posted to GitHub exactly as the API built it.
+export type GithubManifestStart = {
+  formAction: string
+  manifest: Record<string, unknown>
+  state: string
+}
+
+// BoardGithubSettings uses null for "do not move" on an event.
+export type BoardGithubSettings = {
+  openedColumnToken: string | null
+  reviewRequestedColumnToken: string | null
+  mergedColumnToken: string | null
+  finalBranches: string[]
+}
+
+// BoardGithubSettingsPatch follows the API's PATCH rules: an omitted key is unchanged, null clears a column; finalBranches is not nullable.
+export type BoardGithubSettingsPatch = Partial<BoardGithubSettings>

@@ -158,7 +158,9 @@
     "core_unavailable": "Could not check the assignee right now. Try again.",
     "service_unavailable": "The service is unavailable. Try again.",
     "user_not_found": "User not found.",
-    "task_prefix_taken": "Another board already uses this identifier."
+    "task_prefix_taken": "Another board already uses this identifier.",
+    "github_already_connected": "GitHub is already connected.",
+    "github_unavailable": "GitHub did not respond. Try again in a moment."
   },
   "common": {
     "cancel": "Cancel",
@@ -281,6 +283,60 @@
       "dangerZone": "Danger zone",
       "dangerZoneDescription": "Deleting the board removes its columns, tasks, and labels.",
       "deleteBoard": "Delete board"
+    },
+    "github": {
+      "title": "GitHub",
+      "intro": "Connect GitHub so pull requests move tasks: a pull request whose title or branch cites a task key moves the task when it is opened, when a review is requested, and when it is merged into a final branch. Each board chooses the columns in its settings.",
+      "connectTitle": "Connect GitHub",
+      "connectDescription": "Genwork creates a private GitHub App for this installation with read-only access to pull requests. GitHub asks you to confirm, then you choose the repositories.",
+      "organization": "GitHub organization (optional)",
+      "organizationPlaceholder": "acme",
+      "organizationDescription": "Leave it empty to create the App on your personal account. A private App can only be installed on the account that owns it, so enter the organization that owns the repositories.",
+      "connect": "Connect GitHub",
+      "redirecting": "Opening GitHub…",
+      "finishing": "Finishing the connection with GitHub…",
+      "connectedTitle": "GitHub connected",
+      "appTitle": "GitHub App",
+      "connectedDescription": "App {{app}}, owned by {{owner}}.",
+      "chooseRepositories": "Choose repositories",
+      "appSettings": "App settings on GitHub",
+      "installNext": "The App {{app}} was created. Install it on the repositories whose pull requests should move tasks.",
+      "backToIntegration": "Back to GitHub settings",
+      "disconnect": "Disconnect",
+      "disconnectTitle": "Disconnect GitHub?",
+      "disconnectDescription": "Genwork deletes the App's credentials and stops moving tasks. Board settings are kept. The App still exists on GitHub: delete it in its settings there.",
+      "unreadableTitle": "The GitHub credentials can no longer be read",
+      "unreadableDescription": "The encryption key of this installation changed, so Genwork cannot verify GitHub's events. Disconnect, delete the old App on GitHub, and connect again.",
+      "unreachableTitle": "GitHub cannot reach this installation",
+      "unreachableDescription": "GitHub delivers events to {{url}}, which is not a public HTTPS address. Tasks only move once GitHub can reach Genwork over the internet.",
+      "connectFailed": "Could not connect GitHub",
+      "startAgain": "Start again",
+      "errors": {
+        "stateInvalid": "This connection attempt expired or was started by someone else. Start again.",
+        "codeInvalid": "GitHub did not accept the code it sent back; it may have expired. Start again.",
+        "callbackMissing": "GitHub did not send the information needed to finish. Start again."
+      },
+      "settings": {
+        "title": "GitHub",
+        "description": "Which column a task moves to when a pull request citing it changes. Tasks only move forward, and never again after a merge moved them.",
+        "notConnected": "GitHub is not connected, so these settings have no effect yet.",
+        "connectLink": "Connect GitHub",
+        "opened": "When a pull request is opened",
+        "reviewRequested": "When a review is requested",
+        "merged": "When merged into a final branch",
+        "doNotMove": "Do not move",
+        "keyHint": "The pull request title or branch must contain the task key, such as {{example}}.",
+        "finalBranches": "Final branches",
+        "finalBranchesDescription": "Merges into these branches move the task. Names are case-sensitive.",
+        "branchPlaceholder": "staging",
+        "addBranch": "Add",
+        "removeBranch": "Remove {{branch}}",
+        "branchProblems": {
+          "empty": "Keep at least one final branch.",
+          "tooMany": "Use at most 20 final branches.",
+          "invalidName": "Branch names cannot contain spaces."
+        }
+      }
     }
   }
 }

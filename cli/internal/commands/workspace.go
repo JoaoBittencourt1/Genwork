@@ -83,12 +83,13 @@ type (
 	envReader func(name string) string
 )
 
-// EnsureModuleSecrets generates the database password and URL of every given module that lacks them (design §4).
+// EnsureModuleSecrets generates the database password, database URL, and encryption key of every given module that lacks them (design §4).
 func (workspace Workspace) EnsureModuleSecrets(output io.Writer, moduleIDs []string) error {
 	return workspace.updateStackEnv(output, func(fill envFiller, current envReader) {
 		for _, id := range moduleIDs {
 			conventions := modules.ConventionsFor(id)
 			fill(conventions.PasswordVariable, newURLSafeSecret())
+			fill(conventions.EncryptionKeyVariable, newEncryptionKey())
 			if database := current("POSTGRES_DB"); database != "" {
 				fill(conventions.DatabaseURLVariable, fmt.Sprintf("postgres://%s:%s@postgres:5432/%s?sslmode=disable",
 					conventions.DatabaseRole, current(conventions.PasswordVariable), database))
@@ -104,7 +105,10 @@ func (workspace Workspace) ClearModuleSecrets(moduleID string) error {
 		return fmt.Errorf("read %s: %w", workspace.StackEnvFile(), err)
 	}
 	conventions := modules.ConventionsFor(moduleID)
-	content := setEnvValue(setEnvValue(string(raw), conventions.PasswordVariable, ""), conventions.DatabaseURLVariable, "")
+	content := string(raw)
+	for _, variable := range []string{conventions.PasswordVariable, conventions.DatabaseURLVariable, conventions.EncryptionKeyVariable} {
+		content = setEnvValue(content, variable, "")
+	}
 	if err := os.WriteFile(workspace.StackEnvFile(), []byte(content), 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", workspace.StackEnvFile(), err)
 	}
@@ -243,6 +247,13 @@ func newURLSafeSecret() string {
 	secret := make([]byte, 24)
 	_, _ = rand.Read(secret)
 	return base64.RawURLEncoding.EncodeToString(secret)
+}
+
+// newEncryptionKey returns 256 random bits; fill never replaces an existing key, since that would make stored secrets unreadable.
+func newEncryptionKey() string {
+	key := make([]byte, 32)
+	_, _ = rand.Read(key)
+	return base64.RawURLEncoding.EncodeToString(key)
 }
 
 func newSigningKeySeed() string {

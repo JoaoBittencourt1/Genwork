@@ -95,3 +95,11 @@ func LockBoard(ctx context.Context, db DBTX, boardID int64) error {
 	}
 	return nil
 }
+
+// LockBoards takes the board locks in id order, so two writers locking overlapping sets cannot deadlock.
+func LockBoards(ctx context.Context, db DBTX, boardIDs []int64) error {
+	if _, err := db.Exec(ctx, `SELECT 1 FROM boards WHERE id = ANY($1) ORDER BY id FOR UPDATE`, boardIDs); err != nil {
+		return fmt.Errorf("lock boards: %w", err)
+	}
+	return nil
+}

@@ -177,6 +177,18 @@ func (service *TaskService) MoveTask(ctx context.Context, token, columnToken str
 	})
 }
 
+// MoveTaskToColumnEnd is for callers that already hold the board lock inside their own transaction, such as automated moves.
+func (service *TaskService) MoveTaskToColumnEnd(ctx context.Context, tx pgx.Tx, taskID, columnID int64) error {
+	task, err := service.tasks.FindByID(ctx, tx, taskID)
+	if err != nil {
+		return err
+	}
+	if task.IsArchived() {
+		return ErrTaskArchived
+	}
+	return service.moveToColumn(ctx, tx, task, columnID, platform.EndOfList)
+}
+
 func (service *TaskService) ArchiveTask(ctx context.Context, token string) error {
 	return service.withLockedTask(ctx, token, func(tx pgx.Tx, task Task) error {
 		if task.IsArchived() {

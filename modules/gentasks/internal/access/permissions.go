@@ -2,10 +2,11 @@
 package access
 
 const (
-	PermissionBoardRead   = "gentasks.board.read"
-	PermissionBoardManage = "gentasks.board.manage"
-	PermissionTaskWrite   = "gentasks.task.write"
-	PermissionTaskDelete  = "gentasks.task.delete"
+	PermissionBoardRead    = "gentasks.board.read"
+	PermissionBoardManage  = "gentasks.board.manage"
+	PermissionTaskWrite    = "gentasks.task.write"
+	PermissionTaskDelete   = "gentasks.task.delete"
+	PermissionGithubManage = "gentasks.github.manage"
 )
 
-var Permissions = []string{PermissionBoardRead, PermissionBoardManage, PermissionTaskWrite, PermissionTaskDelete}
+var Permissions = []string{PermissionBoardRead, PermissionBoardManage, PermissionTaskWrite, PermissionTaskDelete, PermissionGithubManage}

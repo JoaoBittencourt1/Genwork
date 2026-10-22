@@ -3,6 +3,7 @@ export const GENTASKS_PERMISSIONS = {
   boardManage: 'gentasks.board.manage',
   taskWrite: 'gentasks.task.write',
   taskDelete: 'gentasks.task.delete',
+  githubManage: 'gentasks.github.manage',
 } as const
 
 export type GentasksAbilities = {
@@ -10,6 +11,7 @@ export type GentasksAbilities = {
   canManageBoards: boolean
   canWriteTasks: boolean
   canDeleteTasks: boolean
+  canManageGithub: boolean
 }
 
 export function gentasksAbilities(can: (permission: string) => boolean): GentasksAbilities {
@@ -18,5 +20,6 @@ export function gentasksAbilities(can: (permission: string) => boolean): Gentask
     canManageBoards: can(GENTASKS_PERMISSIONS.boardManage),
     canWriteTasks: can(GENTASKS_PERMISSIONS.taskWrite),
     canDeleteTasks: can(GENTASKS_PERMISSIONS.taskDelete),
+    canManageGithub: can(GENTASKS_PERMISSIONS.githubManage),
   }
 }

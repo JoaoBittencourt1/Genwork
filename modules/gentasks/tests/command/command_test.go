@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net"
 	"net/http"
@@ -9,7 +10,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/command"
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/githubsynctest"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform/dbtest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/coretest"
@@ -32,11 +35,14 @@ func freeLocalAddress(t *testing.T) string {
 
 func serveEnv(t *testing.T, core *coretest.FakeCore, address string) platform.Getenv {
 	return envFrom(map[string]string{
-		"GENTASKS_DATABASE_URL": dbtest.DatabaseURL(t),
-		"GENTASKS_HTTP_ADDR":    address,
-		"CORE_INTERNAL_URL":     core.URL(),
-		"GENWORK_MODULE_SECRET": coretest.ModuleSecret,
-		"GENWORK_PUBLIC_URL":    coretest.Issuer,
+		"GENTASKS_DATABASE_URL":   dbtest.DatabaseURL(t),
+		"GENTASKS_HTTP_ADDR":      address,
+		"CORE_INTERNAL_URL":       core.URL(),
+		"GENWORK_MODULE_SECRET":   coretest.ModuleSecret,
+		"GENWORK_PUBLIC_URL":      coretest.Issuer,
+		"GENTASKS_ENCRYPTION_KEY": base64.RawURLEncoding.EncodeToString(githubsynctest.EncryptionKey),
+		"GITHUB_WEB_URL":          githubsynctest.UnroutableGithubWebURL,
+		"GITHUB_API_URL":          githubsynctest.UnroutableGithubAPIURL,
 	})
 }
 
@@ -105,7 +111,7 @@ func TestServeRegistersWithCoreAndAnswersUntilContextEnds(t *testing.T) {
 		t.Fatalf("serve: %v", err)
 	}
 	registrations := core.Registrations()
-	if len(registrations) != 1 || registrations[0].ID != "gentasks" || len(registrations[0].Permissions) != 4 {
+	if len(registrations) != 1 || registrations[0].ID != "gentasks" || len(registrations[0].Permissions) != len(access.Permissions) {
 		t.Errorf("registrations = %+v", registrations)
 	}
 }

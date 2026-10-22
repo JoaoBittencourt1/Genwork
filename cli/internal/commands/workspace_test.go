@@ -69,6 +69,42 @@ func TestEnsureModuleSecretsGeneratesCredentials(t *testing.T) {
 	}
 }
 
+func TestEnsureModuleSecretsGeneratesEncryptionKey(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	if err := workspace.EnsureEnvFiles(&bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := workspace.EnsureModuleSecrets(&bytes.Buffer{}, []string{"gentasks"}); err != nil {
+		t.Fatal(err)
+	}
+
+	encoded := workspace.StackEnvValue("GENTASKS_ENCRYPTION_KEY")
+	key, err := base64.RawURLEncoding.DecodeString(encoded)
+	if err != nil || len(key) != 32 || len(encoded) != 43 {
+		t.Fatalf("encryption key is not 32 bytes of unpadded base64url: %q", encoded)
+	}
+	if encoded == workspace.StackEnvValue("GENTASKS_DB_PASSWORD") {
+		t.Error("the encryption key must be generated independently of the database password")
+	}
+}
+
+func TestEnsureModuleSecretsKeepsAnExistingEncryptionKey(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	existing := "JWT_SIGNING_KEY=mine\nPOSTGRES_DB=genwork\nGENTASKS_ENCRYPTION_KEY=kept-key\n"
+	if err := os.WriteFile(workspace.StackEnvFile(), []byte(existing), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := workspace.EnsureModuleSecrets(&bytes.Buffer{}, []string{"gentasks"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if workspace.StackEnvValue("GENTASKS_ENCRYPTION_KEY") != "kept-key" || workspace.StackEnvValue("JWT_SIGNING_KEY") != "mine" {
+		t.Error("existing values must be kept; rotating the key would make stored secrets unreadable")
+	}
+}
+
 func TestEnsureEnvFilesAddsMissingSecretsToAnExistingFile(t *testing.T) {
 	workspace := newTestWorkspace(t)
 	existing := "JWT_SIGNING_KEY=mine\nPOSTGRES_DB=genwork\nGENWORK_MODULE_SECRET=kept-secret-0123456789abcdef\n"
@@ -134,7 +170,8 @@ func TestClearModuleSecrets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if workspace.StackEnvValue("GENTASKS_DB_PASSWORD") != "" || workspace.StackEnvValue("GENTASKS_DATABASE_URL") != "" || workspace.StackEnvValue("GENWORK_MODULE_SECRET") == "" {
+	if workspace.StackEnvValue("GENTASKS_DB_PASSWORD") != "" || workspace.StackEnvValue("GENTASKS_DATABASE_URL") != "" ||
+		workspace.StackEnvValue("GENTASKS_ENCRYPTION_KEY") != "" || workspace.StackEnvValue("GENWORK_MODULE_SECRET") == "" {
 		t.Error("only the module's credentials must be cleared")
 	}
 }

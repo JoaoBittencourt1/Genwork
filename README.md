@@ -60,6 +60,10 @@ The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new 
 
 Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, cli, mcp, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
 
+## Integrations
+
+- [GitHub](modules/gentasks/docs/github-integration.md): pull requests move gentasks tasks between columns.
+
 ## Contributing
 
 Read [constitution.md](constitution.md) first — its rules are non-negotiable. Features start as OpenSpec changes (`/opsx:propose`) under `openspec/`.

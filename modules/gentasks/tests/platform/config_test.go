@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/githubsynctest"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform"
 )
 
@@ -14,6 +15,10 @@ func validServeEnv() map[string]string {
 		"CORE_INTERNAL_URL":     "http://core:8484/",
 		"GENWORK_MODULE_SECRET": "module-secret-0123456789abcdef",
 		"GENWORK_PUBLIC_URL":    "http://localhost:8487",
+		// 32 zero bytes as unpadded base64url.
+		"GENTASKS_ENCRYPTION_KEY": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		"GITHUB_WEB_URL":          githubsynctest.UnroutableGithubWebURL + "/",
+		"GITHUB_API_URL":          githubsynctest.UnroutableGithubAPIURL,
 	}
 }
 
@@ -28,6 +33,9 @@ func TestLoadServeConfigAcceptsCompleteEnvironment(t *testing.T) {
 	}
 	if config.CoreInternalURL != "http://core:8484" || config.PublicURL != "http://localhost:8487" || config.HTTPAddr != ":8080" {
 		t.Errorf("config = %+v", config)
+	}
+	if len(config.EncryptionKey) != 32 || config.GithubWebURL != githubsynctest.UnroutableGithubWebURL || config.GithubAPIURL != githubsynctest.UnroutableGithubAPIURL {
+		t.Errorf("github config = %q, %q, key length %d", config.GithubWebURL, config.GithubAPIURL, len(config.EncryptionKey))
 	}
 }
 
@@ -48,6 +56,8 @@ func TestLoadServeConfigRejectsInvalidValues(t *testing.T) {
 		"CORE_INTERNAL_URL":     "core:8484",
 		"GENWORK_PUBLIC_URL":    "ftp://localhost",
 		"GENWORK_MODULE_SECRET": "short",
+		"GITHUB_WEB_URL":        "github.com",
+		"GITHUB_API_URL":        "ftp://api.github.com",
 	}
 	for name, value := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -57,6 +67,25 @@ func TestLoadServeConfigRejectsInvalidValues(t *testing.T) {
 				t.Errorf("error = %v, want mention of %s", err, name)
 			}
 		})
+	}
+}
+
+func TestLoadServeConfigRejectsWeakOrMalformedEncryptionKeys(t *testing.T) {
+	for _, value := range []string{"not base64url!", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "c2hvcnQ"} {
+		env := validServeEnv()
+		env["GENTASKS_ENCRYPTION_KEY"] = value
+		if _, err := platform.LoadServeConfig(getenvFrom(env)); err == nil || !strings.Contains(err.Error(), "GENTASKS_ENCRYPTION_KEY") {
+			t.Errorf("value %q: error = %v", value, err)
+		}
+	}
+}
+
+func TestLoadServeConfigErrorNeverPrintsTheEncryptionKey(t *testing.T) {
+	env := validServeEnv()
+	env["GENTASKS_ENCRYPTION_KEY"] = "c2hvcnQtYnV0LXNlY3JldA"
+	_, err := platform.LoadServeConfig(getenvFrom(env))
+	if err == nil || strings.Contains(err.Error(), env["GENTASKS_ENCRYPTION_KEY"]) {
+		t.Errorf("error = %v", err)
 	}
 }
 

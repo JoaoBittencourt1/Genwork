@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/input'
 import { Spinner } from '@/shared/ui/spinner'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
+import { GithubSettingsSection } from './components/GithubSettingsSection'
 import { LabelManager } from './components/LabelManager'
 import { gentasksQueryKeys } from './components/queryKeys'
 import { useGentasksAbilities } from './components/useGentasksAbilities'
@@ -55,6 +56,9 @@ export function BoardSettingsPage({ boardToken }: { boardToken: string }) {
             </SettingsSection>
             <SettingsSection title={t('gentasks.labels.title')} description={t('gentasks.labels.description')}>
               <LabelManager boardToken={boardToken} labels={board.data.labels} />
+            </SettingsSection>
+            <SettingsSection title={t('gentasks.github.settings.title')} description={t('gentasks.github.settings.description')}>
+              <GithubSettingsSection board={board.data} canManageGithub={abilities.canManageGithub} />
             </SettingsSection>
             <SettingsSection title={t('gentasks.settings.dangerZone')} description={t('gentasks.settings.dangerZoneDescription')}>
               <DeleteBoardButton board={board.data} />
