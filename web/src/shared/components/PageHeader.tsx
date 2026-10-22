@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Separator } from '@/shared/ui/separator'
 import { SidebarTrigger } from '@/shared/ui/sidebar'
+import { ThemeToggle } from './ThemeToggle'
 
 type PageHeaderProps = {
   children: ReactNode
@@ -17,6 +18,7 @@ export function PageHeader({ children, actions }: PageHeaderProps) {
       <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
       <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">{children}</div>
       {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+      <ThemeToggle />
     </header>
   )
 }

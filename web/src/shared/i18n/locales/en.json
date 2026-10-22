@@ -9,7 +9,11 @@
     },
     "navigation": "Navigation",
     "toggleSidebar": "Toggle sidebar",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "theme": {
+      "switchToLight": "Switch to light theme",
+      "switchToDark": "Switch to dark theme"
+    }
   },
   "login": {
     "title": "Sign in",
