@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { KanbanSquareIcon, MoreHorizontalIcon, PlusIcon } from 'lucide-react'
+import { GitPullRequestIcon, KanbanSquareIcon, MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
@@ -45,18 +45,28 @@ export function BoardsPage() {
     <>
       <PageHeader
         actions={
-          abilities.canManageBoards ? (
-            <Button
-              size="sm"
-              onClick={() => {
-                create.reset()
-                setCreating(true)
-              }}
-            >
-              <PlusIcon />
-              {t('gentasks.boards.create')}
-            </Button>
-          ) : null
+          <>
+            {abilities.canManageGithub ? (
+              <Button size="sm" variant="ghost" asChild>
+                <Link to="/tasks/integrations/github">
+                  <GitPullRequestIcon />
+                  {t('gentasks.github.title')}
+                </Link>
+              </Button>
+            ) : null}
+            {abilities.canManageBoards ? (
+              <Button
+                size="sm"
+                onClick={() => {
+                  create.reset()
+                  setCreating(true)
+                }}
+              >
+                <PlusIcon />
+                {t('gentasks.boards.create')}
+              </Button>
+            ) : null}
+          </>
         }
       >
         <BoardBreadcrumb />

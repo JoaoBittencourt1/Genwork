@@ -33,14 +33,20 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	}
 	defer db.Close()
 
-	handler := app.New(app.Dependencies{
+	handler, err := app.New(app.Dependencies{
 		DB: db,
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{
 			JWKSURL: config.CoreInternalURL + "/api/core/v1/auth/jwks", Issuer: config.PublicURL,
 		}),
 		UserDirectory: coreclient.NewUserDirectoryClient(config.CoreInternalURL, coreclient.DefaultTimeout),
-		Now:           time.Now,
+		Github: app.GithubConfig{
+			EncryptionKey: config.EncryptionKey, PublicURL: config.PublicURL, WebURL: config.GithubWebURL, APIURL: config.GithubAPIURL,
+		},
+		Now: time.Now,
 	})
+	if err != nil {
+		return err
+	}
 	server := &http.Server{
 		Addr:              config.HTTPAddr,
 		Handler:           handler,

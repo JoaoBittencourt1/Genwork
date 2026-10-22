@@ -46,12 +46,13 @@ describe('urgency and palette', () => {
 
 describe('abilities and assignees', () => {
   it('derives abilities from permissions', () => {
-    const granted = new Set(['gentasks.board.read', 'gentasks.task.write'])
+    const granted = new Set(['gentasks.board.read', 'gentasks.task.write', 'gentasks.github.manage'])
     expect(gentasksAbilities((permission) => granted.has(permission))).toEqual({
       canRead: true,
       canManageBoards: false,
       canWriteTasks: true,
       canDeleteTasks: false,
+      canManageGithub: true,
     })
   })
 

@@ -5,6 +5,8 @@ import { LoginPage } from '@/app/auth/LoginPage'
 import { BoardPage } from '@/app/gentasks/BoardPage'
 import { BoardSettingsPage } from '@/app/gentasks/BoardSettingsPage'
 import { BoardsPage } from '@/app/gentasks/BoardsPage'
+import { GithubCallbackPage } from '@/app/gentasks/GithubCallbackPage'
+import { GithubIntegrationPage } from '@/app/gentasks/GithubIntegrationPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
 import { MembersPage } from '@/app/members/MembersPage'
@@ -68,6 +70,26 @@ const boardSettingsRoute = createRoute({
   },
 })
 
+const githubIntegrationRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/tasks/integrations/github',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.gentasks}>
+      <GithubIntegrationPage />
+    </RequireModule>
+  ),
+})
+
+const githubCallbackRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/tasks/integrations/github/callback',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.gentasks}>
+      <GithubCallbackPage />
+    </RequireModule>
+  ),
+})
+
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage })
 
 const acceptInviteRoute = createRoute({
@@ -80,7 +102,15 @@ const acceptInviteRoute = createRoute({
 })
 
 const routeTree = rootRoute.addChildren([
-  signedInLayoutRoute.addChildren([homeRoute, membersRoute, boardsRoute, boardRoute, boardSettingsRoute]),
+  signedInLayoutRoute.addChildren([
+    homeRoute,
+    membersRoute,
+    boardsRoute,
+    boardRoute,
+    boardSettingsRoute,
+    githubIntegrationRoute,
+    githubCallbackRoute,
+  ]),
   loginRoute,
   acceptInviteRoute,
 ])

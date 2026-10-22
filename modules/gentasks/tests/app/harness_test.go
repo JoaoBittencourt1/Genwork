@@ -12,6 +12,7 @@ import (
 
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/app"
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/githubsynctest"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform/dbtest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/coreclient"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/coretest"
@@ -43,22 +44,40 @@ type testApp struct {
 	handler http.Handler
 	db      *pgxpool.Pool
 	core    *coretest.FakeCore
+	github  *githubsynctest.FakeGithub
 	clock   *testClock
 	token   string
 }
 
 func newTestApp(t *testing.T) *testApp {
 	t.Helper()
+	github := githubsynctest.NewFakeGithub(t)
+	testApp := newTestAppWithGithubAPI(t, github.URL())
+	testApp.github = github
+	return testApp
+}
+
+func newTestAppWithGithubAPI(t *testing.T, githubAPIURL string) *testApp {
+	t.Helper()
 	db := dbtest.NewMigratedSchema(t)
 	core := coretest.NewFakeCore(t)
 	core.AddUser(coreclient.DirectoryUser{Token: userToken, Name: "Ana", Email: "ana@example.com"})
 	clock := &testClock{current: time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC)}
-	handler := app.New(app.Dependencies{
+	handler, err := app.New(app.Dependencies{
 		DB:            db,
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{JWKSURL: core.JWKSURL(), Issuer: coretest.Issuer}),
 		UserDirectory: coreclient.NewUserDirectoryClient(core.URL(), time.Second),
-		Now:           clock.Now,
+		Github: app.GithubConfig{
+			EncryptionKey: githubsynctest.EncryptionKey,
+			PublicURL:     coretest.Issuer,
+			WebURL:        githubsynctest.UnroutableGithubWebURL,
+			APIURL:        githubAPIURL,
+		},
+		Now: clock.Now,
 	})
+	if err != nil {
+		t.Fatalf("new app: %v", err)
+	}
 	testApp := &testApp{t: t, handler: handler, db: db, core: core, clock: clock}
 	testApp.token = testApp.tokenWith(access.Permissions...)
 	return testApp
@@ -73,8 +92,10 @@ type request struct {
 	path        string
 	body        any
 	rawBody     string
+	rawBytes    []byte
 	accessToken string
 	anonymous   bool
+	headers     map[string]string
 }
 
 type response struct {
@@ -86,6 +107,8 @@ func (app *testApp) do(req request) response {
 	app.t.Helper()
 	var reader io.Reader
 	switch {
+	case req.rawBytes != nil:
+		reader = bytes.NewReader(req.rawBytes)
 	case req.rawBody != "":
 		reader = bytes.NewReader([]byte(req.rawBody))
 	case req.body != nil:
@@ -97,6 +120,9 @@ func (app *testApp) do(req request) response {
 	}
 	httpRequest := httptest.NewRequest(req.method, req.path, reader)
 	httpRequest.Header.Set("Content-Type", "application/json")
+	for name, value := range req.headers {
+		httpRequest.Header.Set(name, value)
+	}
 	if !req.anonymous {
 		accessToken := req.accessToken
 		if accessToken == "" {

@@ -158,7 +158,9 @@
     "core_unavailable": "Não foi possível verificar o responsável agora. Tente novamente.",
     "service_unavailable": "O serviço está indisponível. Tente novamente.",
     "user_not_found": "Usuário não encontrado.",
-    "task_prefix_taken": "Outro quadro já usa este identificador."
+    "task_prefix_taken": "Outro quadro já usa este identificador.",
+    "github_already_connected": "O GitHub já está conectado.",
+    "github_unavailable": "O GitHub não respondeu. Tente de novo em instantes."
   },
   "common": {
     "cancel": "Cancelar",
@@ -281,6 +283,60 @@
       "dangerZone": "Zona de perigo",
       "dangerZoneDescription": "Excluir o quadro remove as colunas, tarefas e labels dele.",
       "deleteBoard": "Excluir quadro"
+    },
+    "github": {
+      "title": "GitHub",
+      "intro": "Conecte o GitHub para que os pull requests movam as tarefas: um pull request cujo título ou branch cita a chave de uma tarefa move a tarefa quando é aberto, quando alguém pede review e quando é mergeado numa branch final. Cada quadro escolhe as colunas nas suas configurações.",
+      "connectTitle": "Conectar o GitHub",
+      "connectDescription": "O Genwork cria um GitHub App privado para esta instalação, com acesso somente leitura aos pull requests. O GitHub pede sua confirmação e depois você escolhe os repositórios.",
+      "organization": "Organização no GitHub (opcional)",
+      "organizationPlaceholder": "acme",
+      "organizationDescription": "Deixe vazio para criar o App na sua conta pessoal. Um App privado só pode ser instalado na conta dona dele, então informe a organização dona dos repositórios.",
+      "connect": "Conectar o GitHub",
+      "redirecting": "Abrindo o GitHub…",
+      "finishing": "Concluindo a conexão com o GitHub…",
+      "connectedTitle": "GitHub conectado",
+      "appTitle": "GitHub App",
+      "connectedDescription": "App {{app}}, de {{owner}}.",
+      "chooseRepositories": "Escolher repositórios",
+      "appSettings": "Configurações do App no GitHub",
+      "installNext": "O App {{app}} foi criado. Instale-o nos repositórios cujos pull requests devem mover tarefas.",
+      "backToIntegration": "Voltar para o GitHub",
+      "disconnect": "Desconectar",
+      "disconnectTitle": "Desconectar o GitHub?",
+      "disconnectDescription": "O Genwork apaga as credenciais do App e para de mover tarefas. As configurações dos quadros são mantidas. O App continua existindo no GitHub: apague-o nas configurações dele por lá.",
+      "unreadableTitle": "As credenciais do GitHub não podem mais ser lidas",
+      "unreadableDescription": "A chave de criptografia desta instalação mudou, então o Genwork não consegue verificar os eventos do GitHub. Desconecte, apague o App antigo no GitHub e conecte de novo.",
+      "unreachableTitle": "O GitHub não consegue acessar esta instalação",
+      "unreachableDescription": "O GitHub envia os eventos para {{url}}, que não é um endereço HTTPS público. As tarefas só se movem quando o GitHub consegue acessar o Genwork pela internet.",
+      "connectFailed": "Não foi possível conectar o GitHub",
+      "startAgain": "Começar de novo",
+      "errors": {
+        "stateInvalid": "Esta tentativa de conexão expirou ou foi iniciada por outra pessoa. Comece de novo.",
+        "codeInvalid": "O GitHub não aceitou o código que ele mesmo enviou; talvez tenha expirado. Comece de novo.",
+        "callbackMissing": "O GitHub não enviou as informações necessárias para concluir. Comece de novo."
+      },
+      "settings": {
+        "title": "GitHub",
+        "description": "Para qual coluna a tarefa vai quando um pull request que a cita muda. As tarefas só avançam e, depois que um merge as moveu, não são mais movidas.",
+        "notConnected": "O GitHub não está conectado, então estas configurações ainda não têm efeito.",
+        "connectLink": "Conectar o GitHub",
+        "opened": "Quando um pull request é aberto",
+        "reviewRequested": "Quando alguém pede review",
+        "merged": "Quando é mergeado numa branch final",
+        "doNotMove": "Não mover",
+        "keyHint": "O título ou a branch do pull request precisa conter a chave da tarefa, como {{example}}.",
+        "finalBranches": "Branches finais",
+        "finalBranchesDescription": "Merges nestas branches movem a tarefa. Maiúsculas e minúsculas fazem diferença.",
+        "branchPlaceholder": "staging",
+        "addBranch": "Adicionar",
+        "removeBranch": "Remover {{branch}}",
+        "branchProblems": {
+          "empty": "Mantenha pelo menos uma branch final.",
+          "tooMany": "Use no máximo 20 branches finais.",
+          "invalidName": "Nomes de branch não podem ter espaços."
+        }
+      }
     }
   }
 }

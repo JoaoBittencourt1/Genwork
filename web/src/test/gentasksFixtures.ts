@@ -1,4 +1,12 @@
-import type { AssignedTask, BoardView, ColumnWithTasks, Label, Task } from '@/app/gentasks/domain/types'
+import type {
+  AssignedTask,
+  BoardGithubSettings,
+  BoardView,
+  ColumnWithTasks,
+  GithubConnection,
+  Label,
+  Task,
+} from '@/app/gentasks/domain/types'
 import type { Capabilities } from '@/shared/datasource/capabilities'
 import type { DirectoryUser } from '@/shared/datasource/users'
 
@@ -79,4 +87,30 @@ export function boardViewFixture(): BoardView {
 
 export function titlesByColumn(view: BoardView): Record<string, string[]> {
   return Object.fromEntries(view.columns.map((column) => [column.token, column.tasks.map((task) => task.title)]))
+}
+
+export const githubWebhookUrlFixture = 'https://genwork.acme.com/api/gentasks/v1/github/webhook'
+
+export function githubConnectionFixture(overrides: Partial<GithubConnection> = {}): GithubConnection {
+  return {
+    state: 'connected',
+    webhookUrl: githubWebhookUrlFixture,
+    appSlug: 'genwork-k3f9qz',
+    ownerLogin: 'acme',
+    appUrl: 'https://github.com/organizations/acme/settings/apps/genwork-k3f9qz',
+    installUrl: 'https://github.com/apps/genwork-k3f9qz/installations/new',
+    ...overrides,
+  }
+}
+
+export const disconnectedGithubFixture: GithubConnection = { state: 'disconnected', webhookUrl: githubWebhookUrlFixture }
+
+export function boardGithubSettingsFixture(overrides: Partial<BoardGithubSettings> = {}): BoardGithubSettings {
+  return {
+    openedColumnToken: null,
+    reviewRequestedColumnToken: null,
+    mergedColumnToken: 'column-done',
+    finalBranches: ['main', 'master'],
+    ...overrides,
+  }
 }

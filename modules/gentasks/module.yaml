@@ -1,5 +1,5 @@
 id: gentasks
-version: 0.3.0
+version: 0.4.0
 core: ">=1.0.0 <2.0.0"
 apiPrefix: /api/gentasks/v1
 requires: []
@@ -12,6 +12,8 @@ permissions:
     defaultRoles: [admin, member]
   - name: gentasks.task.delete
     defaultRoles: [admin, member]
+  - name: gentasks.github.manage
+    defaultRoles: [admin]
 events:
   publishes: []
   consumes: []

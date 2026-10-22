@@ -1,0 +1,21 @@
+{
+  "zen": "Keep it logically awesome.",
+  "hook_id": 470001,
+  "hook": {
+    "type": "App",
+    "id": 470001,
+    "name": "web",
+    "active": true,
+    "events": [
+      "pull_request"
+    ],
+    "config": {
+      "content_type": "json",
+      "insecure_ssl": "0",
+      "url": "http://genwork.test/api/gentasks/v1/github/webhook"
+    },
+    "app_id": 4242,
+    "created_at": "2026-10-21T12:00:00Z",
+    "updated_at": "2026-10-21T12:00:00Z"
+  }
+}

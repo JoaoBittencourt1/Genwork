@@ -1,0 +1,42 @@
+{
+  "action": "created",
+  "installation": {
+    "id": 55000001,
+    "account": {
+      "login": "acme",
+      "id": 9001,
+      "node_id": "O_kgDOFixture",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "repository_selection": "selected",
+    "app_id": 4242,
+    "app_slug": "genwork-k3f9qz",
+    "target_type": "Organization",
+    "permissions": {
+      "metadata": "read",
+      "pull_requests": "read"
+    },
+    "events": [
+      "pull_request"
+    ],
+    "created_at": "2026-10-21T12:01:00Z"
+  },
+  "repositories": [
+    {
+      "id": 700001,
+      "name": "api",
+      "full_name": "acme/api",
+      "private": true
+    }
+  ],
+  "sender": {
+    "login": "ana-dev",
+    "id": 5001,
+    "node_id": "U_kgDOFixture1",
+    "avatar_url": "https://avatars.githubusercontent.com/u/5001?v=4",
+    "html_url": "https://github.com/ana-dev",
+    "type": "User",
+    "site_admin": false
+  }
+}

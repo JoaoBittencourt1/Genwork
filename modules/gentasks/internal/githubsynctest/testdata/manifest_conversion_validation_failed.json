@@ -1,0 +1,13 @@
+{
+  "message": "Validation Failed",
+  "errors": [
+    {
+      "resource": "Integration",
+      "code": "custom",
+      "field": "name",
+      "message": "Name is already in use"
+    }
+  ],
+  "documentation_url": "https://docs.github.com/rest/apps/apps#create-a-github-app-from-a-manifest",
+  "status": "422"
+}
