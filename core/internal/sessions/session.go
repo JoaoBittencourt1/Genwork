@@ -12,9 +12,12 @@ type ClientType string
 const (
 	ClientWeb    ClientType = "web"
 	ClientNative ClientType = "native"
+	// ClientOAuth is an AI assistant's grant; it starts only through the OAuth code exchange, never a password sign-in.
+	ClientOAuth ClientType = "oauth"
 )
 
-func (client ClientType) IsValid() bool {
+// SignsInWithPassword tells the client types a password sign-in may start.
+func (client ClientType) SignsInWithPassword() bool {
 	return client == ClientWeb || client == ClientNative
 }
 
@@ -36,6 +39,7 @@ type Session struct {
 	RoleID            int64
 	ClientType        ClientType
 	DeviceName        *string
+	OAuthClientID     *int64
 	CreatedAt         time.Time
 	LastUsedAt        time.Time
 	IdleExpiresAt     time.Time

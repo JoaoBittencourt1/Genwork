@@ -12,22 +12,28 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/mail"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/members"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/modules"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/oauth"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/sessions"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/updates"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/users"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RateLimits struct {
-	Login       platform.RateLimit
-	Refresh     platform.RateLimit
-	Invitations platform.RateLimit
+	Login              platform.RateLimit
+	Refresh            platform.RateLimit
+	Invitations        platform.RateLimit
+	ClientRegistration platform.RateLimit
+	OAuthToken         platform.RateLimit
 }
 
 var DefaultRateLimits = RateLimits{
-	Login:       platform.RateLimit{PerMinute: 10, Burst: 10},
-	Refresh:     platform.RateLimit{PerMinute: 60, Burst: 30},
-	Invitations: platform.RateLimit{PerMinute: 20, Burst: 10},
+	Login:              platform.RateLimit{PerMinute: 10, Burst: 10},
+	Refresh:            platform.RateLimit{PerMinute: 60, Burst: 30},
+	Invitations:        platform.RateLimit{PerMinute: 20, Burst: 10},
+	ClientRegistration: platform.RateLimit{PerMinute: 10, Burst: 10},
+	OAuthToken:         platform.RateLimit{PerMinute: 60, Burst: 30},
 }
 
 const maxConcurrentPasswordHashes = 4
@@ -42,6 +48,8 @@ type Settings struct {
 	PasswordParams users.PasswordParams
 	RateLimits     RateLimits
 	ModuleSecret   string
+	UpdaterURL     string
+	UpdaterSecret  string
 }
 
 type Dependencies struct {
@@ -91,5 +99,9 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	invites.NewHandler(inviteService, limitBy(settings.RateLimits.Invitations), now).Register(router)
 	modules.NewModuleHandler(moduleService).Register(router)
 	capabilities.NewCapabilitiesHandler(moduleService, accessService, settings.Version, discovery.CoreAPIVersion).Register(router)
+	updates.NewUpdateHandler(updates.NewUpdateService(updates.NewHTTPUpdaterClient(settings.UpdaterURL, settings.UpdaterSecret))).Register(router)
+	oauthService := oauth.NewOAuthService(db, authService, sessionService, oauth.OAuthServiceSettings{PublicURL: settings.PublicURL}, now)
+	oauth.NewOAuthHandler(oauthService, settings.PublicURL, limitBy(settings.RateLimits.ClientRegistration), limitBy(settings.RateLimits.OAuthToken), now).
+		Register(router)
 	return router
 }

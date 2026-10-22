@@ -13,6 +13,7 @@ const (
 	PermissionUserRead     = "core.user.read"
 	PermissionMemberRead   = "core.member.read"
 	PermissionMemberManage = "core.member.manage"
+	PermissionSystemUpdate = "core.system.update"
 )
 
 const RoleNameAdmin = "admin"

@@ -8,7 +8,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 )
 
-var Version = "dev"
+var Version = "0.0.0-dev"
 
 const usage = `usage: core <command>
 

@@ -98,11 +98,17 @@ func (service *ModuleService) checkRequirements(ctx context.Context, tx pgx.Tx, 
 
 func (service *ModuleService) syncPermissions(ctx context.Context, tx pgx.Tx, module Module, registration Registration) error {
 	declared := registration.PermissionNames()
-	inserted, err := service.modules.InsertMissingPermissions(ctx, tx, module.ID, declared)
+	if err := service.modules.InsertMissingPermissions(ctx, tx, module.ID, declared); err != nil {
+		return err
+	}
+	previouslyDeclared, err := service.modules.FindDeclaredDefaultRoles(ctx, tx, module.ID)
 	if err != nil {
 		return err
 	}
-	if err := service.modules.GrantPermissions(ctx, tx, registration.DefaultGrantsFor(inserted)); err != nil {
+	if err := service.modules.GrantPermissions(ctx, tx, registration.NewlyDeclaredGrants(previouslyDeclared)); err != nil {
+		return err
+	}
+	if err := service.modules.RecordDeclaredDefaultRoles(ctx, tx, registration.Permissions); err != nil {
 		return err
 	}
 	return service.modules.SyncRetiredPermissions(ctx, tx, module.ID, declared, registration.At)

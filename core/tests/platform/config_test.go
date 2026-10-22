@@ -19,6 +19,30 @@ func validServeEnv() map[string]string {
 		"SMTP_FROM":              "Genwork <no-reply@genwork.local>",
 		"SMTP_TLS":               "none",
 		"GENWORK_MODULE_SECRET":  "module-secret-0123456789abcdef",
+		"GENWORK_UPDATER_URL":    "http://updater:8093",
+		"GENWORK_UPDATER_SECRET": "updater-secret-0123456789abcdef",
+	}
+}
+
+func TestLoadServeConfigRequiresTheUpdater(t *testing.T) {
+	env := validServeEnv()
+	delete(env, "GENWORK_UPDATER_URL")
+	delete(env, "GENWORK_UPDATER_SECRET")
+
+	_, err := platform.LoadServeConfig(getenvFrom(env))
+
+	for _, name := range []string{"GENWORK_UPDATER_URL", "GENWORK_UPDATER_SECRET"} {
+		if err == nil || !strings.Contains(err.Error(), name) {
+			t.Errorf("error %v does not mention %s", err, name)
+		}
+	}
+}
+
+func TestLoadServeConfigReadsTheUpdater(t *testing.T) {
+	config, err := platform.LoadServeConfig(getenvFrom(validServeEnv()))
+
+	if err != nil || config.UpdaterURL != "http://updater:8093" || config.UpdaterSecret != "updater-secret-0123456789abcdef" {
+		t.Errorf("config = %+v, err = %v", config, err)
 	}
 }
 
@@ -70,6 +94,8 @@ func TestLoadServeConfigRejectsInvalidValues(t *testing.T) {
 		"SMTP_PORT":              "abc",
 		"SMTP_TLS":               "maybe",
 		"TRUSTED_PROXY_CIDRS":    "10.0.0.0/8,not-a-cidr",
+		"GENWORK_UPDATER_URL":    "updater:8093",
+		"GENWORK_UPDATER_SECRET": "too-short",
 	}
 	for name, value := range cases {
 		t.Run(name, func(t *testing.T) {
