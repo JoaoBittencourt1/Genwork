@@ -11,7 +11,7 @@ This is a monorepo. Components and stacks:
 | `core/` | Go service: auth, users, workspaces & teams, roles & permissions, projects, module registry, settings |
 | `modules/<name>/` | Go service per module, each its own container and release |
 | `sdk/go/` | Shared Go library modules use to talk to core (registration, token validation, events) |
-| `cli/` | Go installer CLI for self-hosted setups |
+| `cli/` | Go installer CLI for self-hosted setups; also runs as the `updater` container (rule 84) |
 | `mcp/` | Go MCP server (`genwork-mcp`): a client of the gateway that exposes core and enabled modules as tools |
 | `web/` | SPA: Vite + React (TypeScript), served as static files |
 | `clients/macos/` | Swift / SwiftUI |
@@ -47,28 +47,27 @@ Rules are numbered and the numbers are stable: never renumber, append new rules 
 
 ## Modules
 
-49. **Core is minimal; everything else is a module.** Core owns only: auth, users, workspaces & teams, roles & permissions, projects, the module registry, and settings. Kanban, infra insights, automation, and any future feature are modules. When in doubt, it is a module. **Core must run and pass its tests with zero modules installed.**
-50. **One module = one container.** Each module lives in `modules/<name>/` with its own `go.mod`, `cmd/`, `internal/`, `migrations/`, `Dockerfile`, and `module.yaml`; it is built into its own image and released with its own semantic version, independent of core and of other modules.
-51. **`module.yaml` is the module's single source of truth** (rule 7): id, version, compatible core API range, required modules with version ranges, permissions it defines, events it publishes and consumes, and its API prefix. Nothing else may restate these facts.
+49. **Core is minimal; everything else is a module.** Core owns only: auth (including the OAuth authorization server for AI assistants), users, workspaces & teams, roles & permissions, projects, the module registry, settings, and the relay of platform updates to the updater (rule 84). Kanban, infra insights, automation, and any future feature are modules. When in doubt, it is a module. **Core must run and pass its tests with zero modules installed.**
+50. **One module = one container.** Each module lives in `modules/<name>/` with its own `go.mod`, `cmd/`, `internal/`, `migrations/`, `Dockerfile`, and `module.yaml`; it is built into its own image. Every component ships in one platform release under the semantic version in the root `VERSION` file, its only owner (rule 7): builds inject it, and a build without it reports `0.0.0-dev`.
+51. **`module.yaml` is the module's single source of truth** (rule 7): id, compatible core API range, required modules with version ranges, permissions it defines, events it publishes and consumes, and its API prefix. Nothing else may restate these facts. The module's version is the platform version (rule 50) and is never declared in the file.
 52. **Core never contains module-specific code.** No `if module == "kanban"` in core. Core exposes generic extension points (registry, permissions, events, settings, capabilities) and modules plug into them.
 53. **Each module owns its data in isolation.** One Postgres schema per module (named after the module), accessed through a dedicated database role that cannot read any other schema. No cross-schema foreign keys, joins, or queries. Core entities (user, workspace, project) are referenced by their opaque token (rule 14).
 54. **Modules talk to each other only through public contracts**: the other module's versioned HTTP API or published events. Never through its database, never by importing its Go code. Code shared by several modules lives in `sdk/go/`.
 55. **Module dependencies are declared, acyclic, and enforced by the installer.** A module may require another only if `module.yaml` lists it. Installing or enabling a module enables its required modules; disabling a module is refused while an enabled module requires it. An *optional* integration ("works better if X is present") is not a dependency: it must degrade gracefully — hide the feature, never error — when X is not enabled.
 56. **Disable is not uninstall.** Disabling stops the module's container and hides it from clients; its data stays intact and re-enabling resumes where it left off. Uninstall is a separate, explicit action that confirms data removal. Enabling or disabling a module never requires a code or config change in core or in any other module.
-57. **One public entrypoint.** A gateway routes `/api/core/...` to core and `/api/<module>/v<N>/...` to each module; module containers are never exposed directly. Core issues access tokens; modules validate them with core's public keys and never store credentials.
+57. **One public entrypoint.** A gateway routes `/api/core/...` to core, `/api/<module>/v<N>/...` to each module, and `/mcp` plus the MCP protected resource metadata (`/.well-known/oauth-protected-resource*`) to the MCP server, and serves the built web bundle on every other path; module containers are never exposed directly. The gateway is Caddy, configured by a Caddyfile the CLI renders from the installed modules. Core issues access tokens; modules validate them with core's public keys and never store credentials.
 58. **Clients follow the enabled set at runtime.** Modules register with core on startup (manifest + health). Core publishes the enabled modules and their versions through a capabilities endpoint. The web app and desktop clients ship UI for every module, read capabilities, and show only enabled modules — no client code path may assume a module is enabled.
 59. **Module code is isolated in every component.** Each client keeps a module's UI in a dedicated folder (e.g. `web/src/app/<name>/`, rule 72), and one module's UI never imports another's. Shared UI belongs to the client's shared design system.
 60. **Permissions are namespaced `<module>.<resource>.<action>`** (e.g. `kanban.issue.create`), declared in `module.yaml`, and stored and assigned to roles by core.
 61. **Public contracts are versioned.** A breaking change to a module's API or events — or to a core contract modules consume — ships as a new major version (`/v2`, new event version) while the previous one keeps working through a deprecation window.
 62. **Modules are tested in isolation.** A module's suite runs against a stubbed core and stubbed dependency APIs built from recorded contract fixtures — no other real module running. CI runs: core alone; each module with only its declared dependencies; all modules together.
 63. **Every OpenSpec change states which components it touches** (core, which modules, which clients). A change spanning core and a module, or several modules, justifies why, and its phases are split per component.
-64. **The installer CLI is the supported way to choose modules.** `cli/` resolves dependencies, writes the deployment config and `.env` (rules 1–3), pulls the selected images, runs each module's migrations, and enables or disables modules.
+64. **The installer CLI is the supported way to choose modules.** `cli/` resolves dependencies, writes the deployment config and `.env` (rules 1–3), pulls the selected images, runs each module's migrations, and enables or disables modules. It also installs a server from a published release (`genwork install`) and updates an installation to the latest release (`genwork update`), backing up the database first and rolling back when a step fails.
 
 ### Open decisions — do not assume
 
 These are not decided yet. Do not pick one silently in code or specs; raise it with the developer.
 
-- Gateway technology (e.g. Caddy, Traefik, or a Go gateway inside core).
 - Event bus technology (e.g. Postgres outbox + `LISTEN/NOTIFY`, NATS).
 - Windows client UI framework.
 
@@ -89,6 +88,7 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 67. **Credentials and bearer secrets are never stored or logged in clear.** Refresh tokens, invite tokens, and any other bearer secret are stored only as a hash (SHA-256 suffices for high-entropy random values) and compared in constant time. Passwords, tokens, and `Authorization` headers never appear in logs, error messages, or traces.
 68. **Authentication responses never reveal which part failed.** An unknown e-mail and a wrong password return the same error in comparable time (hash a dummy password when the account does not exist). Login and sign-up endpoints are rate limited per client address and per account, using the address the server resolves — never a client-controlled header such as the first `X-Forwarded-For` value.
 69. **Access tokens are short-lived; refresh tokens rotate.** Access token: signed JWT, at most 15 minutes. Refresh token: opaque, bound to one session, single-use — each refresh issues a new one, and presenting an already-used one revokes the whole session. The web app keeps the refresh token in an `httpOnly; Secure; SameSite=Strict` cookie and the access token only in memory; native clients keep tokens in the OS secure store (Keychain, Windows Credential Manager, Secret Service).
+84. **Only the updater touches the Docker socket.** The `updater` service is the only container that mounts it. It publishes no port and has no gateway route, accepts requests only from core carrying `GENWORK_UPDATER_SECRET` (compared in constant time, never logged), and only installs checksum-verified releases of the configured release channel — never arbitrary images or commands.
 
 ## Persistence
 
