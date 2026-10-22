@@ -48,7 +48,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link to="/" onClick={() => setOpenMobile(false)}>
-                <img src="/icon-180.png" alt="" className="size-8 rounded-md" />
+                <img src="/icon-180.png" alt="" className="size-8" />
                 <span className="truncate font-semibold">{instanceName}</span>
               </Link>
             </SidebarMenuButton>
