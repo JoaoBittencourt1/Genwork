@@ -21,7 +21,7 @@ type NewUser struct {
 	RoleID       int64
 }
 
-const userColumns = `id, token, email, name, password_hash, role_id, failed_login_count, locked_until, last_login_at`
+const userColumns = `id, token, email, name, password_hash, role_id, failed_login_count, locked_until, last_login_at, created_at`
 
 func (Repository) Create(ctx context.Context, db platform.DBTX, newUser NewUser) (User, error) {
 	row := db.QueryRow(ctx, `
@@ -120,6 +120,6 @@ func scanSingleUser(row pgx.Row) (User, error) {
 func scanUser(row pgx.Row) (User, error) {
 	var user User
 	err := row.Scan(&user.ID, &user.Token, &user.Email, &user.Name, &user.PasswordHash, &user.RoleID,
-		&user.FailedLoginCount, &user.LockedUntil, &user.LastLoginAt)
+		&user.FailedLoginCount, &user.LockedUntil, &user.LastLoginAt, &user.CreatedAt)
 	return user, err
 }
