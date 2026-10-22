@@ -2,14 +2,16 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { moveColumn as moveColumnRequest } from '../datasource/boardsDatasource'
-import { moveTask as moveTaskRequest } from '../datasource/tasksDatasource'
+import { moveTask as moveTaskRequest, updateTask } from '../datasource/tasksDatasource'
+import { assignTask } from '../domain/assignees'
 import { moveColumn, moveTask, type TaskMove } from '../domain/ordering'
 import type { BoardView } from '../domain/types'
 import { gentasksQueryKeys } from './queryKeys'
+import type { AssigneeChange } from './TaskAssigneeMenu'
 
 type ColumnMove = { columnToken: string; toPosition: number }
 
-// useBoardMoves updates the board as soon as an item is dropped and restores the previous order if the server refuses.
+// useBoardMoves updates the board as soon as an item is dropped or reassigned, and restores the previous board if the server refuses.
 export function useBoardMoves(boardToken: string) {
   const queryClient = useQueryClient()
   const { describeError } = useErrorMessage()
@@ -41,5 +43,11 @@ export function useBoardMoves(boardToken: string) {
     ...callbacks,
   })
 
-  return { moveTask: taskMove.mutate, moveColumn: columnMove.mutate }
+  const assignment = useMutation({
+    mutationFn: (change: AssigneeChange) => updateTask(change.taskToken, { assigneeToken: change.assigneeToken }),
+    onMutate: (change: AssigneeChange) => applyOptimistically((view) => assignTask(view, change.taskToken, change.assigneeToken)),
+    ...callbacks,
+  })
+
+  return { moveTask: taskMove.mutate, moveColumn: columnMove.mutate, assignTask: assignment.mutate }
 }

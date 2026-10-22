@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -11,7 +12,7 @@ import (
 func TestStackCommandsRunComposeWithoutModules(t *testing.T) {
 	cases := map[string][]string{
 		"db":   {"up -d --wait postgres"},
-		"api":  {"up -d --wait postgres", "up -d --build core core-worker gateway", "ps --status running --services"},
+		"api":  {"up -d --wait postgres", "up -d --build core core-worker gateway mcp updater", "ps --status running --services"},
 		"down": {"--profile * down"},
 	}
 	for command, expectedSuffixes := range cases {
@@ -29,11 +30,16 @@ func TestStackCommandsRunComposeWithoutModules(t *testing.T) {
 
 func expectComposeRuns(t *testing.T, workspace Workspace, runner *fakeRunner, expectedSuffixes []string) {
 	t.Helper()
+	expectRuns(t, workspace, runner, composePrefix(workspace), expectedSuffixes)
+}
+
+func expectRuns(t *testing.T, workspace Workspace, runner *fakeRunner, prefix string, expectedSuffixes []string) {
+	t.Helper()
 	if len(runner.runs) != len(expectedSuffixes) {
 		t.Fatalf("runs = %q, want suffixes %q", runner.commandLines(), expectedSuffixes)
 	}
 	for index, suffix := range expectedSuffixes {
-		expected := "docker compose -f " + workspace.ComposeFile() + " " + suffix
+		expected := prefix + suffix
 		if runner.runs[index].commandLine() != expected || runner.runs[index].dir != workspace.Root {
 			t.Errorf("run %d = %q, want %q", index, runner.runs[index].commandLine(), expected)
 		}
@@ -52,7 +58,7 @@ func TestAPIStartsInstalledModulesWithTheirProfiles(t *testing.T) {
 	expectComposeRuns(t, workspace, runner, []string{
 		"up -d --wait postgres",
 		"exec -T postgres psql -X -q -U genwork -d genwork",
-		"--profile gentasks up -d --build core core-worker gateway gentasks-migrate gentasks",
+		"--profile gentasks up -d --build core core-worker gateway mcp updater gentasks-migrate gentasks",
 		"ps --status running --services",
 		"restart gateway",
 	})
@@ -200,5 +206,101 @@ func TestWebWarnsLoudlyWhenTheProxySkipsTheGateway(t *testing.T) {
 		if !strings.Contains(output, expected) {
 			t.Errorf("output %q is missing %s", output, expected)
 		}
+	}
+}
+
+func TestComposeRunsCarryThePlatformVersion(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	installModules(t, workspace, "gentasks")
+	runner := &fakeRunner{runningServices: "core\ngateway\n"}
+
+	if err, output := execute(t, workspace, runner, &fakePrompter{}, "api"); err != nil {
+		t.Fatalf("error: %v (%s)", err, output)
+	}
+
+	for _, run := range runner.runs {
+		if !slices.Equal(run.env, []string{"GENWORK_VERSION=0.5.0"}) {
+			t.Errorf("%q env = %v", run.commandLine(), run.env)
+		}
+	}
+}
+
+func TestComposeFailsWithoutAPlatformVersion(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	if err := os.Remove(workspace.VersionFile()); err != nil {
+		t.Fatal(err)
+	}
+	runner := &fakeRunner{}
+
+	err, _ := execute(t, workspace, runner, &fakePrompter{}, "down")
+
+	if err == nil || !strings.Contains(err.Error(), "VERSION") || len(runner.runs) != 0 {
+		t.Errorf("error = %v, runs = %q", err, runner.commandLines())
+	}
+}
+
+func TestReleaseInstallationRunsThePublishedImagesWithoutBuilding(t *testing.T) {
+	workspace := newReleaseWorkspace(t)
+	installModules(t, workspace, "gentasks")
+	runner := &fakeRunner{}
+
+	if err, output := execute(t, workspace, runner, &fakePrompter{}, "api"); err != nil {
+		t.Fatalf("error: %v (%s)", err, output)
+	}
+
+	prefix := "docker compose -f " + workspace.ComposeFile() + " "
+	for _, line := range runner.commandLines() {
+		if !strings.HasPrefix(line, prefix) || strings.Contains(line, "--build") || strings.Contains(line, "docker-compose.dev.yml") {
+			t.Errorf("run %q must use the base compose file only and never build", line)
+		}
+	}
+	if !slices.Contains(runner.commandLines(), prefix+"--profile gentasks up -d core core-worker gateway mcp updater gentasks-migrate gentasks") {
+		t.Errorf("runs = %q", runner.commandLines())
+	}
+}
+
+func TestUpInAReleaseInstallationLeavesTheWebAppToTheGateway(t *testing.T) {
+	workspace := newReleaseWorkspace(t)
+	installModules(t, workspace)
+	runner := &fakeRunner{}
+
+	err, output := execute(t, workspace, runner, &fakePrompter{}, "up")
+
+	if err != nil {
+		t.Fatalf("error: %v (%s)", err, output)
+	}
+	for _, line := range runner.commandLines() {
+		if strings.HasPrefix(line, "npm") {
+			t.Errorf("a release installation never runs npm: %q", line)
+		}
+	}
+	if !strings.Contains(output, "Web app:  http://localhost:8487") || strings.Contains(output, "Mailpit") {
+		t.Errorf("output = %q", output)
+	}
+}
+
+func TestWebRefusesInAReleaseInstallation(t *testing.T) {
+	workspace := newReleaseWorkspace(t)
+	runner := &fakeRunner{}
+
+	err, _ := execute(t, workspace, runner, &fakePrompter{}, "web")
+
+	if !errors.Is(err, ErrWebInReleaseInstallation) || len(runner.runs) != 0 {
+		t.Errorf("error = %v, runs = %q", err, runner.commandLines())
+	}
+}
+
+func TestCommandsActOnGenworkHomeFromAnyDirectory(t *testing.T) {
+	installation := newReleaseWorkspace(t)
+	installModules(t, installation)
+	elsewhere := newTestWorkspace(t)
+	runner := &fakeRunner{}
+
+	if err, output := executeWithEnv(t, elsewhere, runner, map[string]string{"GENWORK_HOME": installation.Root}, "down"); err != nil {
+		t.Fatalf("error: %v (%s)", err, output)
+	}
+
+	if len(runner.runs) != 1 || runner.runs[0].dir != installation.Root || !strings.Contains(runner.runs[0].commandLine(), installation.ComposeFile()) {
+		t.Errorf("runs = %+v", runner.runs)
 	}
 }

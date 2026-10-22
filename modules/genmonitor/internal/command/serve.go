@@ -23,7 +23,7 @@ func RunServe(ctx context.Context, getenv platform.Getenv) error {
 	if err != nil {
 		return err
 	}
-	moduleManifest, err := manifest.ParseManifest(genmonitor.ManifestYAML)
+	moduleManifest, err := manifest.ParseManifest(genmonitor.ManifestYAML, Version)
 	if err != nil {
 		return err
 	}

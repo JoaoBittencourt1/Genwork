@@ -40,6 +40,8 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 		PasswordParams: users.DefaultPasswordParams,
 		RateLimits:     app.DefaultRateLimits,
 		ModuleSecret:   config.ModuleSecret,
+		UpdaterURL:     config.UpdaterURL,
+		UpdaterSecret:  config.UpdaterSecret,
 	}, app.Dependencies{DB: db, Mailer: mail.NewSMTPSender(config.SMTP), Now: time.Now})
 
 	server := &http.Server{

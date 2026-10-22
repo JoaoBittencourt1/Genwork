@@ -1,0 +1,5 @@
+*
+!sdk/go
+!mcp
+mcp/bin
+**/coverage.out

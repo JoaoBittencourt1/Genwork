@@ -47,6 +47,19 @@ func TestVerifyAcceptsCoreToken(t *testing.T) {
 	}
 }
 
+func TestVerifyReportsWhenTheTokenExpires(t *testing.T) {
+	core := coretest.NewFakeCore(t)
+	verifier := newVerifier(core, &manualClock{current: time.Now()})
+	expiresAt := time.Now().Add(10 * time.Minute).Truncate(time.Second)
+	token := core.MintAccessTokenExpiringAt(t, "user-token", expiresAt)
+
+	principal, err := verifier.Verify(context.Background(), token)
+
+	if err != nil || !principal.ExpiresAt.Equal(expiresAt) {
+		t.Errorf("expires at = %v, want %v (err %v)", principal.ExpiresAt, expiresAt, err)
+	}
+}
+
 func TestVerifyCachesKeys(t *testing.T) {
 	core := coretest.NewFakeCore(t)
 	verifier := newVerifier(core, &manualClock{current: time.Now()})

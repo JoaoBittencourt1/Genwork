@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"net"
 	"net/http"
 	"strings"
@@ -120,6 +121,8 @@ func TestServeAnswersUntilContextEnds(t *testing.T) {
 		"SMTP_FROM":              "Genwork <no-reply@genwork.test>",
 		"SMTP_TLS":               "none",
 		"GENWORK_MODULE_SECRET":  "module-secret-0123456789abcdef",
+		"GENWORK_UPDATER_URL":    "http://127.0.0.1:1",
+		"GENWORK_UPDATER_SECRET": "updater-secret-0123456789abcdef",
 	})
 	ctx, cancel := context.WithCancel(context.Background())
 	stopped := make(chan error, 1)
@@ -130,9 +133,13 @@ func TestServeAnswersUntilContextEnds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var discovery struct {
+		Version string `json:"version"`
+	}
+	decodeErr := json.NewDecoder(response.Body).Decode(&discovery)
 	response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("discovery status = %d", response.StatusCode)
+	if response.StatusCode != http.StatusOK || decodeErr != nil || discovery.Version != "0.0.0-dev" {
+		t.Errorf("discovery status = %d, version = %q, decode error = %v", response.StatusCode, discovery.Version, decodeErr)
 	}
 
 	cancel()
@@ -156,6 +163,7 @@ func TestServeFailsFastOnInvalidConfiguration(t *testing.T) {
 		"GENWORK_INSTANCE_NAME": "x", "GENWORK_DEFAULT_LOCALE": "en", "JWT_SIGNING_KEY": "not-a-key",
 		"SMTP_HOST": "localhost", "SMTP_PORT": "25", "SMTP_FROM": "a@b.c", "SMTP_TLS": "none",
 		"GENWORK_MODULE_SECRET": "module-secret-0123456789abcdef",
+		"GENWORK_UPDATER_URL":   "http://127.0.0.1:1", "GENWORK_UPDATER_SECRET": "updater-secret-0123456789abcdef",
 	}
 	if err := command.RunServe(ctx, envFrom(env), "unused"); err == nil || !strings.Contains(err.Error(), "JWT_SIGNING_KEY") {
 		t.Errorf("invalid key error = %v", err)

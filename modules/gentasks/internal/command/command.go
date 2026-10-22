@@ -7,6 +7,8 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/platform"
 )
 
+var Version = "0.0.0-dev"
+
 const usage = `usage: gentasks <command>
 
 commands:

@@ -13,6 +13,7 @@ import type { ColumnWithTasks, Task } from '../domain/types'
 import { ColumnStatusIcon } from './ColumnStatusIcon'
 import { sortableStyle } from './sortableStyle'
 import { TaskCard } from './TaskCard'
+import type { AssigneeChange } from './TaskAssigneeMenu'
 
 export type ColumnActions = {
   onAddTask: (column: ColumnWithTasks) => void
@@ -29,11 +30,12 @@ type BoardColumnProps = {
   taskDragEnabled: boolean
   users: DirectoryUser[] | undefined
   actions: ColumnActions
+  onAssign?: (change: AssigneeChange) => void
 }
 
 // The column header is its drag handle, so columns reorder by grabbing their title like in Linear.
 // dnd-kit re-renders every sortable column on each pointer move, so everything below the wrapper is memoized.
-export const BoardColumn = memo(function BoardColumn({ column, taskPrefix, abilities, taskDragEnabled, users, actions }: BoardColumnProps) {
+export const BoardColumn = memo(function BoardColumn({ column, taskPrefix, abilities, taskDragEnabled, users, actions, onAssign }: BoardColumnProps) {
   const { t } = useTranslation()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: columnDragId(column.token),
@@ -61,7 +63,7 @@ export const BoardColumn = memo(function BoardColumn({ column, taskPrefix, abili
         </div>
         <ColumnActionButtons column={column} title={title} abilities={abilities} actions={actions} />
       </header>
-      <ColumnTaskList column={column} taskPrefix={taskPrefix} taskDragEnabled={taskDragEnabled} users={users} onOpenTask={actions.onOpenTask} />
+      <ColumnTaskList column={column} taskPrefix={taskPrefix} taskDragEnabled={taskDragEnabled} users={users} onOpenTask={actions.onOpenTask} onAssign={onAssign} />
     </section>
   )
 })
@@ -126,14 +128,15 @@ type ColumnTaskListProps = {
   taskDragEnabled: boolean
   users: DirectoryUser[] | undefined
   onOpenTask: (task: Task) => void
+  onAssign?: (change: AssigneeChange) => void
 }
 
-const ColumnTaskList = memo(function ColumnTaskList({ column, taskPrefix, taskDragEnabled, users, onOpenTask }: ColumnTaskListProps) {
+const ColumnTaskList = memo(function ColumnTaskList({ column, taskPrefix, taskDragEnabled, users, onOpenTask, onAssign }: ColumnTaskListProps) {
   return (
     <SortableContext id={taskListId(column.token)} items={column.tasks.map((task) => taskDragId(task.token))} strategy={verticalListSortingStrategy}>
       <ul className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {column.tasks.map((task) => (
-          <TaskCard key={task.token} task={task} taskPrefix={taskPrefix} users={users} dragEnabled={taskDragEnabled} onOpen={onOpenTask} />
+          <TaskCard key={task.token} task={task} taskPrefix={taskPrefix} users={users} dragEnabled={taskDragEnabled} onOpen={onOpenTask} onAssign={onAssign} />
         ))}
       </ul>
     </SortableContext>

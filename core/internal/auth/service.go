@@ -54,7 +54,7 @@ type ClientInput struct {
 
 func ValidateClientInput(input ClientInput) map[string]string {
 	fields := map[string]string{}
-	if !input.Client.IsValid() {
+	if !input.Client.SignsInWithPassword() {
 		fields["client"] = "invalid"
 	}
 	if input.DeviceName != nil && utf8.RuneCountInString(*input.DeviceName) > MaxDeviceNameLength {
@@ -131,6 +131,25 @@ func (service *Service) StartSignIn(ctx context.Context, db platform.DBTX, userI
 		return SignIn{}, err
 	}
 	return service.issueAccessToken(ctx, session, refreshToken)
+}
+
+// StartOAuthSignIn starts an assistant's session, named after its OAuth client, with the same tokens a login issues.
+func (service *Service) StartOAuthSignIn(ctx context.Context, db platform.DBTX, userID int64, clientName string, oauthClientID int64) (SignIn, error) {
+	session, refreshToken, err := service.sessions.Start(ctx, db, sessions.StartInput{
+		UserID: userID, ClientType: sessions.ClientOAuth, DeviceName: &clientName, OAuthClientID: &oauthClientID,
+	})
+	if err != nil {
+		return SignIn{}, err
+	}
+	return service.issueAccessToken(ctx, session, refreshToken)
+}
+
+func (service *Service) RefreshForOAuthClient(ctx context.Context, refreshToken string, oauthClientID int64) (SignIn, error) {
+	session, rotatedRefreshToken, err := service.sessions.RotateForOAuthClient(ctx, refreshToken, oauthClientID)
+	if err != nil {
+		return SignIn{}, err
+	}
+	return service.issueAccessToken(ctx, session, rotatedRefreshToken)
 }
 
 func (service *Service) Refresh(ctx context.Context, refreshToken string) (SignIn, error) {

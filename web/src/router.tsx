@@ -1,4 +1,6 @@
 import { createRootRoute, createRoute, createRouter, Outlet, type RouterHistory } from '@tanstack/react-router'
+import { AuthorizeAssistantPage } from '@/app/assistants/AuthorizeAssistantPage'
+import { ConnectAssistantPage } from '@/app/assistants/ConnectAssistantPage'
 import { AppShell } from '@/app/auth/components/AppShell'
 import { RequireAuth } from '@/app/auth/components/RequireAuth'
 import { LoginPage } from '@/app/auth/LoginPage'
@@ -34,6 +36,8 @@ const signedInLayoutRoute = createRoute({
 const homeRoute = createRoute({ getParentRoute: () => signedInLayoutRoute, path: '/', component: HomePage })
 
 const membersRoute = createRoute({ getParentRoute: () => signedInLayoutRoute, path: '/members', component: MembersPage })
+
+const assistantsRoute = createRoute({ getParentRoute: () => signedInLayoutRoute, path: '/assistants', component: ConnectAssistantPage })
 
 const boardsRoute = createRoute({
   getParentRoute: () => signedInLayoutRoute,
@@ -101,7 +105,24 @@ const hostRoute = createRoute({
   ),
 })
 
-const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage })
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/login',
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } =>
+    typeof search.redirect === 'string' ? { redirect: search.redirect } : {},
+  component: LoginPage,
+})
+
+// The consent screen keeps the focused sign-in layout, outside the app shell, as the login does.
+const authorizeAssistantRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/oauth/authorize',
+  component: () => (
+    <RequireAuth>
+      <AuthorizeAssistantPage />
+    </RequireAuth>
+  ),
+})
 
 const acceptInviteRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -116,6 +137,7 @@ const routeTree = rootRoute.addChildren([
   signedInLayoutRoute.addChildren([
     homeRoute,
     membersRoute,
+    assistantsRoute,
     boardsRoute,
     boardRoute,
     boardSettingsRoute,
@@ -124,6 +146,7 @@ const routeTree = rootRoute.addChildren([
     hostRoute,
   ]),
   loginRoute,
+  authorizeAssistantRoute,
   acceptInviteRoute,
 ])
 

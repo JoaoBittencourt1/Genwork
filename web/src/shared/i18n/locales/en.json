@@ -6,7 +6,8 @@
       "home": "Home",
       "members": "Members",
       "tasks": "Tasks",
-      "host": "Server"
+      "host": "Server",
+      "assistants": "AI assistants"
     },
     "navigation": "Navigation",
     "toggleSidebar": "Toggle sidebar",
@@ -205,13 +206,33 @@
     "github_unavailable": "GitHub did not respond. Try again in a moment.",
     "cannot_manage_self": "You cannot change your own membership.",
     "member_not_manageable": "You cannot manage a member whose role has more permissions than yours.",
-    "member_not_found": "Member not found. They may have been removed."
+    "member_not_found": "Member not found. They may have been removed.",
+    "version_mismatch": "A newer release appeared meanwhile. Checking again…",
+    "update_in_progress": "An update is already running.",
+    "no_newer_release": "Genwork already runs the latest version.",
+    "development_installation": "This is a development checkout: updates are installed with git.",
+    "updater_unavailable": "The updater does not answer. Check that the updater container is running.",
+    "release_channel_unreachable": "GitHub, where releases are published, could not be reached.",
+    "release_channel_rate_limited": "GitHub limits how often this server can check. Try again in an hour.",
+    "no_published_release": "No release is published yet.",
+    "checksum_mismatch": "A downloaded file did not match its checksum.",
+    "download_failed": "The release could not be downloaded.",
+    "pull_failed": "The images could not be downloaded.",
+    "backup_failed": "The database backup failed.",
+    "swap_failed": "The configuration could not be replaced.",
+    "migration_failed": "A migration or a service failed to start.",
+    "verification_failed": "The new version did not answer in time.",
+    "update_interrupted": "The update was interrupted.",
+    "invalid_client": "This connection request names an unknown assistant.",
+    "invalid_redirect_uri": "This connection request returns to an address the assistant never registered."
   },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving…",
-    "delete": "Delete"
+    "delete": "Delete",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "modules": {
     "unavailableTitle": "Module unavailable",
@@ -280,6 +301,7 @@
       "title": "Title",
       "description": "Description",
       "assignee": "Assignee",
+      "changeAssignee": "Change the assignee of {{title}}",
       "unassigned": "Unassigned",
       "urgency": "Urgency",
       "labels": "Labels",
@@ -424,6 +446,90 @@
       "days": "{{count}} d",
       "hours": "{{count}} h",
       "minutes": "{{count}} min"
+    }
+  },
+  "system": {
+    "update": {
+      "title": "Genwork updates",
+      "installed": "Installed version: {{version}}",
+      "checkedAt": "last checked {{time}}",
+      "check": "Check for updates",
+      "checking": "Checking…",
+      "neverChecked": "Check whether a newer release of Genwork is available.",
+      "upToDate": "Genwork runs the latest version.",
+      "available": "Genwork {{version}} is available.",
+      "releaseNotes": "Release notes",
+      "updateTo": "Update to v{{version}}",
+      "updating": "Updating to {{version}}",
+      "restarting": "Restarting Genwork…",
+      "succeeded": "Update finished. Loading the new version…",
+      "failed": "The update to {{version}} failed at the step \"{{step}}\".",
+      "rolledBack": "Genwork is back on the previous version, with the data it had before the update.",
+      "notRolledBack": "The previous version could not be restored. Check the server with `genwork update --check`.",
+      "gaveUp": "Genwork has not answered for 15 minutes. Check the server with `genwork update --check`.",
+      "notUpdatable": {
+        "development_installation": "This is a development checkout: updates are installed with git.",
+        "unknown": "This installation cannot be updated from here."
+      },
+      "steps": {
+        "download": "download",
+        "pull": "download the images",
+        "backup": "database backup",
+        "swap": "replace the configuration",
+        "migrate": "migrations and restart",
+        "verify": "verification"
+      },
+      "confirm": {
+        "title": "Update Genwork to v{{version}}?",
+        "description": "Genwork will be unavailable for a few minutes. A backup of the database is taken first, and a failed update returns to the current version.",
+        "action": "Update to v{{version}}"
+      }
+    }
+  },
+  "assistants": {
+    "homeCard": {
+      "title": "Connect an AI assistant",
+      "description": "Let Claude and other assistants work with Genwork as you, with your permissions.",
+      "action": "Connect"
+    },
+    "connect": {
+      "title": "Connect an AI assistant",
+      "description": "Assistants reach Genwork through its MCP address. They sign in as you and see only what you can.",
+      "url": {
+        "title": "MCP address",
+        "description": "Every assistant connects to this address.",
+        "copied": "Address copied"
+      },
+      "claude": {
+        "title": "Claude (claude.ai and Claude Desktop)",
+        "description": "Add Genwork as a custom connector.",
+        "unreachableTitle": "claude.ai cannot reach this address",
+        "unreachable": "claude.ai and Claude Desktop connect from the internet, so they need Genwork on a public https address. Claude Code still works from your own machine.",
+        "steps": {
+          "open": "In Claude, open Settings, then Connectors.",
+          "add": "Choose “Add custom connector” and paste the MCP address.",
+          "signIn": "When Claude asks, sign in to Genwork and allow the connection."
+        }
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Run this command in a terminal.",
+        "signIn": "Then run /mcp inside Claude Code and sign in to Genwork in the browser."
+      },
+      "other": {
+        "title": "Other MCP clients",
+        "description": "Use the address above, or this configuration if the client reads a JSON file."
+      }
+    },
+    "consent": {
+      "title": "{{client}} wants to access Genwork",
+      "signedInAs": "Signed in as {{email}}",
+      "actsAsYou": "{{client}} will act as you in Genwork, with your permissions: it can see and change what you can.",
+      "noPassword": "Genwork never shares your password with it.",
+      "allow": "Allow",
+      "deny": "Deny",
+      "invalidTitle": "Invalid connection request",
+      "invalid": "This connection request is invalid. Start the connection again from the assistant."
     }
   }
 }

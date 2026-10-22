@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { HomeIcon, KanbanSquareIcon, ServerIcon, UsersIcon } from 'lucide-react'
+import { BotIcon, HomeIcon, KanbanSquareIcon, ServerIcon, UsersIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { GENMONITOR_PERMISSIONS } from '@/app/genmonitor/domain/permissions'
 import { GENTASKS_PERMISSIONS } from '@/app/gentasks/domain/permissions'
@@ -53,6 +53,7 @@ export function AppSidebar() {
       visible: can(PERMISSIONS.inviteRead) || can(PERMISSIONS.memberRead),
       matchesNested: true,
     },
+    { to: '/assistants', label: t('app.nav.assistants'), icon: BotIcon, visible: true, matchesNested: false },
   ] as const
 
   return (

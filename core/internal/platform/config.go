@@ -30,10 +30,13 @@ type ServeConfig struct {
 	ModuleSecret   string
 	SMTP           SMTPConfig
 	TrustedProxies []netip.Prefix
+	// UpdaterURL and UpdaterSecret reach the updater container, which core relays admins' update requests to (rule 84).
+	UpdaterURL    string
+	UpdaterSecret string
 }
 
-// MinModuleSecretLength matches 128 bits of entropy encoded as base64url.
-const MinModuleSecretLength = 22
+// MinSharedSecretLength matches 128 bits of entropy encoded as base64url; the module and updater secrets need it.
+const MinSharedSecretLength = 22
 
 var supportedLocales = []string{"pt-BR", "en"}
 var supportedSMTPTLS = []string{"none", "starttls", "tls"}
@@ -91,9 +94,17 @@ func LoadServeConfig(getenv Getenv) (ServeConfig, error) {
 		JWTSigningKey: reader.required("JWT_SIGNING_KEY"),
 		ModuleSecret:  reader.required("GENWORK_MODULE_SECRET"),
 		SMTP:          readSMTPConfig(reader),
+		UpdaterURL:    strings.TrimRight(reader.required("GENWORK_UPDATER_URL"), "/"),
+		UpdaterSecret: reader.required("GENWORK_UPDATER_SECRET"),
 	}
-	if cfg.ModuleSecret != "" && len(cfg.ModuleSecret) < MinModuleSecretLength {
+	if cfg.ModuleSecret != "" && len(cfg.ModuleSecret) < MinSharedSecretLength {
 		reader.markInvalid("GENWORK_MODULE_SECRET (at least 22 characters)")
+	}
+	if cfg.UpdaterSecret != "" && len(cfg.UpdaterSecret) < MinSharedSecretLength {
+		reader.markInvalid("GENWORK_UPDATER_SECRET (at least 22 characters)")
+	}
+	if cfg.UpdaterURL != "" && !isAbsoluteHTTPURL(cfg.UpdaterURL) {
+		reader.markInvalid("GENWORK_UPDATER_URL")
 	}
 	if cfg.PublicURL != "" && !isAbsoluteHTTPURL(cfg.PublicURL) {
 		reader.markInvalid("GENWORK_PUBLIC_URL")

@@ -54,21 +54,10 @@ func runAuth(command *cobra.Command, dependencies Dependencies, options authOpti
 	if err != nil {
 		return err
 	}
-	err = dependencies.Runner.Run(command.Context(), RunRequest{
-		Name: "docker",
-		Args: []string{
-			"compose", "-f", workspace.ComposeFile(), "exec", "-T", coreService,
-			"/core", "admin", "create", "--email", email, "--name", name, "--password-stdin",
-		},
-		Dir:    workspace.Root,
-		Stdin:  strings.NewReader(password + "\n"),
-		Stdout: command.OutOrStdout(),
-		Stderr: command.ErrOrStderr(),
+	return runComposeCall(command, dependencies, workspace, composeCall{
+		args:  []string{"exec", "-T", coreService, "/core", "admin", "create", "--email", email, "--name", name, "--password-stdin"},
+		stdin: strings.NewReader(password + "\n"),
 	})
-	if err != nil {
-		return ErrReported
-	}
-	return nil
 }
 
 func ensureCoreIsRunning(command *cobra.Command, dependencies Dependencies, workspace Workspace) error {

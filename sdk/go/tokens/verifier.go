@@ -49,6 +49,7 @@ type Principal struct {
 	UserToken   string
 	Permissions []string
 	AccessToken string
+	ExpiresAt   time.Time
 }
 
 func (principal Principal) HasPermission(name string) bool {
@@ -111,7 +112,7 @@ func (verifier *TokenVerifier) Verify(ctx context.Context, rawToken string) (Pri
 	if err != nil || claims.Subject == "" {
 		return Principal{}, ErrInvalidToken
 	}
-	return Principal{UserToken: claims.Subject, Permissions: claims.Permissions, AccessToken: rawToken}, nil
+	return Principal{UserToken: claims.Subject, Permissions: claims.Permissions, AccessToken: rawToken, ExpiresAt: claims.ExpiresAt.Time}, nil
 }
 
 // findKey refetches the key set on an unknown key ID, at most once per MinRefetchInterval, so forged key IDs cannot flood core.

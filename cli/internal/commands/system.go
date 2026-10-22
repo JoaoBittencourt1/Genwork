@@ -18,9 +18,11 @@ type CommandRunner interface {
 }
 
 type RunRequest struct {
-	Name   string
-	Args   []string
-	Dir    string
+	Name string
+	Args []string
+	Dir  string
+	// Env holds variables added to this process's environment, as NAME=value.
+	Env    []string
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
@@ -37,6 +39,9 @@ type ExecRunner struct{}
 func (ExecRunner) Run(ctx context.Context, request RunRequest) error {
 	command := exec.CommandContext(ctx, request.Name, request.Args...)
 	command.Dir = request.Dir
+	if len(request.Env) > 0 {
+		command.Env = append(os.Environ(), request.Env...)
+	}
 	command.Stdin = request.Stdin
 	command.Stdout = request.Stdout
 	command.Stderr = request.Stderr

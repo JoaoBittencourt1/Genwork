@@ -1,0 +1,73 @@
+# Development override, which `genwork` adds in a clone of the repository: builds every Genwork image from source with
+# the platform version and runs the mail catcher. Local tags end in :dev, so a build never overwrites a release image.
+x-core-build: &core-build
+  build:
+    context: ../core
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-core:dev
+
+x-gentasks-build: &gentasks-build
+  build:
+    context: ..
+    dockerfile: modules/gentasks/Dockerfile
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-gentasks:dev
+
+x-genmonitor-build: &genmonitor-build
+  build:
+    context: ..
+    dockerfile: modules/genmonitor/Dockerfile
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-genmonitor:dev
+
+x-mcp-build: &mcp-build
+  build:
+    context: ..
+    dockerfile: mcp/Dockerfile
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-mcp:dev
+
+x-updater-build: &updater-build
+  build:
+    context: ..
+    dockerfile: deploy/updater/Dockerfile
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-updater:dev
+
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "127.0.0.1:${MAILPIT_UI_PORT}:8025"
+
+  core-migrate: *core-build
+
+  core:
+    <<: *core-build
+    depends_on:
+      mailpit:
+        condition: service_started
+
+  core-worker: *core-build
+
+  gentasks-migrate: *gentasks-build
+
+  gentasks: *gentasks-build
+
+  genmonitor-migrate: *genmonitor-build
+
+  genmonitor: *genmonitor-build
+
+  mcp: *mcp-build
+
+  # In a checkout the updater only reports development_installation: a clone updates through git.
+  updater: *updater-build
+
+  # Vite serves the web app in development, so the gateway needs no web bundle.
+  gateway:
+    image: caddy:2.10-alpine

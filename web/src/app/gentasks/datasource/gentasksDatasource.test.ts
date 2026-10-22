@@ -120,6 +120,16 @@ describe('tasksDatasource', () => {
     expect(patched[0]?.body).toEqual({ urgency: 'high' })
   })
 
+  it('changes only the assignee, and clears it with an explicit null', async () => {
+    const patched = captureRequests('patch', '*/api/gentasks/v1/tasks/:token', () => HttpResponse.json(taskFixture()))
+
+    await updateTask('task-1', { assigneeToken: 'user-bruno' })
+    await updateTask('task-1', { assigneeToken: null })
+
+    expect(patched[0]?.body).toEqual({ assigneeToken: 'user-bruno' })
+    expect(patched[1]?.body).toEqual({ assigneeToken: null })
+  })
+
   it('moves, archives, restores, lists archived, and deletes tasks', async () => {
     const moved = captureRequests('post', '*/api/gentasks/v1/tasks/:token/move', noContent)
     const archived = captureRequests('post', '*/api/gentasks/v1/tasks/:token/archive', noContent)

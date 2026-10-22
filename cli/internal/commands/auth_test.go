@@ -18,7 +18,7 @@ func TestAuthAsksForEverythingAndCreatesAdministrator(t *testing.T) {
 		t.Fatalf("error: %v (%s)", err, output)
 	}
 	create := runner.runs[len(runner.runs)-1]
-	expected := "docker compose -f " + workspace.ComposeFile() + " exec -T core /core admin create --email ana@example.com --name Ana Souza --password-stdin"
+	expected := composePrefix(workspace) + "exec -T core /core admin create --email ana@example.com --name Ana Souza --password-stdin"
 	if create.commandLine() != expected {
 		t.Errorf("command = %q", create.commandLine())
 	}

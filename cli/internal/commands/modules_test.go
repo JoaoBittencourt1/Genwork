@@ -41,9 +41,9 @@ func TestModulesChecklistShowsInstalledModulesChecked(t *testing.T) {
 		t.Fatalf("error = %v, output = %q", err, output)
 	}
 	expected := []ModuleOption{
-		{ID: "gentasks", Label: "gentasks  0.1.0", Checked: true},
+		{ID: "gentasks", Label: "gentasks", Checked: true},
 		{ID: "legacy", Label: "legacy  (missing from catalog)", Checked: true},
-		{ID: "reports", Label: "reports  1.0.0  requires: gentasks", Checked: false},
+		{ID: "reports", Label: "reports  requires: gentasks", Checked: false},
 	}
 	if !slices.Equal(selector.offered, expected) {
 		t.Errorf("offered = %+v", selector.offered)
@@ -60,7 +60,7 @@ func TestCheckingAModuleInstallsItWithItsRequirements(t *testing.T) {
 		t.Fatalf("error: %v (%s)", err, output)
 	}
 
-	if !strings.Contains(selector.summary, "+ gentasks  0.1.0  (required by reports)") || selector.deletesData {
+	if !strings.Contains(selector.summary, "+ gentasks  (required by reports)") || selector.deletesData {
 		t.Errorf("summary = %q", selector.summary)
 	}
 	if config := installedModules(t, workspace); !slices.Equal(config.Modules, []string{"gentasks", "reports"}) {

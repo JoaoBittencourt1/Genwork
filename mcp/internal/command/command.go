@@ -15,7 +15,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-const Version = "0.1.0"
+// Version is the platform version of this build, injected with -ldflags -X (rule 50).
+var Version = "0.0.0-dev"
 
 const usage = `genwork-mcp connects AI assistants to a Genwork instance through the Model Context Protocol.
 
@@ -24,9 +25,11 @@ Usage:
   genwork-mcp logout                     end the session and forget it
   genwork-mcp status                     show who is signed in
   genwork-mcp serve                      run the MCP server on stdin/stdout (what assistants launch)
+  genwork-mcp serve-http                 serve MCP over HTTP at /mcp behind the gateway (the mcp container)
   genwork-mcp version                    print the version
 
-Every command reads ` + platform.InstanceURLVariable + `, the address of the Genwork gateway.
+Every command but serve-http reads ` + platform.InstanceURLVariable + `, the address of the Genwork gateway.
+serve-http reads MCP_HTTP_ADDR, GENWORK_PUBLIC_URL, CORE_INTERNAL_URL, and GATEWAY_INTERNAL_URL.
 `
 
 var ErrUnknownCommand = errors.New("unknown command; run `genwork-mcp help`")
@@ -63,6 +66,8 @@ func Run(ctx context.Context, args []string, environment Environment) error {
 		return RunStatus(environment)
 	case "serve":
 		return RunServe(ctx, environment)
+	case "serve-http":
+		return RunServeHTTP(ctx, environment)
 	case "version":
 		fmt.Fprintln(environment.Stdout, Version)
 		return nil

@@ -1,0 +1,99 @@
+#!/bin/sh
+# Installs Genwork from a GitHub release on a server that has Docker: downloads the genwork CLI and the deploy bundle,
+# verifies both against the release's checksums.txt before writing anything, then runs `genwork install`.
+#
+#   curl -fsSL {{.ReleaseURL}}/latest/download/install.sh | GENWORK_HOME=/opt/genwork sh
+#   curl -fsSL ... | sh -s -- --from-checkout /srv/Genwork      (flags go to `genwork install`)
+#
+# GENWORK_HOME          installation directory (default: $HOME/genwork)
+# GENWORK_BIN_DIR       where the genwork binary goes (default: /usr/local/bin, or $GENWORK_HOME/bin when not writable)
+# GENWORK_INSTALL_VERSION  release to install instead of {{.Version}}
+set -eu
+
+RELEASE_URL="{{.ReleaseURL}}"
+VERSION="${GENWORK_INSTALL_VERSION:-{{.Version}}}"
+GENWORK_HOME="${GENWORK_HOME:-$HOME/genwork}"
+BIN_DIR="${GENWORK_BIN_DIR:-/usr/local/bin}"
+
+fail() {
+	echo "install.sh: $*" >&2
+	exit 1
+}
+
+require_command() {
+	command -v "$1" >/dev/null 2>&1 || fail "$1 is required"
+}
+
+sha256_of() {
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum "$1" | awk '{ print $1 }'
+	else
+		shasum -a 256 "$1" | awk '{ print $1 }'
+	fi
+}
+
+detect_os() {
+	case "$(uname -s)" in
+	Linux) echo linux ;;
+	Darwin) echo darwin ;;
+	*) fail "unsupported operating system $(uname -s)" ;;
+	esac
+}
+
+detect_arch() {
+	case "$(uname -m)" in
+	x86_64 | amd64) echo amd64 ;;
+	aarch64 | arm64) echo arm64 ;;
+	*) fail "unsupported architecture $(uname -m)" ;;
+	esac
+}
+
+download() {
+	curl -fsSL --retry 3 -o "$STAGING/$1" "$RELEASE_URL/download/v$VERSION/$1" || fail "could not download $1 of v$VERSION"
+}
+
+verify() {
+	expected="$(awk -v name="$1" '$2 == name { print $1 }' "$STAGING/checksums.txt")"
+	[ -n "$expected" ] || fail "$1 is not listed in checksums.txt; nothing was installed"
+	[ "$(sha256_of "$STAGING/$1")" = "$expected" ] || fail "checksum mismatch for $1; nothing was installed"
+}
+
+require_command curl
+require_command tar
+require_command awk
+require_command docker
+command -v sha256sum >/dev/null 2>&1 || require_command shasum
+
+if [ -e "$GENWORK_HOME/deploy/.env" ]; then
+	fail "$GENWORK_HOME already holds an installation; update it with \`GENWORK_HOME=$GENWORK_HOME genwork update\`"
+fi
+
+CLI_ASSET="genwork_${VERSION}_$(detect_os)_$(detect_arch).tar.gz"
+BUNDLE_ASSET="genwork-bundle_${VERSION}.tar.gz"
+STAGING="$(mktemp -d)"
+trap 'rm -rf "$STAGING"' EXIT
+
+echo "Downloading Genwork v$VERSION…"
+download checksums.txt
+download "$CLI_ASSET"
+download "$BUNDLE_ASSET"
+verify "$CLI_ASSET"
+verify "$BUNDLE_ASSET"
+
+mkdir -p "$GENWORK_HOME"
+tar -xzf "$STAGING/$BUNDLE_ASSET" -C "$GENWORK_HOME"
+tar -xzf "$STAGING/$CLI_ASSET" -C "$STAGING" genwork
+if [ ! -w "$BIN_DIR" ]; then
+	BIN_DIR="$GENWORK_HOME/bin"
+	mkdir -p "$BIN_DIR"
+	echo "Installing genwork into $BIN_DIR; add it to PATH or move it to a directory on PATH."
+fi
+install -m 0755 "$STAGING/genwork" "$BIN_DIR/genwork"
+echo "Installed $("$BIN_DIR/genwork" version | head -n 1) into $BIN_DIR"
+
+export GENWORK_HOME
+# Piped into sh, stdin is this script; the prompts of `genwork install` read the terminal instead.
+if [ -r /dev/tty ] && [ -w /dev/tty ]; then
+	exec "$BIN_DIR/genwork" install "$@" </dev/tty
+fi
+exec "$BIN_DIR/genwork" install "$@"

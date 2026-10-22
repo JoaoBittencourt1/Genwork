@@ -1,11 +1,11 @@
 import { TriangleAlertIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert'
-import { isWebhookReachableByGithub } from '../domain/webhookReachability'
+import { isReachableFromInternet } from '@/shared/domain/internetReachability'
 
 export function GithubWebhookWarning({ webhookUrl }: { webhookUrl: string }) {
   const { t } = useTranslation()
-  if (isWebhookReachableByGithub(webhookUrl)) return null
+  if (isReachableFromInternet(webhookUrl)) return null
   return (
     <Alert>
       <TriangleAlertIcon />

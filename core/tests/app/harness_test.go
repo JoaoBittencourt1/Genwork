@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -30,9 +32,11 @@ const (
 var testPasswordParams = users.PasswordParams{MemoryKiB: 8 * 1024, Iterations: 1, Parallelism: 1, SaltLength: 16, KeyLength: 32}
 
 var generousRateLimits = app.RateLimits{
-	Login:       platform.RateLimit{PerMinute: 10000, Burst: 10000},
-	Refresh:     platform.RateLimit{PerMinute: 10000, Burst: 10000},
-	Invitations: platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	Login:              platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	Refresh:            platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	Invitations:        platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	ClientRegistration: platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	OAuthToken:         platform.RateLimit{PerMinute: 10000, Burst: 10000},
 }
 
 type testClock struct {
@@ -86,6 +90,8 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 		PasswordParams: testPasswordParams,
 		RateLimits:     generousRateLimits,
 		ModuleSecret:   testModuleSecret,
+		UpdaterURL:     unreachableUpdaterURL,
+		UpdaterSecret:  testUpdaterSecret,
 	}
 	for _, option := range options {
 		option(&settings)
@@ -103,9 +109,11 @@ func newTestApp(t *testing.T, options ...testAppOption) *testApp {
 }
 
 type request struct {
-	method       string
-	path         string
-	body         any
+	method string
+	path   string
+	body   any
+	// form is sent as application/x-www-form-urlencoded instead of body.
+	form         url.Values
 	accessToken  string
 	moduleSecret string
 	webClient    bool
@@ -129,8 +137,12 @@ func (app *testApp) do(req request) response {
 		}
 		reader = bytes.NewReader(encoded)
 	}
+	contentType := "application/json"
+	if req.form != nil {
+		reader, contentType = strings.NewReader(req.form.Encode()), "application/x-www-form-urlencoded"
+	}
 	httpRequest := httptest.NewRequest(req.method, req.path, reader)
-	httpRequest.Header.Set("Content-Type", "application/json")
+	httpRequest.Header.Set("Content-Type", contentType)
 	if req.accessToken != "" {
 		httpRequest.Header.Set("Authorization", "Bearer "+req.accessToken)
 	}

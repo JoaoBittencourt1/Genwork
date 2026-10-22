@@ -12,7 +12,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const gatewayService = "gateway"
+const (
+	gatewayService = "gateway"
+	mcpService     = "mcp"
+)
 
 // moduleSetup applies the installation's module choice to the stack: profiles, databases, gateway routes, and core.
 type moduleSetup struct {
@@ -24,7 +27,11 @@ type moduleSetup struct {
 }
 
 func loadModuleSetup(command *cobra.Command, dependencies Dependencies, workspace Workspace) (*moduleSetup, error) {
-	catalog, warnings, err := modules.LoadModuleCatalog(workspace.Root)
+	version, err := workspace.Version()
+	if err != nil {
+		return nil, err
+	}
+	catalog, warnings, err := modules.LoadModuleCatalog(workspace.Root, version)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +54,14 @@ func (setup *moduleSetup) compose(args ...string) error {
 	return runCompose(setup.command, setup.dependencies, setup.workspace, append(profiles, args...)...)
 }
 
+// upArgs starts services; only a repository checkout builds its images, a release installation runs the published ones.
+func (setup *moduleSetup) upArgs() []string {
+	if setup.workspace.Kind() == WorkspaceRepository {
+		return []string{"up", "-d", "--build"}
+	}
+	return []string{"up", "-d"}
+}
+
 // startDatabase waits for Postgres and provisions every installed module before any module migration runs.
 func (setup *moduleSetup) startDatabase() error {
 	if err := setup.workspace.EnsureModuleSecrets(setup.command.ErrOrStderr(), setup.config.Modules); err != nil {
@@ -63,11 +78,15 @@ func (setup *moduleSetup) startDatabase() error {
 	return nil
 }
 
-// writeGatewayConfig rewrites the file in place: the gateway bind-mounts it, and a rename would leave the container on the old copy.
 func (setup *moduleSetup) writeGatewayConfig() error {
+	return writeGatewayConfig(setup.workspace, setup.catalog, setup.config)
+}
+
+// writeGatewayConfig rewrites the file in place: the gateway bind-mounts it, and a rename would leave the container on the old copy.
+func writeGatewayConfig(workspace Workspace, catalog modules.ModuleCatalog, config modules.InstallationConfig) error {
 	var installed []manifest.ModuleManifest
-	for _, id := range setup.config.Modules {
-		if moduleManifest, found := setup.catalog.Find(id); found {
+	for _, id := range config.Modules {
+		if moduleManifest, found := catalog.Find(id); found {
 			installed = append(installed, moduleManifest)
 		}
 	}
@@ -75,8 +94,8 @@ func (setup *moduleSetup) writeGatewayConfig() error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(setup.workspace.GatewayConfigFile(), rendered, 0o644); err != nil {
-		return fmt.Errorf("write %s: %w", setup.workspace.GatewayConfigFile(), err)
+	if err := os.WriteFile(workspace.GatewayConfigFile(), rendered, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", workspace.GatewayConfigFile(), err)
 	}
 	return nil
 }
@@ -122,7 +141,7 @@ func (setup *moduleSetup) describeModule(id string) string {
 	if !found {
 		return id + "  (missing from catalog)"
 	}
-	label := id + "  " + moduleManifest.Version
+	label := id
 	if len(moduleManifest.Requires) > 0 {
 		required := make([]string, 0, len(moduleManifest.Requires))
 		for _, requirement := range moduleManifest.Requires {
@@ -187,7 +206,7 @@ func (setup *moduleSetup) installModules(ids []string) error {
 	for _, id := range ids {
 		services = append(services, modules.ConventionsFor(id).Services()...)
 	}
-	if err := setup.compose(append([]string{"up", "-d", "--build"}, services...)...); err != nil {
+	if err := setup.compose(append(setup.upArgs(), services...)...); err != nil {
 		return err
 	}
 	for _, id := range ids {
@@ -230,30 +249,14 @@ func (setup *moduleSetup) setModuleState(id, action string) error {
 	if err := runCompose(setup.command, setup.dependencies, setup.workspace, "up", "-d", coreService); err != nil {
 		return err
 	}
-	err := setup.dependencies.Runner.Run(setup.command.Context(), RunRequest{
-		Name:   "docker",
-		Args:   []string{"compose", "-f", setup.workspace.ComposeFile(), "exec", "-T", coreService, "/core", "module", action, id},
-		Dir:    setup.workspace.Root,
-		Stdout: setup.command.OutOrStdout(),
-		Stderr: setup.command.ErrOrStderr(),
-	})
-	if err != nil {
-		return ErrReported
-	}
-	return nil
+	return runCompose(setup.command, setup.dependencies, setup.workspace, "exec", "-T", coreService, "/core", "module", action, id)
 }
 
 func runningServices(command *cobra.Command, dependencies Dependencies, workspace Workspace) ([]string, error) {
 	var services bytes.Buffer
-	err := dependencies.Runner.Run(command.Context(), RunRequest{
-		Name:   "docker",
-		Args:   []string{"compose", "-f", workspace.ComposeFile(), "ps", "--status", "running", "--services"},
-		Dir:    workspace.Root,
-		Stdout: &services,
-		Stderr: command.ErrOrStderr(),
-	})
-	if err != nil {
-		return nil, ErrReported
+	call := composeCall{args: []string{"ps", "--status", "running", "--services"}, stdout: &services}
+	if err := runComposeCall(command, dependencies, workspace, call); err != nil {
+		return nil, err
 	}
 	return strings.Fields(services.String()), nil
 }

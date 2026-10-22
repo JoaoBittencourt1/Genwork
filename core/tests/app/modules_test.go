@@ -66,6 +66,21 @@ func TestModuleRegistrationStoresModuleAndGrantsDefaultRoles(t *testing.T) {
 	}
 }
 
+func TestModuleRegistrationAcceptsTheDevelopmentBuildVersion(t *testing.T) {
+	app := newTestApp(t)
+	manifest := gentasksManifest()
+	manifest.Version = "0.0.0-dev"
+
+	resp := app.registerModule(manifest)
+
+	expectStatus(t, resp, http.StatusOK)
+	var body registeredModuleBody
+	resp.decode(t, &body)
+	if body.Version != "0.0.0-dev" {
+		t.Errorf("registered version = %q", body.Version)
+	}
+}
+
 func TestModuleRegistrationRequiresModuleSecret(t *testing.T) {
 	app := newTestApp(t)
 	manifest := gentasksManifest()
@@ -169,6 +184,36 @@ func TestModuleReRegistrationDoesNotReapplyDefaultGrants(t *testing.T) {
 
 	if app.roleGrants("member", "gentasks.board.read") {
 		t.Error("default grants must only be applied when the permission is first seen")
+	}
+}
+
+func TestModuleReRegistrationGrantsRolesTheManifestNewlyDeclares(t *testing.T) {
+	app := newTestApp(t)
+	expectStatus(t, app.registerModule(gentasksManifest()), http.StatusOK)
+	if app.roleGrants("member", "gentasks.task.delete") {
+		t.Fatal("the first manifest grants gentasks.task.delete to admin only")
+	}
+
+	widened := gentasksManifest()
+	widened.Permissions[1].DefaultRoles = []string{"admin", "member"}
+	expectStatus(t, app.registerModule(widened), http.StatusOK)
+
+	if !app.roleGrants("member", "gentasks.task.delete") || !app.roleGrants("admin", "gentasks.task.delete") {
+		t.Error("a role the manifest starts declaring must receive the permission")
+	}
+}
+
+func TestModuleReRegistrationNeverRevokesARoleTheManifestDropped(t *testing.T) {
+	app := newTestApp(t)
+	expectStatus(t, app.registerModule(gentasksManifest()), http.StatusOK)
+
+	narrowed := gentasksManifest()
+	narrowed.Permissions[0].DefaultRoles = []string{"admin"}
+	expectStatus(t, app.registerModule(narrowed), http.StatusOK)
+	expectStatus(t, app.registerModule(gentasksManifest()), http.StatusOK)
+
+	if !app.roleGrants("member", "gentasks.board.read") {
+		t.Error("dropping a default role keeps the grant it gave")
 	}
 }
 

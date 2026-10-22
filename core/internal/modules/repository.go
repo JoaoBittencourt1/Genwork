@@ -61,21 +61,57 @@ func (ModuleRepository) SetEnabled(ctx context.Context, db platform.DBTX, name s
 	return tag.RowsAffected() == 1, nil
 }
 
-// InsertMissingPermissions returns only the names that did not exist before, so default grants apply once.
-func (ModuleRepository) InsertMissingPermissions(ctx context.Context, db platform.DBTX, moduleID int64, names []string) ([]string, error) {
-	rows, err := db.Query(ctx, `
-		INSERT INTO permissions (name, module_id)
-		SELECT unnest($2::text[]), $1
-		ON CONFLICT (name) DO NOTHING
-		RETURNING name`, moduleID, names)
+// InsertMissingPermissions adds the permissions core has not seen, with no declared default role yet.
+func (ModuleRepository) InsertMissingPermissions(ctx context.Context, db platform.DBTX, moduleID int64, names []string) error {
+	_, err := db.Exec(ctx, `
+		INSERT INTO permissions (name, module_id, default_roles)
+		SELECT unnest($2::text[]), $1, '{}'
+		ON CONFLICT (name) DO NOTHING`, moduleID, names)
 	if err != nil {
-		return nil, fmt.Errorf("insert module permissions: %w", err)
+		return fmt.Errorf("insert module permissions: %w", err)
 	}
-	inserted, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	return nil
+}
+
+// FindDeclaredDefaultRoles maps each of the module's permissions to the default roles its manifest last declared.
+func (ModuleRepository) FindDeclaredDefaultRoles(ctx context.Context, db platform.DBTX, moduleID int64) (map[string][]string, error) {
+	rows, err := db.Query(ctx, `SELECT name, COALESCE(default_roles, '{}') FROM permissions WHERE module_id = $1`, moduleID)
 	if err != nil {
-		return nil, fmt.Errorf("insert module permissions: %w", err)
+		return nil, fmt.Errorf("find declared default roles: %w", err)
 	}
-	return inserted, nil
+	declared := map[string][]string{}
+	var name string
+	var roles []string
+	_, err = pgx.ForEachRow(rows, []any{&name, &roles}, func() error {
+		declared[name] = roles
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("find declared default roles: %w", err)
+	}
+	return declared, nil
+}
+
+func (ModuleRepository) RecordDeclaredDefaultRoles(ctx context.Context, db platform.DBTX, permissions []PermissionDeclaration) error {
+	names := make([]string, 0, len(permissions))
+	roles := make([]string, 0, len(permissions))
+	for _, permission := range permissions {
+		encoded, err := json.Marshal(permission.DefaultRoles)
+		if err != nil {
+			return fmt.Errorf("record declared default roles: %w", err)
+		}
+		names = append(names, permission.Name)
+		roles = append(roles, string(encoded))
+	}
+	_, err := db.Exec(ctx, `
+		UPDATE permissions
+		SET default_roles = ARRAY(SELECT jsonb_array_elements_text(declared.roles::jsonb))
+		FROM unnest($1::text[], $2::text[]) AS declared (name, roles)
+		WHERE permissions.name = declared.name`, names, roles)
+	if err != nil {
+		return fmt.Errorf("record declared default roles: %w", err)
+	}
+	return nil
 }
 
 func (ModuleRepository) GrantPermissions(ctx context.Context, db platform.DBTX, grants []PermissionGrant) error {

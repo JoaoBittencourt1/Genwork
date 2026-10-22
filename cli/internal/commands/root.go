@@ -12,6 +12,9 @@ type Dependencies struct {
 	Selector      ModuleSelector
 	IsInteractive func() bool
 	WorkingDir    func() (string, error)
+	Getenv        func(name string) string
+	// Executable is the running genwork binary, which `genwork update` replaces.
+	Executable func() (string, error)
 }
 
 func DefaultDependencies() Dependencies {
@@ -21,6 +24,8 @@ func DefaultDependencies() Dependencies {
 		Selector:      HuhModuleSelector{},
 		IsInteractive: isInteractiveTerminal,
 		WorkingDir:    os.Getwd,
+		Getenv:        os.Getenv,
+		Executable:    os.Executable,
 	}
 }
 
@@ -30,6 +35,9 @@ func NewRootCommand(dependencies Dependencies) *cobra.Command {
 		Short:         "Run and operate a Genwork instance",
 		SilenceUsage:  true,
 		SilenceErrors: true,
+		PersistentPreRun: func(command *cobra.Command, _ []string) {
+			warnWhenBinaryIsOutdated(command, dependencies)
+		},
 	}
 	root.AddCommand(
 		newDatabaseCommand(dependencies),
@@ -39,6 +47,10 @@ func NewRootCommand(dependencies Dependencies) *cobra.Command {
 		newDownCommand(dependencies),
 		newAuthCommand(dependencies),
 		newModulesCommand(dependencies),
+		newInstallCommand(dependencies),
+		newUpdateCommand(dependencies),
+		newUpdaterCommand(dependencies),
+		newVersionCommand(),
 	)
 	return root
 }
@@ -48,5 +60,12 @@ func locateWorkspace(dependencies Dependencies) (Workspace, error) {
 	if err != nil {
 		return Workspace{}, err
 	}
-	return FindWorkspace(directory)
+	return FindWorkspace(directory, dependencies.lookupEnv(genworkHomeVariable))
+}
+
+func (dependencies Dependencies) lookupEnv(name string) string {
+	if dependencies.Getenv == nil {
+		return ""
+	}
+	return dependencies.Getenv(name)
 }

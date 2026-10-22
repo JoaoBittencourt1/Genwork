@@ -100,6 +100,7 @@ export function BoardCanvas({ board, visibleBoard, abilities, taskDragEnabled, u
               taskDragEnabled={taskDragEnabled}
               users={users}
               actions={actions}
+              onAssign={abilities.canWriteTasks ? moves.assignTask : undefined}
             />
           ))}
         </div>

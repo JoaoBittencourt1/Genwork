@@ -18,24 +18,26 @@ var (
 type Repository struct{}
 
 type NewSession struct {
-	UserID     int64
-	ClientType ClientType
-	DeviceName *string
-	Now        time.Time
+	UserID        int64
+	ClientType    ClientType
+	DeviceName    *string
+	OAuthClientID *int64
+	Now           time.Time
 }
 
 const sessionColumns = `
 	sessions.id, sessions.token, users.id, users.token, users.role_id, sessions.client_type, sessions.device_name,
-	sessions.created_at, sessions.last_used_at, sessions.idle_expires_at, sessions.absolute_expires_at, sessions.revoked_at`
+	sessions.oauth_client_id, sessions.created_at, sessions.last_used_at, sessions.idle_expires_at, sessions.absolute_expires_at,
+	sessions.revoked_at`
 
 func (Repository) Create(ctx context.Context, db platform.DBTX, newSession NewSession) (Session, error) {
 	absoluteExpiresAt := newSession.Now.Add(AbsoluteLifetime)
 	var sessionID int64
 	err := db.QueryRow(ctx, `
-		INSERT INTO sessions (user_id, client_type, device_name, created_at, last_used_at, idle_expires_at, absolute_expires_at)
-		VALUES ($1, $2, $3, $4, $4, $5, $6)
+		INSERT INTO sessions (user_id, client_type, device_name, oauth_client_id, created_at, last_used_at, idle_expires_at, absolute_expires_at)
+		VALUES ($1, $2, $3, $4, $5, $5, $6, $7)
 		RETURNING id`,
-		newSession.UserID, string(newSession.ClientType), newSession.DeviceName, newSession.Now,
+		newSession.UserID, string(newSession.ClientType), newSession.DeviceName, newSession.OAuthClientID, newSession.Now,
 		nextIdleExpiry(newSession.Now, absoluteExpiresAt), absoluteExpiresAt).Scan(&sessionID)
 	if err != nil {
 		return Session{}, fmt.Errorf("create session: %w", err)
@@ -143,7 +145,8 @@ func (Repository) LockRefreshToken(ctx context.Context, db platform.DBTX, secret
 		FOR UPDATE OF refresh_tokens, sessions`, platform.HashBearerSecret(secret)).Scan(
 		&locked.ID, &locked.UsedAt,
 		&session.ID, &session.Token, &session.UserID, &session.UserToken, &session.RoleID, &clientType, &session.DeviceName,
-		&session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt, &session.AbsoluteExpiresAt, &session.RevokedAt)
+		&session.OAuthClientID, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt, &session.AbsoluteExpiresAt,
+		&session.RevokedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return lockedRefreshToken{}, ErrRefreshTokenNotFound
 	}
@@ -178,8 +181,8 @@ func scanSession(row pgx.Row) (Session, error) {
 	var session Session
 	var clientType string
 	err := row.Scan(&session.ID, &session.Token, &session.UserID, &session.UserToken, &session.RoleID, &clientType,
-		&session.DeviceName, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt, &session.AbsoluteExpiresAt,
-		&session.RevokedAt)
+		&session.DeviceName, &session.OAuthClientID, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt,
+		&session.AbsoluteExpiresAt, &session.RevokedAt)
 	session.ClientType = ClientType(clientType)
 	return session, err
 }
