@@ -52,7 +52,7 @@ func (Repository) FindActiveByToken(ctx context.Context, db platform.DBTX, token
 		FROM sessions JOIN users ON users.id = sessions.user_id
 		WHERE sessions.token = $1 AND sessions.revoked_at IS NULL
 		  AND sessions.idle_expires_at > $2 AND sessions.absolute_expires_at > $2
-		  AND users.deleted_at IS NULL`, token, now))
+		  AND users.deleted_at IS NULL AND users.deactivated_at IS NULL`, token, now))
 }
 
 func (Repository) ListActiveForUser(ctx context.Context, db platform.DBTX, userID int64, now time.Time) ([]Session, error) {
@@ -78,6 +78,14 @@ func (Repository) Revoke(ctx context.Context, db platform.DBTX, sessionID int64,
 	_, err := db.Exec(ctx, `UPDATE sessions SET revoked_at = $2 WHERE id = $1 AND revoked_at IS NULL`, sessionID, now)
 	if err != nil {
 		return fmt.Errorf("revoke session: %w", err)
+	}
+	return nil
+}
+
+func (Repository) RevokeAllForUser(ctx context.Context, db platform.DBTX, userID int64, now time.Time) error {
+	_, err := db.Exec(ctx, `UPDATE sessions SET revoked_at = $2 WHERE user_id = $1 AND revoked_at IS NULL`, userID, now)
+	if err != nil {
+		return fmt.Errorf("revoke user sessions: %w", err)
 	}
 	return nil
 }

@@ -94,7 +94,40 @@
   "members": {
     "title": "Membros",
     "noPermissionTitle": "Sem permissão",
-    "noPermissionDescription": "Você não tem permissão para ver membros."
+    "noPermissionDescription": "Você não tem permissão para ver membros.",
+    "sectionTitle": "Membros",
+    "sectionDescription": "Pessoas que entraram nesta instalação. Mude o papel, escolha quais módulos cada uma pode usar ou retire o acesso.",
+    "you": "Você",
+    "roleFor": "Papel de {{name}}",
+    "actionsFor": "Ações para {{name}}",
+    "neverSignedIn": "Nunca",
+    "columns": {
+      "member": "Membro",
+      "role": "Papel",
+      "status": "Status",
+      "modules": "Módulos",
+      "lastSignIn": "Último acesso",
+      "actions": "Ações"
+    },
+    "status": {
+      "active": "Ativo",
+      "deactivated": "Inativo"
+    },
+    "modules": {
+      "all": "Todos os módulos",
+      "none": "Nenhum módulo",
+      "manage": "Acesso a módulos",
+      "dialogTitle": "Acesso de {{name}} aos módulos",
+      "dialogDescription": "Os módulos desligados somem para este membro. A mudança vale em até 15 minutos, quando a sessão for renovada.",
+      "noneEnabled": "Nenhum módulo está habilitado nesta instalação."
+    },
+    "deactivate": "Inativar",
+    "reactivate": "Reativar",
+    "remove": "Remover",
+    "deactivateTitle": "Inativar {{name}}?",
+    "deactivateDescription": "As sessões de {{name}} serão encerradas em todos os dispositivos e o acesso fica bloqueado até a reativação. Papel, acesso a módulos e dados continuam como estão.",
+    "removeTitle": "Remover {{name}}?",
+    "removeDescription": "{{name}} perde o acesso a esta instalação e todas as sessões são encerradas. A volta só acontece por um novo convite."
   },
   "invites": {
     "newInvite": "Novo convite",
@@ -124,7 +157,9 @@
       "expired": "Expirado"
     },
     "resend": "Reenviar",
-    "revoke": "Revogar"
+    "revoke": "Revogar",
+    "sectionTitle": "Convites",
+    "sectionDescription": "Convide pessoas por e-mail e acompanhe os convites enviados."
   },
   "errors": {
     "invalid_credentials": "E-mail ou senha incorretos.",
@@ -138,7 +173,7 @@
     "invite_already_pending": "Este e-mail já tem um convite pendente. Use “Reenviar” na lista.",
     "invite_not_pending": "Este convite não está mais pendente.",
     "invite_not_found": "Convite não encontrado.",
-    "role_not_assignable": "Você não pode convidar alguém com esse papel.",
+    "role_not_assignable": "Você não pode atribuir esse papel.",
     "forbidden": "Você não tem permissão para fazer isso.",
     "not_found": "Não encontrado.",
     "malformed_body": "Não foi possível processar a requisição.",
@@ -149,7 +184,9 @@
       "invalid": "Valor inválido.",
       "unknown": "Opção desconhecida.",
       "too_long": "Valor muito longo.",
-      "required": "Obrigatório."
+      "required": "Obrigatório.",
+      "not_nullable": "Este valor não pode ficar vazio.",
+      "unknown_module": "Módulo desconhecido."
     },
     "board_not_found": "Quadro não encontrado.",
     "column_not_found": "Coluna não encontrada.",
@@ -164,7 +201,10 @@
     "user_not_found": "Usuário não encontrado.",
     "task_prefix_taken": "Outro quadro já usa este identificador.",
     "github_already_connected": "O GitHub já está conectado.",
-    "github_unavailable": "O GitHub não respondeu. Tente de novo em instantes."
+    "github_unavailable": "O GitHub não respondeu. Tente de novo em instantes.",
+    "cannot_manage_self": "Você não pode alterar a sua própria participação.",
+    "member_not_manageable": "Você não pode gerenciar um membro cujo papel tem mais permissões que o seu.",
+    "member_not_found": "Membro não encontrado. Esse membro pode ter sido removido."
   },
   "common": {
     "cancel": "Cancelar",
@@ -174,7 +214,10 @@
   },
   "modules": {
     "unavailableTitle": "Módulo indisponível",
-    "unavailableDescription": "Este módulo não está habilitado nesta instalação."
+    "unavailableDescription": "Este módulo não está habilitado nesta instalação.",
+    "names": {
+      "gentasks": "Tarefas"
+    }
   },
   "gentasks": {
     "noPermissionTitle": "Sem permissão",

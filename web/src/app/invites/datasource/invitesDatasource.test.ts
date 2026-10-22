@@ -1,26 +1,23 @@
 import { HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { setAccessToken } from '@/shared/datasource/httpClient'
-import { deliveryFixture, inviteFixture, rolesFixture, signInFixture } from '@/test/fixtures'
+import { deliveryFixture, inviteFixture, signInFixture } from '@/test/fixtures'
 import { captureRequests, errorResponse } from '@/test/server'
 import {
   acceptInvitation,
   createInvite,
   inspectInvitation,
   listInvites,
-  listRoles,
   resendInvite,
   revokeInvite,
 } from './invitesDatasource'
 
 describe('invitesDatasource', () => {
-  it('lists invites and roles from their envelopes', async () => {
+  it('lists invites from their envelope', async () => {
     captureRequests('get', '*/api/core/v1/invites', () => HttpResponse.json({ invites: [inviteFixture()] }))
-    captureRequests('get', '*/api/core/v1/roles', () => HttpResponse.json({ roles: rolesFixture }))
     setAccessToken('token-1')
 
     await expect(listInvites()).resolves.toEqual([inviteFixture()])
-    await expect(listRoles()).resolves.toEqual(rolesFixture)
   })
 
   it('creates an invite with e-mail and role token', async () => {

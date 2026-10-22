@@ -1,4 +1,5 @@
 import { PERMISSIONS } from '@/app/auth/domain/session'
+import type { Role } from '@/shared/domain/role'
 
 export type InviteStatus = 'pending' | 'accepted' | 'revoked' | 'expired'
 
@@ -17,8 +18,6 @@ export type InviteDelivery = {
   link: string
   emailSent: boolean
 }
-
-export type Role = { token: string; name: string; permissions: string[] }
 
 export type Invitation = { instanceName: string; email: string; expiresAt: string }
 

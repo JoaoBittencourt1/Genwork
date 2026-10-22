@@ -38,7 +38,13 @@ export function AppSidebar() {
       visible: isModuleEnabled(enabledModules, MODULE_IDS.gentasks) && can(GENTASKS_PERMISSIONS.boardRead),
       matchesNested: true,
     },
-    { to: '/members', label: t('app.nav.members'), icon: UsersIcon, visible: can(PERMISSIONS.inviteRead), matchesNested: true },
+    {
+      to: '/members',
+      label: t('app.nav.members'),
+      icon: UsersIcon,
+      visible: can(PERMISSIONS.inviteRead) || can(PERMISSIONS.memberRead),
+      matchesNested: true,
+    },
   ] as const
 
   return (

@@ -1,15 +1,16 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
+import { useRoles } from '@/shared/hooks/useRoles'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Field, FieldError, FieldLabel } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { Spinner } from '@/shared/ui/spinner'
-import { createInvite, listRoles } from '../datasource/invitesDatasource'
+import { createInvite } from '../datasource/invitesDatasource'
 import { pickDefaultRole, type InviteDelivery } from '../domain/invite'
 import { invitesQueryKey } from './queryKeys'
 
@@ -17,7 +18,7 @@ export function InviteForm({ onDelivered }: { onDelivered: (delivery: InviteDeli
   const { t } = useTranslation()
   const { describeFieldError } = useErrorMessage()
   const queryClient = useQueryClient()
-  const roles = useQuery({ queryKey: ['roles'], queryFn: listRoles })
+  const roles = useRoles()
   const [email, setEmail] = useState('')
   const [selectedRole, setSelectedRole] = useState('')
   const roleToken = selectedRole || pickDefaultRole(roles.data ?? [])?.token || ''

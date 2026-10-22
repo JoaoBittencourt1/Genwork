@@ -23,3 +23,8 @@ export async function loadEnabledModules(gateway: CapabilitiesGateway): Promise<
 export function isModuleEnabled(enabled: EnabledModules, moduleId: ModuleId): boolean {
   return enabled.has(moduleId)
 }
+
+// Callers pass the module id as defaultValue, so a module without copy still shows a readable name.
+export function moduleNameTranslationKey(moduleId: string): string {
+  return `modules.names.${moduleId}`
+}

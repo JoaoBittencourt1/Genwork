@@ -21,7 +21,7 @@ type NewUser struct {
 	RoleID       int64
 }
 
-const userColumns = `id, token, email, name, password_hash, role_id, failed_login_count, locked_until, last_login_at, created_at`
+const userColumns = `id, token, email, name, password_hash, role_id, failed_login_count, locked_until, last_login_at, created_at, deactivated_at`
 
 func (Repository) Create(ctx context.Context, db platform.DBTX, newUser NewUser) (User, error) {
 	row := db.QueryRow(ctx, `
@@ -51,18 +51,18 @@ func (Repository) FindByToken(ctx context.Context, db platform.DBTX, token strin
 	return scanSingleUser(db.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE token = $1 AND deleted_at IS NULL`, token))
 }
 
-func (Repository) ListActive(ctx context.Context, db platform.DBTX) ([]User, error) {
+func (Repository) ListNotRemoved(ctx context.Context, db platform.DBTX) ([]User, error) {
 	rows, err := db.Query(ctx, `SELECT `+userColumns+` FROM users WHERE deleted_at IS NULL ORDER BY name, email`)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
-	activeUsers, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (User, error) {
+	listedUsers, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (User, error) {
 		return scanUser(row)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
-	return activeUsers, nil
+	return listedUsers, nil
 }
 
 func (Repository) ExistsByEmail(ctx context.Context, db platform.DBTX, normalizedEmail string) (bool, error) {
@@ -106,6 +106,33 @@ func (Repository) UpdatePasswordHash(ctx context.Context, db platform.DBTX, id i
 	return nil
 }
 
+func (Repository) UpdateRole(ctx context.Context, db platform.DBTX, id, roleID int64) error {
+	return updateNotRemovedUser(ctx, db, "update user role",
+		`UPDATE users SET role_id = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id, roleID)
+}
+
+// UpdateDeactivatedAt deactivates the user at the given instant, or reactivates them when it is nil.
+func (Repository) UpdateDeactivatedAt(ctx context.Context, db platform.DBTX, id int64, deactivatedAt *time.Time) error {
+	return updateNotRemovedUser(ctx, db, "update user status",
+		`UPDATE users SET deactivated_at = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id, deactivatedAt)
+}
+
+func (Repository) SoftDelete(ctx context.Context, db platform.DBTX, id int64, at time.Time) error {
+	return updateNotRemovedUser(ctx, db, "remove user",
+		`UPDATE users SET deleted_at = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id, at)
+}
+
+func updateNotRemovedUser(ctx context.Context, db platform.DBTX, action, statement string, arguments ...any) error {
+	tag, err := db.Exec(ctx, statement, arguments...)
+	if err != nil {
+		return fmt.Errorf("%s: %w", action, err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUserNotFound
+	}
+	return nil
+}
+
 func scanSingleUser(row pgx.Row) (User, error) {
 	user, err := scanUser(row)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -120,6 +147,6 @@ func scanSingleUser(row pgx.Row) (User, error) {
 func scanUser(row pgx.Row) (User, error) {
 	var user User
 	err := row.Scan(&user.ID, &user.Token, &user.Email, &user.Name, &user.PasswordHash, &user.RoleID,
-		&user.FailedLoginCount, &user.LockedUntil, &user.LastLoginAt, &user.CreatedAt)
+		&user.FailedLoginCount, &user.LockedUntil, &user.LastLoginAt, &user.CreatedAt, &user.DeactivatedAt)
 	return user, err
 }

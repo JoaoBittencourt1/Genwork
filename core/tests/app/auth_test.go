@@ -49,7 +49,8 @@ func TestMigrationsSeedRolesAndPermissions(t *testing.T) {
 		byName[role.Name] = role
 	}
 	admin, member := byName["admin"], byName["member"]
-	if len(admin.Permissions) != 4 || !admin.Grants(access.PermissionUserRead) || !admin.Grants(access.PermissionInviteCreate) || !admin.Grants(access.PermissionInviteRead) || !admin.Grants(access.PermissionInviteRevoke) {
+	if len(admin.Permissions) != 6 || !admin.Grants(access.PermissionUserRead) || !admin.Grants(access.PermissionInviteCreate) || !admin.Grants(access.PermissionInviteRead) || !admin.Grants(access.PermissionInviteRevoke) ||
+		!admin.Grants(access.PermissionMemberRead) || !admin.Grants(access.PermissionMemberManage) {
 		t.Errorf("admin permissions = %v", admin.Permissions)
 	}
 	if len(member.Permissions) != 1 || !member.Grants(access.PermissionUserRead) {
@@ -213,7 +214,7 @@ func TestMeReturnsProfileWithoutInternals(t *testing.T) {
 		} `json:"role"`
 	}
 	resp.decode(t, &me)
-	if me.Token != user.Token || me.Email != "ana@example.com" || me.Name != "Ana" || me.Role.Name != "admin" || len(me.Permissions) != 4 ||
+	if me.Token != user.Token || me.Email != "ana@example.com" || me.Name != "Ana" || me.Role.Name != "admin" || len(me.Permissions) != 6 ||
 		me.AvatarColor != string(user.AvatarColor()) {
 		t.Errorf("me = %+v", me)
 	}

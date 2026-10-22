@@ -10,6 +10,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/discovery"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/invites"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/mail"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/members"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/modules"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/sessions"
@@ -66,6 +67,7 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 		PublicURL: settings.PublicURL, InstanceName: settings.InstanceName, DefaultLocale: settings.DefaultLocale,
 	})
 	moduleService := modules.NewModuleService(db, discovery.CoreAPIVersion, now)
+	memberService := members.NewMemberService(db, accessService, now)
 
 	limitBy := func(limit platform.RateLimit) auth.Middleware {
 		limiter := platform.NewRateLimiter(limit, now)
@@ -85,8 +87,9 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	auth.NewHandler(authService, sessionService, settings.SigningKey, limitBy(settings.RateLimits.Login), limitBy(settings.RateLimits.Refresh)).Register(router)
 	users.NewHandler(db, userService, accessService).Register(router)
 	access.NewHandler(accessService).Register(router)
+	members.NewMemberHandler(memberService).Register(router)
 	invites.NewHandler(inviteService, limitBy(settings.RateLimits.Invitations), now).Register(router)
 	modules.NewModuleHandler(moduleService).Register(router)
-	capabilities.NewCapabilitiesHandler(moduleService, settings.Version, discovery.CoreAPIVersion).Register(router)
+	capabilities.NewCapabilitiesHandler(moduleService, accessService, settings.Version, discovery.CoreAPIVersion).Register(router)
 	return router
 }

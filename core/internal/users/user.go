@@ -46,10 +46,15 @@ type User struct {
 	LockedUntil      *time.Time
 	LastLoginAt      *time.Time
 	CreatedAt        time.Time
+	DeactivatedAt    *time.Time
 }
 
 func (user User) IsLockedAt(now time.Time) bool {
 	return user.LockedUntil != nil && now.Before(*user.LockedUntil)
+}
+
+func (user User) IsDeactivated() bool {
+	return user.DeactivatedAt != nil
 }
 
 // AvatarColor is drawn from the instant the user was created, so it needs no column and never changes.

@@ -51,7 +51,7 @@ func (service *Service) Create(ctx context.Context, db platform.DBTX, input Crea
 }
 
 func (service *Service) ListDirectory(ctx context.Context, db platform.DBTX) ([]User, error) {
-	return service.users.ListActive(ctx, db)
+	return service.users.ListNotRemoved(ctx, db)
 }
 
 func (service *Service) FindInDirectory(ctx context.Context, db platform.DBTX, token string) (User, error) {

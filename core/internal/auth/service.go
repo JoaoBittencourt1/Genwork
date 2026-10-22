@@ -29,22 +29,22 @@ type SignIn struct {
 	Session              sessions.Session
 }
 
-type RolePermissionFinder interface {
-	FindRolePermissions(ctx context.Context, roleID int64) ([]string, error)
+type UserPermissionFinder interface {
+	FindUserPermissions(ctx context.Context, userID int64) ([]string, error)
 }
 
 type Service struct {
-	db       *pgxpool.Pool
-	hasher   *users.PasswordHasher
-	issuer   *AccessTokenIssuer
-	sessions *sessions.Service
-	roles    RolePermissionFinder
-	users    users.Repository
-	now      func() time.Time
+	db          *pgxpool.Pool
+	hasher      *users.PasswordHasher
+	issuer      *AccessTokenIssuer
+	sessions    *sessions.Service
+	permissions UserPermissionFinder
+	users       users.Repository
+	now         func() time.Time
 }
 
-func NewService(db *pgxpool.Pool, hasher *users.PasswordHasher, issuer *AccessTokenIssuer, sessionService *sessions.Service, roles RolePermissionFinder, now func() time.Time) *Service {
-	return &Service{db: db, hasher: hasher, issuer: issuer, sessions: sessionService, roles: roles, now: now}
+func NewService(db *pgxpool.Pool, hasher *users.PasswordHasher, issuer *AccessTokenIssuer, sessionService *sessions.Service, permissions UserPermissionFinder, now func() time.Time) *Service {
+	return &Service{db: db, hasher: hasher, issuer: issuer, sessions: sessionService, permissions: permissions, now: now}
 }
 
 type ClientInput struct {
@@ -102,6 +102,9 @@ func (service *Service) Login(ctx context.Context, input LoginInput) (SignIn, er
 		}
 		return SignIn{}, ErrInvalidCredentials
 	}
+	if user.IsDeactivated() {
+		return SignIn{}, ErrInvalidCredentials
+	}
 
 	var signIn SignIn
 	err = pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
@@ -139,7 +142,7 @@ func (service *Service) Refresh(ctx context.Context, refreshToken string) (SignI
 }
 
 func (service *Service) issueAccessToken(ctx context.Context, session sessions.Session, refreshToken string) (SignIn, error) {
-	permissions, err := service.roles.FindRolePermissions(ctx, session.RoleID)
+	permissions, err := service.permissions.FindUserPermissions(ctx, session.UserID)
 	if err != nil {
 		return SignIn{}, err
 	}
