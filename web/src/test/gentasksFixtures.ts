@@ -16,8 +16,8 @@ export const capabilitiesFixture: Capabilities = {
 }
 
 export const usersFixture: DirectoryUser[] = [
-  { token: 'user-ana', name: 'Ana Souza', email: 'ana@example.com' },
-  { token: 'user-bruno', name: 'Bruno', email: 'bruno@example.com' },
+  { token: 'user-ana', name: 'Ana Souza', email: 'ana@example.com', avatarColor: 'blue' },
+  { token: 'user-bruno', name: 'Bruno', email: 'bruno@example.com', avatarColor: 'pink' },
 ]
 
 export const bugLabel: Label = { token: 'label-bug', name: 'Bug', color: 'red' }

@@ -1,5 +1,6 @@
 import { UserRoundIcon } from 'lucide-react'
 import type { DirectoryUser } from '@/shared/datasource/users'
+import { avatarColorVariable } from '@/shared/domain/avatarColor'
 import { cn } from '@/shared/lib/utils'
 import { initials } from '../domain/assignees'
 
@@ -24,8 +25,9 @@ export function AssigneeAvatar({ assignee, unassignedLabel, className }: Assigne
   return (
     <span
       title={assignee.name}
+      style={{ backgroundColor: avatarColorVariable(assignee.avatarColor) }}
       className={cn(
-        'flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[9px] font-semibold text-primary',
+        'flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-avatar-foreground ring-1 ring-border',
         className,
       )}
     >
