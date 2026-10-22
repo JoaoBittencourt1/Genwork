@@ -34,35 +34,43 @@ jobs:
             core:
               - 'core/**'
               - 'sdk/go/coretest/fixtures/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             sdk:
               - 'sdk/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             gentasks:
               - 'modules/gentasks/**'
               - 'sdk/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             genmonitor:
               - 'modules/genmonitor/**'
               - 'sdk/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             cli:
               - 'cli/**'
               - 'sdk/**'
               - 'modules/*/module.yaml'
-              - 'deploy/docker-compose.yml'
+              - 'deploy/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             mcp:
               - 'mcp/**'
+              - 'sdk/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
             web:
               - 'web/**'
+              - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
 

@@ -16,7 +16,8 @@ type ModuleCatalog struct {
 }
 
 // LoadModuleCatalog skips invalid manifests and reports each one as a warning, so one broken module never hides the others.
-func LoadModuleCatalog(workspaceRoot string) (ModuleCatalog, []string, error) {
+// Every module carries the workspace's platform version (rule 50).
+func LoadModuleCatalog(workspaceRoot, platformVersion string) (ModuleCatalog, []string, error) {
 	paths, err := filepath.Glob(filepath.Join(workspaceRoot, "modules", "*", "module.yaml"))
 	if err != nil {
 		return ModuleCatalog{}, nil, fmt.Errorf("find module manifests: %w", err)
@@ -29,7 +30,7 @@ func LoadModuleCatalog(workspaceRoot string) (ModuleCatalog, []string, error) {
 			warnings = append(warnings, fmt.Sprintf("%s: %v", path, err))
 			continue
 		}
-		parsed, err := manifest.ParseManifest(data)
+		parsed, err := manifest.ParseManifest(data, platformVersion)
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("%s: %v", path, err))
 			continue

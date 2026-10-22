@@ -30,19 +30,8 @@ func deprovisionModuleDatabase(command *cobra.Command, dependencies Dependencies
 }
 
 func runPsqlScript(command *cobra.Command, dependencies Dependencies, workspace Workspace, script string) error {
-	err := dependencies.Runner.Run(command.Context(), RunRequest{
-		Name: "docker",
-		Args: []string{
-			"compose", "-f", workspace.ComposeFile(), "exec", "-T", "postgres",
-			"psql", "-X", "-q", "-U", workspace.StackEnvValue("POSTGRES_USER"), "-d", workspace.StackEnvValue("POSTGRES_DB"),
-		},
-		Dir:    workspace.Root,
-		Stdin:  strings.NewReader(script),
-		Stdout: command.OutOrStdout(),
-		Stderr: command.ErrOrStderr(),
+	return runComposeCall(command, dependencies, workspace, composeCall{
+		args:  []string{"exec", "-T", "postgres", "psql", "-X", "-q", "-U", workspace.StackEnvValue("POSTGRES_USER"), "-d", workspace.StackEnvValue("POSTGRES_DB")},
+		stdin: strings.NewReader(script),
 	})
-	if err != nil {
-		return ErrReported
-	}
-	return nil
 }

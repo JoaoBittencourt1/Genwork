@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadModuleCatalogSkipsInvalidManifests(t *testing.T) {
-	catalog, warnings, err := LoadModuleCatalog("testdata/workspace")
+	catalog, warnings, err := LoadModuleCatalog("testdata/workspace", "0.5.0")
 
 	if err != nil {
 		t.Fatalf("load: %v", err)
@@ -21,13 +21,13 @@ func TestLoadModuleCatalogSkipsInvalidManifests(t *testing.T) {
 		t.Errorf("warnings = %v", warnings)
 	}
 	reports, found := catalog.Find("reports")
-	if !found || reports.Requires[0].ID != "gentasks" {
+	if !found || reports.Requires[0].ID != "gentasks" || reports.Version != "0.5.0" {
 		t.Errorf("reports = %+v", reports)
 	}
 }
 
 func TestLoadModuleCatalogOfAnEmptyWorkspace(t *testing.T) {
-	catalog, warnings, err := LoadModuleCatalog(t.TempDir())
+	catalog, warnings, err := LoadModuleCatalog(t.TempDir(), "0.5.0")
 	if err != nil || len(catalog.IDs()) != 0 || len(warnings) != 0 {
 		t.Errorf("catalog = %v, warnings = %v, err = %v", catalog.IDs(), warnings, err)
 	}

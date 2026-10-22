@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -12,6 +14,9 @@ import (
 
 // ErrReported means the failing process already printed its own message to stderr.
 var ErrReported = errors.New("command failed")
+
+var ErrWebInReleaseInstallation = errors.New("the gateway serves the web app in a release installation; " +
+	"`genwork web` runs the dev server of a repository checkout")
 
 func newDatabaseCommand(dependencies Dependencies) *cobra.Command {
 	return &cobra.Command{
@@ -38,16 +43,16 @@ func newDatabaseCommand(dependencies Dependencies) *cobra.Command {
 func newAPICommand(dependencies Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "api",
-		Short: "Start the gateway, core API, and modules with their database, migrations, worker, and mail catcher",
+		Short: "Start the gateway, core API, MCP server, updater, and modules with their database, migrations, worker, and mail catcher",
 		RunE: func(command *cobra.Command, _ []string) error {
 			workspace, err := prepareWorkspace(command, dependencies)
 			if err != nil {
 				return err
 			}
-			if err := startStack(command, dependencies, workspace, "core", "core-worker", gatewayService); err != nil {
+			if err := startStack(command, dependencies, workspace, "core", "core-worker", gatewayService, mcpService, updaterService); err != nil {
 				return err
 			}
-			printEndpoints(command, workspace, endpointGateway, endpointAPI, endpointMail, endpointDatabase)
+			printStackEndpoints(command, workspace)
 			return nil
 		},
 	}
@@ -62,6 +67,9 @@ func newWebCommand(dependencies Dependencies) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if workspace.Kind() == WorkspaceRelease {
+				return ErrWebInReleaseInstallation
+			}
 			return runWebDevServer(command, dependencies, workspace)
 		},
 	}
@@ -70,7 +78,7 @@ func newWebCommand(dependencies Dependencies) *cobra.Command {
 func newUpCommand(dependencies Dependencies) *cobra.Command {
 	return &cobra.Command{
 		Use:   "up",
-		Short: "Start database, API, and web app (the web app runs in the foreground)",
+		Short: "Start database, API, and web app (in a repository checkout the web dev server runs in the foreground)",
 		RunE: func(command *cobra.Command, _ []string) error {
 			workspace, err := prepareWorkspace(command, dependencies)
 			if err != nil {
@@ -79,7 +87,10 @@ func newUpCommand(dependencies Dependencies) *cobra.Command {
 			if err := startStack(command, dependencies, workspace); err != nil {
 				return err
 			}
-			printEndpoints(command, workspace, endpointGateway, endpointAPI, endpointMail, endpointDatabase)
+			printStackEndpoints(command, workspace)
+			if workspace.Kind() == WorkspaceRelease {
+				return nil
+			}
 			return runWebDevServer(command, dependencies, workspace)
 		},
 	}
@@ -129,7 +140,7 @@ func startStack(command *cobra.Command, dependencies Dependencies, workspace Wor
 			services = append(services, modules.ConventionsFor(id).Services()...)
 		}
 	}
-	if err := setup.compose(append([]string{"up", "-d", "--build"}, services...)...); err != nil {
+	if err := setup.compose(append(setup.upArgs(), services...)...); err != nil {
 		return err
 	}
 	if firstRun {
@@ -143,12 +154,47 @@ func startStack(command *cobra.Command, dependencies Dependencies, workspace Wor
 }
 
 func runCompose(command *cobra.Command, dependencies Dependencies, workspace Workspace, args ...string) error {
-	err := dependencies.Runner.Run(command.Context(), RunRequest{
+	return runComposeCall(command, dependencies, workspace, composeCall{args: args})
+}
+
+// composeCall is one docker compose invocation; stdout defaults to the command's output.
+type composeCall struct {
+	args   []string
+	stdin  io.Reader
+	stdout io.Writer
+	// version replaces VERSION as the image tag, e.g. the target of an update.
+	version string
+	// files replaces the workspace's compose files, e.g. a staged bundle's.
+	files []string
+}
+
+// runComposeCall is how commands call compose; every image tag needs GENWORK_VERSION, which VERSION owns (design §2).
+func runComposeCall(command *cobra.Command, dependencies Dependencies, workspace Workspace, call composeCall) error {
+	if call.stdout == nil {
+		call.stdout = command.OutOrStdout()
+	}
+	return runDockerCompose(command.Context(), dependencies, workspace, call, command.ErrOrStderr())
+}
+
+func runDockerCompose(ctx context.Context, dependencies Dependencies, workspace Workspace, call composeCall, stderr io.Writer) error {
+	if call.version == "" {
+		version, err := workspace.Version()
+		if err != nil {
+			return err
+		}
+		call.version = version
+	}
+	if call.files == nil {
+		call.files = workspace.ComposeFiles()
+	}
+	err := dependencies.Runner.Run(ctx, RunRequest{
 		Name:   "docker",
-		Args:   append([]string{"compose", "-f", workspace.ComposeFile()}, args...),
+		Args:   append(append([]string{"compose"}, call.files...), call.args...),
 		Dir:    workspace.Root,
-		Stdout: command.OutOrStdout(),
-		Stderr: command.ErrOrStderr(),
+		Env:    []string{"GENWORK_VERSION=" + call.version},
+		Stdin:  call.stdin,
+		Stdout: call.stdout,
+		Stderr: stderr,
 	})
 	if err != nil {
 		return ErrReported
@@ -197,10 +243,20 @@ type endpoint int
 
 const (
 	endpointGateway endpoint = iota
+	endpointWebApp
 	endpointAPI
 	endpointMail
 	endpointDatabase
 )
+
+// printStackEndpoints lists what runs: a release installation has no mail catcher, and its gateway serves the web app.
+func printStackEndpoints(command *cobra.Command, workspace Workspace) {
+	if workspace.Kind() == WorkspaceRelease {
+		printEndpoints(command, workspace, endpointWebApp, endpointAPI, endpointDatabase)
+		return
+	}
+	printEndpoints(command, workspace, endpointGateway, endpointAPI, endpointMail, endpointDatabase)
+}
 
 func printEndpoints(command *cobra.Command, workspace Workspace, endpoints ...endpoint) {
 	output := command.ErrOrStderr()
@@ -208,6 +264,8 @@ func printEndpoints(command *cobra.Command, workspace Workspace, endpoints ...en
 		switch which {
 		case endpointGateway:
 			fmt.Fprintf(output, "Gateway:  http://localhost:%s\n", workspace.StackEnvValue("GATEWAY_PORT"))
+		case endpointWebApp:
+			fmt.Fprintf(output, "Web app:  http://localhost:%s\n", workspace.StackEnvValue("GATEWAY_PORT"))
 		case endpointAPI:
 			fmt.Fprintf(output, "Core API: http://localhost:%s\n", workspace.StackEnvValue("CORE_PORT"))
 		case endpointMail:

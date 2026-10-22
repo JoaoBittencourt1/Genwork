@@ -1,0 +1,57 @@
+{
+  "url": "https://api.github.com/repos/acme/genwork/releases/251846402",
+  "html_url": "https://github.com/acme/genwork/releases/tag/v0.5.2",
+  "id": 251846402,
+  "tag_name": "v0.5.2",
+  "target_commitish": "main",
+  "name": "Genwork v0.5.2",
+  "draft": false,
+  "prerelease": false,
+  "created_at": "2026-10-20T11:52:03Z",
+  "published_at": "2026-10-20T12:00:00Z",
+  "assets": [
+    {
+      "name": "checksums.txt",
+      "content_type": "text/plain",
+      "size": 1166,
+      "browser_download_url": "{{assets}}/checksums.txt"
+    },
+    {
+      "name": "genwork-bundle_0.5.2.tar.gz",
+      "content_type": "application/gzip",
+      "size": 3121,
+      "browser_download_url": "{{assets}}/genwork-bundle_0.5.2.tar.gz"
+    },
+    {
+      "name": "genwork_0.5.2_linux_amd64.tar.gz",
+      "content_type": "application/gzip",
+      "size": 5951593,
+      "browser_download_url": "{{assets}}/genwork_0.5.2_linux_amd64.tar.gz"
+    },
+    {
+      "name": "genwork_0.5.2_linux_arm64.tar.gz",
+      "content_type": "application/gzip",
+      "size": 5468717,
+      "browser_download_url": "{{assets}}/genwork_0.5.2_linux_arm64.tar.gz"
+    },
+    {
+      "name": "genwork_0.5.2_darwin_amd64.tar.gz",
+      "content_type": "application/gzip",
+      "size": 5768596,
+      "browser_download_url": "{{assets}}/genwork_0.5.2_darwin_amd64.tar.gz"
+    },
+    {
+      "name": "genwork_0.5.2_darwin_arm64.tar.gz",
+      "content_type": "application/gzip",
+      "size": 5391596,
+      "browser_download_url": "{{assets}}/genwork_0.5.2_darwin_arm64.tar.gz"
+    },
+    {
+      "name": "install.sh",
+      "content_type": "application/x-sh",
+      "size": 3270,
+      "browser_download_url": "{{assets}}/install.sh"
+    }
+  ],
+  "body": "## What's Changed\n* fix(core): corrige a renovação de sessão by @acme in https://github.com/acme/genwork/pull/31"
+}

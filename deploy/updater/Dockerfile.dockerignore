@@ -1,0 +1,5 @@
+*
+!sdk/go
+!cli
+cli/bin
+**/coverage.out
