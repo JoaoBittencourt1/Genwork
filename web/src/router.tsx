@@ -7,6 +7,7 @@ import { BoardSettingsPage } from '@/app/gentasks/BoardSettingsPage'
 import { BoardsPage } from '@/app/gentasks/BoardsPage'
 import { GithubCallbackPage } from '@/app/gentasks/GithubCallbackPage'
 import { GithubIntegrationPage } from '@/app/gentasks/GithubIntegrationPage'
+import { HostPage } from '@/app/genmonitor/HostPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
 import { MembersPage } from '@/app/members/MembersPage'
@@ -90,6 +91,16 @@ const githubCallbackRoute = createRoute({
   ),
 })
 
+const hostRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/host',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genmonitor}>
+      <HostPage />
+    </RequireModule>
+  ),
+})
+
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage })
 
 const acceptInviteRoute = createRoute({
@@ -110,6 +121,7 @@ const routeTree = rootRoute.addChildren([
     boardSettingsRoute,
     githubIntegrationRoute,
     githubCallbackRoute,
+    hostRoute,
   ]),
   loginRoute,
   acceptInviteRoute,

@@ -1,0 +1,16 @@
+{
+  "sampledAt": "2026-10-22T12:00:02Z",
+  "sampleIntervalSeconds": 3,
+  "uptimeSeconds": 93602,
+  "operatingSystem": { "name": "Ubuntu 24.04.4 LTS", "kernelRelease": "6.8.0-85-generic", "hostname": "vps-genwork" },
+  "cpu": { "logicalCpus": 4, "usedPercent": 30 },
+  "memory": { "totalBytes": 8589934592, "usedBytes": 2147483648, "availableBytes": 6442450944 },
+  "disk": { "totalBytes": 107374182400, "usedBytes": 42949672960, "availableBytes": 59055800320 },
+  "network": {
+    "interface": "eth0",
+    "receivedBytesPerSecond": 1000,
+    "transmittedBytesPerSecond": 250,
+    "receivedBytes": 1002000,
+    "transmittedBytes": 500500
+  }
+}

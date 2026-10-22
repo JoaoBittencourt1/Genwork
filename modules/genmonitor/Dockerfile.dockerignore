@@ -1,0 +1,5 @@
+*
+!sdk/go
+!modules/genmonitor
+modules/genmonitor/bin
+**/coverage.out

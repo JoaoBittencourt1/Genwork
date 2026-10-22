@@ -13,6 +13,13 @@ x-gentasks: &gentasks
   image: genwork-gentasks:dev
   env_file: .env
 
+x-genmonitor: &genmonitor
+  build:
+    context: ..
+    dockerfile: modules/genmonitor/Dockerfile
+  image: genwork-genmonitor:dev
+  env_file: .env
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -76,6 +83,28 @@ services:
     command: ["serve"]
     depends_on:
       gentasks-migrate:
+        condition: service_completed_successfully
+      core:
+        condition: service_started
+
+  # genmonitor keeps no data; its migrate service only exists because the installer runs one per module.
+  genmonitor-migrate:
+    <<: *genmonitor
+    profiles: ["genmonitor"]
+    command: ["migrate"]
+    restart: "no"
+
+  # The host's procfs and root file system, read-only, so the metrics describe the machine instead of this container.
+  # Under Docker Desktop or Colima that machine is the Linux VM running Docker.
+  genmonitor:
+    <<: *genmonitor
+    profiles: ["genmonitor"]
+    command: ["serve"]
+    volumes:
+      - /proc:/host/proc:ro
+      - /:/host/root:ro
+    depends_on:
+      genmonitor-migrate:
         condition: service_completed_successfully
       core:
         condition: service_started

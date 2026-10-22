@@ -21,6 +21,7 @@ jobs:
       core: ${{ steps.filter.outputs.core }}
       sdk: ${{ steps.filter.outputs.sdk }}
       gentasks: ${{ steps.filter.outputs.gentasks }}
+      genmonitor: ${{ steps.filter.outputs.genmonitor }}
       cli: ${{ steps.filter.outputs.cli }}
       mcp: ${{ steps.filter.outputs.mcp }}
       web: ${{ steps.filter.outputs.web }}
@@ -41,6 +42,11 @@ jobs:
               - '.github/workflows/ci.yml'
             gentasks:
               - 'modules/gentasks/**'
+              - 'sdk/**'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+            genmonitor:
+              - 'modules/genmonitor/**'
               - 'sdk/**'
               - 'Makefile'
               - '.github/workflows/ci.yml'
@@ -135,6 +141,21 @@ jobs:
       - run: make lint-gentasks
       - run: make test-gentasks
       - run: make build-gentasks
+
+  genmonitor:
+    name: Genmonitor · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.genmonitor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: modules/genmonitor/go.mod
+          cache-dependency-path: modules/genmonitor/go.sum
+      - run: make lint-genmonitor
+      - run: make test-genmonitor
+      - run: make build-genmonitor
 
   cli:
     name: CLI · Lint · Test · Build

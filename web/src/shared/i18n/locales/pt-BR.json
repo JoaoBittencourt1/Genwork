@@ -5,7 +5,8 @@
     "nav": {
       "home": "Início",
       "members": "Membros",
-      "tasks": "Tarefas"
+      "tasks": "Tarefas",
+      "host": "Servidor"
     },
     "navigation": "Navegação",
     "toggleSidebar": "Mostrar ou ocultar a barra lateral",
@@ -216,7 +217,8 @@
     "unavailableTitle": "Módulo indisponível",
     "unavailableDescription": "Este módulo não está habilitado nesta instalação.",
     "names": {
-      "gentasks": "Tarefas"
+      "gentasks": "Tarefas",
+      "genmonitor": "Servidor"
     }
   },
   "gentasks": {
@@ -384,6 +386,44 @@
           "invalidName": "Nomes de branch não podem ter espaços."
         }
       }
+    }
+  },
+  "genmonitor": {
+    "title": "Servidor",
+    "description": "Recursos da máquina que roda o Genwork, atualizados a cada {{seconds}} s.",
+    "noPermissionTitle": "Sem acesso ao servidor",
+    "noPermissionDescription": "Peça a um administrador a permissão para ver os recursos do servidor.",
+    "usage": "{{used}} de {{total}} em uso",
+    "available": "{{available}} livres",
+    "cpu": {
+      "title": "CPU",
+      "logicalCpus": "Núcleos lógicos: {{count}}"
+    },
+    "memory": {
+      "title": "Memória"
+    },
+    "disk": {
+      "title": "Disco"
+    },
+    "network": {
+      "title": "Rede",
+      "received": "Entrada",
+      "transmitted": "Saída",
+      "totals": "{{name}}: {{received}} recebidos e {{transmitted}} enviados no total",
+      "noDefaultRoute": "O servidor não tem rota padrão, então não há interface para medir."
+    },
+    "system": {
+      "title": "Sistema",
+      "operatingSystem": "Sistema operacional",
+      "kernel": "Kernel",
+      "hostname": "Nome do host",
+      "uptime": "Ligado há",
+      "unknown": "Desconhecido"
+    },
+    "uptime": {
+      "days": "{{count}} d",
+      "hours": "{{count}} h",
+      "minutes": "{{count}} min"
     }
   }
 }
