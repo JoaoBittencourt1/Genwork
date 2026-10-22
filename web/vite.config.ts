@@ -44,6 +44,7 @@ export default defineConfig(({ command, mode }) => {
       proxy: {
         '/api': { target: apiTarget, changeOrigin: false },
         '/.well-known': { target: apiTarget, changeOrigin: false },
+        '/mcp': { target: apiTarget, changeOrigin: false },
       },
     },
   }

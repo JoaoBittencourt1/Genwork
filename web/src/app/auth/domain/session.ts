@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   userRead: 'core.user.read',
   memberRead: 'core.member.read',
   memberManage: 'core.member.manage',
+  systemUpdate: 'core.system.update',
 } as const
 
 export type SessionGateway = {

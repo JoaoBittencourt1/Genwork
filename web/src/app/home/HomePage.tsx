@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { AssistantHomeCard } from '@/app/assistants/components/AssistantHomeCard'
 import { useAuth } from '@/app/auth/components/AuthContext'
 import { PERMISSIONS } from '@/app/auth/domain/session'
 import { HomeAssignedTasksSection } from '@/app/gentasks/components/HomeAssignedTasksSection'
@@ -6,6 +7,7 @@ import { HomeBoardsSection } from '@/app/gentasks/components/HomeBoardsSection'
 import { useAssignedTasks } from '@/app/gentasks/components/useAssignedTasks'
 import { useBoardList } from '@/app/gentasks/components/useBoardList'
 import { useGentasksAbilities } from '@/app/gentasks/components/useGentasksAbilities'
+import { UpdateCard } from '@/app/system/components/UpdateCard'
 import { useCapabilities } from '@/shared/components/CapabilitiesContext'
 import { PageContent } from '@/shared/components/PageContent'
 import { PageHeader } from '@/shared/components/PageHeader'
@@ -46,6 +48,7 @@ export function HomePage() {
           <h2 className="text-2xl font-semibold tracking-tight">{t('home.greeting', { name: state.me.name })}</h2>
           <p className="text-muted-foreground">{t('home.description', { email: state.me.email, role: state.me.role.name })}</p>
         </section>
+        {can(PERMISSIONS.systemUpdate) ? <UpdateCard /> : null}
         {checklist.totalCount > 0 ? <OnboardingChecklist checklist={checklist} /> : null}
         {showsGentasks ? (
           <div className="grid gap-6 md:grid-cols-2">
@@ -53,6 +56,7 @@ export function HomePage() {
             <HomeAssignedTasksSection assignedTasks={assignedTasks} />
           </div>
         ) : null}
+        <AssistantHomeCard />
         <CliCommandGuide />
       </PageContent>
     </>

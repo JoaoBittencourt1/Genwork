@@ -1,8 +1,9 @@
-// isWebhookReachableByGithub is false when GitHub cannot deliver to the URL: not https, or a local or private host.
-export function isWebhookReachableByGithub(webhookUrl: string): boolean {
+// isReachableFromInternet is false when a service on the internet (GitHub, claude.ai) cannot reach the URL: not https,
+// or a local or private host.
+export function isReachableFromInternet(url: string): boolean {
   let parsed: URL
   try {
-    parsed = new URL(webhookUrl)
+    parsed = new URL(url)
   } catch {
     return false
   }

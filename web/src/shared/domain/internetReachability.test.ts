@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { isWebhookReachableByGithub } from './webhookReachability'
+import { isReachableFromInternet } from './internetReachability'
 
-describe('webhook reachability', () => {
+describe('internet reachability', () => {
   it('accepts public https hosts', () => {
-    expect(isWebhookReachableByGithub('https://genwork.acme.com/api/gentasks/v1/github/webhook')).toBe(true)
-    expect(isWebhookReachableByGithub('https://203.0.113.10/api/gentasks/v1/github/webhook')).toBe(true)
-    expect(isWebhookReachableByGithub('https://172.32.0.1/hook')).toBe(true)
+    expect(isReachableFromInternet('https://genwork.acme.com/api/gentasks/v1/github/webhook')).toBe(true)
+    expect(isReachableFromInternet('https://203.0.113.10/api/gentasks/v1/github/webhook')).toBe(true)
+    expect(isReachableFromInternet('https://172.32.0.1/hook')).toBe(true)
   })
 
   it('warns about plain http', () => {
-    expect(isWebhookReachableByGithub('http://genwork.acme.com/api/gentasks/v1/github/webhook')).toBe(false)
+    expect(isReachableFromInternet('http://genwork.acme.com/api/gentasks/v1/github/webhook')).toBe(false)
+    expect(isReachableFromInternet('http://localhost:8485')).toBe(false)
+  })
+
+  it('accepts a bare origin', () => {
+    expect(isReachableFromInternet('https://genwork.example.com')).toBe(true)
   })
 
   it('warns about local and private hosts', () => {
@@ -28,12 +33,12 @@ describe('webhook reachability', () => {
       'https://[fd12:3456::1]/hook',
       'https://[fe80::1]/hook',
     ]) {
-      expect(isWebhookReachableByGithub(url), url).toBe(false)
+      expect(isReachableFromInternet(url), url).toBe(false)
     }
   })
 
   it('warns about malformed URLs', () => {
-    expect(isWebhookReachableByGithub('not a url')).toBe(false)
-    expect(isWebhookReachableByGithub('')).toBe(false)
+    expect(isReachableFromInternet('not a url')).toBe(false)
+    expect(isReachableFromInternet('')).toBe(false)
   })
 })

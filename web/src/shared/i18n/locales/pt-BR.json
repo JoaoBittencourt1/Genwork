@@ -6,7 +6,8 @@
       "home": "Início",
       "members": "Membros",
       "tasks": "Tarefas",
-      "host": "Servidor"
+      "host": "Servidor",
+      "assistants": "Assistentes de IA"
     },
     "navigation": "Navegação",
     "toggleSidebar": "Mostrar ou ocultar a barra lateral",
@@ -205,13 +206,33 @@
     "github_unavailable": "O GitHub não respondeu. Tente de novo em instantes.",
     "cannot_manage_self": "Você não pode alterar a sua própria participação.",
     "member_not_manageable": "Você não pode gerenciar um membro cujo papel tem mais permissões que o seu.",
-    "member_not_found": "Membro não encontrado. Esse membro pode ter sido removido."
+    "member_not_found": "Membro não encontrado. Esse membro pode ter sido removido.",
+    "version_mismatch": "Uma versão mais nova apareceu nesse meio-tempo. Procurando de novo…",
+    "update_in_progress": "Já há uma atualização em andamento.",
+    "no_newer_release": "O Genwork já está na versão mais recente.",
+    "development_installation": "Esta é uma cópia de desenvolvimento: as atualizações vêm pelo git.",
+    "updater_unavailable": "O atualizador não responde. Verifique se o contêiner updater está rodando.",
+    "release_channel_unreachable": "Não foi possível acessar o GitHub, onde as versões são publicadas.",
+    "release_channel_rate_limited": "O GitHub limita a frequência das verificações deste servidor. Tente de novo em uma hora.",
+    "no_published_release": "Ainda não há versão publicada.",
+    "checksum_mismatch": "Um arquivo baixado não confere com o checksum.",
+    "download_failed": "Não foi possível baixar a versão.",
+    "pull_failed": "Não foi possível baixar as imagens.",
+    "backup_failed": "O backup do banco de dados falhou.",
+    "swap_failed": "Não foi possível trocar a configuração.",
+    "migration_failed": "Uma migração ou um serviço não conseguiu iniciar.",
+    "verification_failed": "A nova versão não respondeu a tempo.",
+    "update_interrupted": "A atualização foi interrompida.",
+    "invalid_client": "Este pedido de conexão cita um assistente desconhecido.",
+    "invalid_redirect_uri": "Este pedido de conexão volta para um endereço que o assistente nunca registrou."
   },
   "common": {
     "cancel": "Cancelar",
     "save": "Salvar",
     "saving": "Salvando…",
-    "delete": "Excluir"
+    "delete": "Excluir",
+    "copy": "Copiar",
+    "copied": "Copiado"
   },
   "modules": {
     "unavailableTitle": "Módulo indisponível",
@@ -280,6 +301,7 @@
       "title": "Título",
       "description": "Descrição",
       "assignee": "Responsável",
+      "changeAssignee": "Trocar o responsável de {{title}}",
       "unassigned": "Sem responsável",
       "urgency": "Urgência",
       "labels": "Labels",
@@ -424,6 +446,90 @@
       "days": "{{count}} d",
       "hours": "{{count}} h",
       "minutes": "{{count}} min"
+    }
+  },
+  "system": {
+    "update": {
+      "title": "Atualizações do Genwork",
+      "installed": "Versão instalada: {{version}}",
+      "checkedAt": "última verificação {{time}}",
+      "check": "Procurar atualizações",
+      "checking": "Procurando…",
+      "neverChecked": "Veja se há uma versão mais nova do Genwork.",
+      "upToDate": "O Genwork está na versão mais recente.",
+      "available": "O Genwork {{version}} está disponível.",
+      "releaseNotes": "Notas da versão",
+      "updateTo": "Atualizar para v{{version}}",
+      "updating": "Atualizando para {{version}}",
+      "restarting": "Reiniciando o Genwork…",
+      "succeeded": "Atualização concluída. Carregando a nova versão…",
+      "failed": "A atualização para {{version}} falhou na etapa \"{{step}}\".",
+      "rolledBack": "O Genwork voltou para a versão anterior, com os dados de antes da atualização.",
+      "notRolledBack": "Não foi possível restaurar a versão anterior. Verifique o servidor com `genwork update --check`.",
+      "gaveUp": "O Genwork não responde há 15 minutos. Verifique o servidor com `genwork update --check`.",
+      "notUpdatable": {
+        "development_installation": "Esta é uma cópia de desenvolvimento: as atualizações vêm pelo git.",
+        "unknown": "Esta instalação não pode ser atualizada por aqui."
+      },
+      "steps": {
+        "download": "download",
+        "pull": "download das imagens",
+        "backup": "backup do banco de dados",
+        "swap": "troca da configuração",
+        "migrate": "migrações e reinício",
+        "verify": "verificação"
+      },
+      "confirm": {
+        "title": "Atualizar o Genwork para v{{version}}?",
+        "description": "O Genwork fica indisponível por alguns minutos. Antes, é feito um backup do banco de dados, e uma atualização que falhar volta para a versão atual.",
+        "action": "Atualizar para v{{version}}"
+      }
+    }
+  },
+  "assistants": {
+    "homeCard": {
+      "title": "Conectar um assistente de IA",
+      "description": "Deixe o Claude e outros assistentes trabalharem no Genwork em seu nome, com as suas permissões.",
+      "action": "Conectar"
+    },
+    "connect": {
+      "title": "Conectar um assistente de IA",
+      "description": "Os assistentes acessam o Genwork pelo endereço MCP. Eles entram com a sua conta e veem só o que você pode ver.",
+      "url": {
+        "title": "Endereço MCP",
+        "description": "Todo assistente se conecta a este endereço.",
+        "copied": "Endereço copiado"
+      },
+      "claude": {
+        "title": "Claude (claude.ai e Claude Desktop)",
+        "description": "Adicione o Genwork como um conector personalizado.",
+        "unreachableTitle": "O claude.ai não alcança este endereço",
+        "unreachable": "O claude.ai e o Claude Desktop se conectam pela internet, então precisam do Genwork em um endereço https público. O Claude Code continua funcionando a partir do seu computador.",
+        "steps": {
+          "open": "No Claude, abra Configurações e depois Conectores.",
+          "add": "Escolha “Adicionar conector personalizado” e cole o endereço MCP.",
+          "signIn": "Quando o Claude pedir, entre no Genwork e permita a conexão."
+        }
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Rode este comando em um terminal.",
+        "signIn": "Depois rode /mcp dentro do Claude Code e entre no Genwork pelo navegador."
+      },
+      "other": {
+        "title": "Outros clientes MCP",
+        "description": "Use o endereço acima, ou esta configuração se o cliente lê um arquivo JSON."
+      }
+    },
+    "consent": {
+      "title": "{{client}} quer acessar o Genwork",
+      "signedInAs": "Conectado como {{email}}",
+      "actsAsYou": "O {{client}} vai agir em seu nome no Genwork, com as suas permissões: pode ver e alterar o que você pode.",
+      "noPassword": "O Genwork nunca compartilha a sua senha com ele.",
+      "allow": "Permitir",
+      "deny": "Recusar",
+      "invalidTitle": "Pedido de conexão inválido",
+      "invalid": "Este pedido de conexão é inválido. Comece a conexão de novo pelo assistente."
     }
   }
 }
