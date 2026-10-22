@@ -9,7 +9,11 @@
     },
     "navigation": "Navegação",
     "toggleSidebar": "Mostrar ou ocultar a barra lateral",
-    "signOut": "Sair"
+    "signOut": "Sair",
+    "theme": {
+      "switchToLight": "Mudar para o tema claro",
+      "switchToDark": "Mudar para o tema escuro"
+    }
   },
   "login": {
     "title": "Entrar",
