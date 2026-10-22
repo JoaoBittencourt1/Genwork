@@ -62,6 +62,12 @@ func waitForHealth(t *testing.T, address string) {
 	t.Fatal("gentasks did not become healthy")
 }
 
+func TestBuildWithoutLdflagsReportsTheDevelopmentVersion(t *testing.T) {
+	if command.Version != "0.0.0-dev" {
+		t.Errorf("Version = %q", command.Version)
+	}
+}
+
 func TestRunRejectsUnknownCommands(t *testing.T) {
 	for _, args := range [][]string{nil, {"launch"}} {
 		if err := command.Run(context.Background(), args, envFrom(nil)); err == nil || !strings.Contains(err.Error(), "usage") {
@@ -111,7 +117,8 @@ func TestServeRegistersWithCoreAndAnswersUntilContextEnds(t *testing.T) {
 		t.Fatalf("serve: %v", err)
 	}
 	registrations := core.Registrations()
-	if len(registrations) != 1 || registrations[0].ID != "gentasks" || len(registrations[0].Permissions) != len(access.Permissions) {
+	if len(registrations) != 1 || registrations[0].ID != "gentasks" || len(registrations[0].Permissions) != len(access.Permissions) ||
+		registrations[0].Version != command.Version {
 		t.Errorf("registrations = %+v", registrations)
 	}
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genmonitor/internal/platform"
 )
 
+var Version = "0.0.0-dev"
+
 const usage = `usage: genmonitor <command>
 
 commands:

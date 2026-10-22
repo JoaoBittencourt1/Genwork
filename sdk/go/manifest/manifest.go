@@ -1,4 +1,5 @@
 // Package manifest reads a module's module.yaml, the single source of truth for its registration facts (rule 51).
+// The module's version is the platform version of the build (rule 50), so the file never declares one.
 package manifest
 
 import (
@@ -35,7 +36,7 @@ type Events struct {
 
 type ModuleManifest struct {
 	ID          string        `yaml:"id"`
-	Version     string        `yaml:"version"`
+	Version     string        `yaml:"-"`
 	Core        string        `yaml:"core"`
 	APIPrefix   string        `yaml:"apiPrefix"`
 	Requires    []Requirement `yaml:"requires"`
@@ -53,13 +54,14 @@ type RegistrationRequest struct {
 	Permissions []Permission  `json:"permissions"`
 }
 
-func ParseManifest(data []byte) (ModuleManifest, error) {
+func ParseManifest(data []byte, version string) (ModuleManifest, error) {
 	decoder := yaml.NewDecoder(bytes.NewReader(data))
 	decoder.KnownFields(true)
 	var parsed ModuleManifest
 	if err := decoder.Decode(&parsed); err != nil {
 		return ModuleManifest{}, fmt.Errorf("parse module.yaml: %w", err)
 	}
+	parsed.Version = version
 	if err := parsed.Validate(); err != nil {
 		return ModuleManifest{}, err
 	}

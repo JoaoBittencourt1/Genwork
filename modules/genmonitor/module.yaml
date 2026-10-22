@@ -1,11 +1,10 @@
 id: genmonitor
-version: 0.1.0
 core: ">=1.0.0 <2.0.0"
 apiPrefix: /api/genmonitor/v1
 requires: []
 permissions:
   - name: genmonitor.host.read
-    defaultRoles: [admin]
+    defaultRoles: [admin, member]
 events:
   publishes: []
   consumes: []

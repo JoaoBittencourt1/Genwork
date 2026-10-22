@@ -18,9 +18,11 @@ func readFixture(t *testing.T, name string) []byte {
 	return data
 }
 
+const buildVersion = "0.5.0"
+
 func validManifest(t *testing.T) manifest.ModuleManifest {
 	t.Helper()
-	parsed, err := manifest.ParseManifest(readFixture(t, "valid.yaml"))
+	parsed, err := manifest.ParseManifest(readFixture(t, "valid.yaml"), buildVersion)
 	if err != nil {
 		t.Fatalf("parse valid manifest: %v", err)
 	}
@@ -30,7 +32,7 @@ func validManifest(t *testing.T) manifest.ModuleManifest {
 func TestParseManifestReadsEveryFact(t *testing.T) {
 	parsed := validManifest(t)
 
-	if parsed.ID != "gentasks" || parsed.Version != "0.1.0" || parsed.Core != ">=1.0.0 <2.0.0" || parsed.APIPrefix != "/api/gentasks/v1" {
+	if parsed.ID != "gentasks" || parsed.Version != buildVersion || parsed.Core != ">=1.0.0 <2.0.0" || parsed.APIPrefix != "/api/gentasks/v1" {
 		t.Errorf("manifest = %+v", parsed)
 	}
 	if len(parsed.Requires) != 1 || parsed.Requires[0].ID != "identity" || parsed.Requires[0].Version != ">=1.2.0" {
@@ -46,8 +48,32 @@ func TestParseManifestReadsEveryFact(t *testing.T) {
 
 func TestParseManifestRejectsMalformedFiles(t *testing.T) {
 	for _, name := range []string{"unknown_field.yaml", "not_yaml.yaml"} {
-		if _, err := manifest.ParseManifest(readFixture(t, name)); err == nil {
+		if _, err := manifest.ParseManifest(readFixture(t, name), buildVersion); err == nil {
 			t.Errorf("%s: expected an error", name)
+		}
+	}
+}
+
+func TestParseManifestRejectsAManifestThatDeclaresItsOwnVersion(t *testing.T) {
+	_, err := manifest.ParseManifest(readFixture(t, "declares_version.yaml"), buildVersion)
+
+	if err == nil || !strings.Contains(err.Error(), "version") {
+		t.Errorf("error = %v, want one naming the version field", err)
+	}
+}
+
+func TestParseManifestAcceptsTheDevelopmentBuildVersion(t *testing.T) {
+	parsed, err := manifest.ParseManifest(readFixture(t, "valid.yaml"), "0.0.0-dev")
+
+	if err != nil || parsed.Version != "0.0.0-dev" {
+		t.Errorf("manifest = %+v, err = %v", parsed, err)
+	}
+}
+
+func TestParseManifestRejectsAnInvalidBuildVersion(t *testing.T) {
+	for _, version := range []string{"", "dev", "1.0"} {
+		if _, err := manifest.ParseManifest(readFixture(t, "valid.yaml"), version); err == nil || !strings.Contains(err.Error(), "version") {
+			t.Errorf("%q: error = %v", version, err)
 		}
 	}
 }

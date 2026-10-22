@@ -23,7 +23,7 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	if err != nil {
 		return err
 	}
-	moduleManifest, err := manifest.ParseManifest(gentasks.ManifestYAML)
+	moduleManifest, err := manifest.ParseManifest(gentasks.ManifestYAML, Version)
 	if err != nil {
 		return err
 	}

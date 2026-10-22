@@ -6,11 +6,12 @@ import (
 
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/access"
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/command"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/manifest"
 )
 
 func TestModuleManifestIsValid(t *testing.T) {
-	parsed, err := manifest.ParseManifest(gentasks.ManifestYAML)
+	parsed, err := manifest.ParseManifest(gentasks.ManifestYAML, command.Version)
 	if err != nil {
 		t.Fatalf("parse module.yaml: %v", err)
 	}
@@ -20,7 +21,7 @@ func TestModuleManifestIsValid(t *testing.T) {
 }
 
 func TestPermissionConstantsMatchManifest(t *testing.T) {
-	parsed, err := manifest.ParseManifest(gentasks.ManifestYAML)
+	parsed, err := manifest.ParseManifest(gentasks.ManifestYAML, command.Version)
 	if err != nil {
 		t.Fatalf("parse module.yaml: %v", err)
 	}
