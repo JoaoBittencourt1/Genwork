@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/JoaoBittencourt1/Genwork/cli/internal/modules"
 	"github.com/spf13/cobra"
@@ -178,9 +179,18 @@ func runWebDevServer(command *cobra.Command, dependencies Dependencies, workspac
 // warnWhenProxySkipsGateway flags web/.env files written before the gateway existed: module APIs are only reachable through it.
 func warnWhenProxySkipsGateway(command *cobra.Command, workspace Workspace) {
 	gateway := "http://localhost:" + workspace.StackEnvValue("GATEWAY_PORT")
-	if target := workspace.WebEnvValue("DEV_API_PROXY_TARGET"); target != gateway {
-		fmt.Fprintf(command.ErrOrStderr(), "Warning: web/.env sets DEV_API_PROXY_TARGET=%s; set it to %s so module APIs work\n", target, gateway)
+	target := workspace.WebEnvValue("DEV_API_PROXY_TARGET")
+	if target == gateway {
+		return
 	}
+	if target == "" {
+		target = "(not set)"
+	}
+	banner := strings.Repeat("!", 78)
+	fmt.Fprintf(command.ErrOrStderr(), "\n%s\n!! WARNING: web/.env DEV_API_PROXY_TARGET is %s, not the gateway (%s).\n"+
+		"!! Module APIs (boards, tasks, ...) will answer 404 in the web app.\n"+
+		"!! Fix: set DEV_API_PROXY_TARGET=%s in web/.env and restart.\n%s\n\n",
+		banner, target, gateway, gateway, banner)
 }
 
 type endpoint int

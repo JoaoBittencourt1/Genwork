@@ -186,3 +186,19 @@ func TestCommandsFailOutsideAWorkspace(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestWebWarnsLoudlyWhenTheProxySkipsTheGateway(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	if err := os.WriteFile(workspace.WebEnvFile(), []byte("DEV_API_PROXY_TARGET=http://localhost:8484\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err, output := execute(t, workspace, &fakeRunner{}, &fakePrompter{}, "web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"!! WARNING", "http://localhost:8484", "DEV_API_PROXY_TARGET=http://localhost:8487"} {
+		if !strings.Contains(output, expected) {
+			t.Errorf("output %q is missing %s", output, expected)
+		}
+	}
+}
