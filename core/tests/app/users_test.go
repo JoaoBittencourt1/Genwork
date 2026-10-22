@@ -11,9 +11,10 @@ import (
 )
 
 type directoryUserBody struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Token       string `json:"token"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	AvatarColor string `json:"avatarColor"`
 }
 
 func accessTokenPermissions(t *testing.T, accessToken string) []string {
@@ -55,7 +56,7 @@ func TestUserDirectoryListsActiveUsersByName(t *testing.T) {
 	if len(body.Users) != 2 || body.Users[0].Name != "Bruno" || body.Users[1].Name != "Zoe" {
 		t.Fatalf("users = %+v", body.Users)
 	}
-	if body.Users[0].Token != bruno.Token || body.Users[0].Email != "bruno@example.com" {
+	if body.Users[0].Token != bruno.Token || body.Users[0].Email != "bruno@example.com" || body.Users[0].AvatarColor != string(bruno.AvatarColor()) {
 		t.Errorf("first user = %+v", body.Users[0])
 	}
 	for _, leaked := range []string{"password", "argon2", "locked", "role", `"id"`} {
@@ -75,7 +76,7 @@ func TestUserDirectoryFindsUserByToken(t *testing.T) {
 	expectStatus(t, resp, http.StatusOK)
 	var body directoryUserBody
 	resp.decode(t, &body)
-	if body != (directoryUserBody{Token: ana.Token, Name: "Ana", Email: "ana@example.com"}) {
+	if body != (directoryUserBody{Token: ana.Token, Name: "Ana", Email: "ana@example.com", AvatarColor: string(ana.AvatarColor())}) {
 		t.Errorf("user = %+v", body)
 	}
 }

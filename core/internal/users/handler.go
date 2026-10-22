@@ -12,15 +12,17 @@ type MeResponse struct {
 	Token       string              `json:"token"`
 	Email       string              `json:"email"`
 	Name        string              `json:"name"`
+	AvatarColor AvatarColor         `json:"avatarColor"`
 	Role        access.RoleResponse `json:"role"`
 	Permissions []string            `json:"permissions"`
 }
 
 // DirectoryUserResponse is the public view of a user that clients and modules may reference (rule 14).
 type DirectoryUserResponse struct {
-	Token string `json:"token"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Token       string      `json:"token"`
+	Name        string      `json:"name"`
+	Email       string      `json:"email"`
+	AvatarColor AvatarColor `json:"avatarColor"`
 }
 
 type DirectoryResponse struct {
@@ -28,7 +30,7 @@ type DirectoryResponse struct {
 }
 
 func NewDirectoryUserResponse(user User) DirectoryUserResponse {
-	return DirectoryUserResponse{Token: user.Token, Name: user.Name, Email: user.Email}
+	return DirectoryUserResponse{Token: user.Token, Name: user.Name, Email: user.Email, AvatarColor: user.AvatarColor()}
 }
 
 type Handler struct {
@@ -86,6 +88,7 @@ func (handler *Handler) me(w http.ResponseWriter, r *http.Request) {
 		Token:       user.Token,
 		Email:       user.Email,
 		Name:        user.Name,
+		AvatarColor: user.AvatarColor(),
 		Role:        access.NewRoleResponse(role),
 		Permissions: role.Permissions,
 	})

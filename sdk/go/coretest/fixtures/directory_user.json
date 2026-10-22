@@ -1,5 +1,6 @@
 {
   "token": "Qm9hcmQtdG9rZW4tZXhhbQ",
   "name": "Ana",
-  "email": "ana@example.com"
+  "email": "ana@example.com",
+  "avatarColor": "blue"
 }

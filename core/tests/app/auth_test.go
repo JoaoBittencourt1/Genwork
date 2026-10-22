@@ -206,13 +206,15 @@ func TestMeReturnsProfileWithoutInternals(t *testing.T) {
 		Token       string   `json:"token"`
 		Email       string   `json:"email"`
 		Name        string   `json:"name"`
+		AvatarColor string   `json:"avatarColor"`
 		Permissions []string `json:"permissions"`
 		Role        struct {
 			Name string `json:"name"`
 		} `json:"role"`
 	}
 	resp.decode(t, &me)
-	if me.Token != user.Token || me.Email != "ana@example.com" || me.Name != "Ana" || me.Role.Name != "admin" || len(me.Permissions) != 4 {
+	if me.Token != user.Token || me.Email != "ana@example.com" || me.Name != "Ana" || me.Role.Name != "admin" || len(me.Permissions) != 4 ||
+		me.AvatarColor != string(user.AvatarColor()) {
 		t.Errorf("me = %+v", me)
 	}
 	for _, leaked := range []string{"password", "argon2", `"id"`} {
