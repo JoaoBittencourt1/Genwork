@@ -119,8 +119,11 @@ func TestStartCommandsPrepareEnvAndPrintEndpoints(t *testing.T) {
 	}
 }
 
-func TestWebInstallsDependenciesOnlyWhenMissing(t *testing.T) {
+func TestWebInstallsDependenciesBeforeTheDevServer(t *testing.T) {
 	workspace := newTestWorkspace(t)
+	if err := os.Mkdir(filepath.Join(workspace.WebDir(), "node_modules"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	runner := &fakeRunner{}
 	if err, _ := execute(t, workspace, runner, &fakePrompter{}, "web"); err != nil {
 		t.Fatal(err)
@@ -128,19 +131,19 @@ func TestWebInstallsDependenciesOnlyWhenMissing(t *testing.T) {
 	if len(runner.runs) != 2 || runner.runs[0].commandLine() != "npm install" || runner.runs[1].commandLine() != "npm run dev" {
 		t.Fatalf("runs = %+v", runner.runs)
 	}
-	if runner.runs[1].dir != workspace.WebDir() {
-		t.Errorf("dev server dir = %s", runner.runs[1].dir)
+	if runner.runs[0].dir != workspace.WebDir() || runner.runs[1].dir != workspace.WebDir() {
+		t.Errorf("npm dirs = %s, %s", runner.runs[0].dir, runner.runs[1].dir)
 	}
+}
 
-	if err := os.Mkdir(filepath.Join(workspace.WebDir(), "node_modules"), 0o755); err != nil {
-		t.Fatal(err)
+func TestWebStopsWhenInstallFails(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	runner := &fakeRunner{failOn: "install"}
+	if err, _ := execute(t, workspace, runner, &fakePrompter{}, "web"); !errors.Is(err, ErrReported) {
+		t.Fatalf("error = %v", err)
 	}
-	runner = &fakeRunner{}
-	if err, _ := execute(t, workspace, runner, &fakePrompter{}, "web"); err != nil {
-		t.Fatal(err)
-	}
-	if len(runner.runs) != 1 || runner.runs[0].commandLine() != "npm run dev" {
-		t.Fatalf("runs = %+v", runner.runs)
+	if len(runner.runs) != 1 {
+		t.Errorf("the dev server must not start after a failed install: %+v", runner.runs)
 	}
 }
 
@@ -155,7 +158,7 @@ func TestUpStartsEverythingThenTheWebApp(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := runner.commandLines()
-	if len(lines) != 4 || !strings.HasSuffix(lines[1], "up -d --build") || lines[3] != "npm run dev" {
+	if len(lines) != 5 || !strings.HasSuffix(lines[1], "up -d --build") || lines[3] != "npm install" || lines[4] != "npm run dev" {
 		t.Errorf("runs = %q", lines)
 	}
 }
@@ -181,5 +184,21 @@ func TestCommandsFailOutsideAWorkspace(t *testing.T) {
 	root.SetArgs([]string{"db"})
 	if err := root.Execute(); !errors.Is(err, ErrWorkspaceNotFound) {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestWebWarnsLoudlyWhenTheProxySkipsTheGateway(t *testing.T) {
+	workspace := newTestWorkspace(t)
+	if err := os.WriteFile(workspace.WebEnvFile(), []byte("DEV_API_PROXY_TARGET=http://localhost:8484\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err, output := execute(t, workspace, &fakeRunner{}, &fakePrompter{}, "web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"!! WARNING", "http://localhost:8484", "DEV_API_PROXY_TARGET=http://localhost:8487"} {
+		if !strings.Contains(output, expected) {
+			t.Errorf("output %q is missing %s", output, expected)
+		}
 	}
 }
