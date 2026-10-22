@@ -34,7 +34,7 @@ jobs:
     env:
       TEST_DATABASE_URL: postgres://genwork:genwork@localhost:5432/genwork_test?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: make check-release-tag RELEASE_TAG="${GITHUB_REF_NAME}"
       - uses: actions/setup-go@v5
         with:
