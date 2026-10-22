@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"slices"
 	"strings"
@@ -68,6 +69,12 @@ func TestRunPrintsUsageAndVersion(t *testing.T) {
 	fixture.stdout.Reset()
 	if err := fixture.run("version"); err != nil || strings.TrimSpace(fixture.stdout.String()) != command.Version {
 		t.Fatalf("version: err = %v, stdout = %q", err, fixture.stdout)
+	}
+}
+
+func TestBuildWithoutLdflagsReportsTheDevelopmentVersion(t *testing.T) {
+	if command.Version != "0.0.0-dev" {
+		t.Errorf("Version = %q", command.Version)
 	}
 }
 
@@ -240,5 +247,58 @@ func TestToolsetsCoverCoreAndEveryModule(t *testing.T) {
 	}
 	if !slices.Equal(modules, []string{"", "gentasks"}) {
 		t.Fatalf("modules = %v", modules)
+	}
+}
+
+func TestServeHTTPFailsFastWithoutItsConfiguration(t *testing.T) {
+	fixture := newCommandFixture(t, nil)
+	fixture.environment.Getenv = func(string) string { return "" }
+
+	err := fixture.run("serve-http")
+
+	if err == nil || !strings.Contains(err.Error(), "MCP_HTTP_ADDR") {
+		t.Errorf("error = %v", err)
+	}
+}
+
+func TestServeHTTPServesUntilStopped(t *testing.T) {
+	fixture := newCommandFixture(t, nil)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := listener.Addr().String()
+	listener.Close()
+	values := map[string]string{
+		"MCP_HTTP_ADDR": address, "GENWORK_PUBLIC_URL": "https://genwork.example.com", "CORE_INTERNAL_URL": fixture.api.URL(),
+		"GATEWAY_INTERNAL_URL": fixture.api.URL(),
+	}
+	fixture.environment.Getenv = func(name string) string { return values[name] }
+	ctx, cancel := context.WithCancel(context.Background())
+	stopped := make(chan error, 1)
+	go func() { stopped <- command.Run(ctx, []string{"serve-http"}, fixture.environment) }()
+
+	status := 0
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if response, err := http.Get("http://" + address + "/.well-known/oauth-protected-resource"); err == nil {
+			status = response.StatusCode
+			response.Body.Close()
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	cancel()
+
+	if status != http.StatusOK {
+		t.Errorf("metadata status = %d", status)
+	}
+	select {
+	case err := <-stopped:
+		if err != nil {
+			t.Errorf("serve-http = %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serve-http did not stop")
 	}
 }
