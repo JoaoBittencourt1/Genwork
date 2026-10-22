@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/JoaoBittencourt1/Genwork/cli/internal/modules"
 	"github.com/spf13/cobra"
@@ -163,11 +162,9 @@ func runWebDevServer(command *cobra.Command, dependencies Dependencies, workspac
 			Stdin: os.Stdin, Stdout: command.OutOrStdout(), Stderr: command.ErrOrStderr(),
 		})
 	}
-	if _, err := os.Stat(filepath.Join(workspace.WebDir(), "node_modules")); err != nil {
-		fmt.Fprintln(command.ErrOrStderr(), "Installing web dependencies…")
-		if err := run("install"); err != nil {
-			return ErrReported
-		}
+	fmt.Fprintln(command.ErrOrStderr(), "Installing web dependencies…")
+	if err := run("install"); err != nil {
+		return ErrReported
 	}
 	warnWhenProxySkipsGateway(command, workspace)
 	fmt.Fprintf(command.ErrOrStderr(), "Web app: http://localhost:%s (Ctrl+C to stop; containers keep running, use `genwork down`)\n",
