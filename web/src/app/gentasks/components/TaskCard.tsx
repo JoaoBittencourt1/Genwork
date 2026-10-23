@@ -53,7 +53,7 @@ export const TaskCard = memo(function TaskCard({ task, taskPrefix, users, dragEn
   )
 })
 
-const CARD_CLASS = 'group relative rounded-lg border bg-card text-card-foreground shadow-xs transition-colors hover:border-foreground/20'
+const CARD_CLASS = 'group relative rounded-lg border bg-board-card text-card-foreground shadow-sm transition-colors hover:border-foreground/20'
 const DRAGGABLE_CARD_CLASS = cn(CARD_CLASS, 'cursor-grab active:cursor-grabbing')
 
 type DragGripProps = {
@@ -98,7 +98,7 @@ const TaskCardButton = memo(
 // TaskCardPreview follows the pointer while a card is dragged; it lives outside the columns, so their scroll never clips it.
 export function TaskCardPreview({ task, taskPrefix, users }: Omit<TaskCardProps, 'dragEnabled' | 'onOpen' | 'onAssign'>) {
   return (
-    <div className="flex cursor-grabbing flex-col gap-1.5 rounded-lg border border-foreground/20 bg-card p-3 text-card-foreground shadow-lg">
+    <div className="flex cursor-grabbing flex-col gap-1.5 rounded-lg border border-foreground/20 bg-board-card p-3 text-card-foreground shadow-lg">
       <TaskCardBody task={task} taskPrefix={taskPrefix} users={users} />
     </div>
   )
