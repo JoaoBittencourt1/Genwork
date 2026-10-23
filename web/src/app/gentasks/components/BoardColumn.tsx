@@ -48,7 +48,7 @@ export const BoardColumn = memo(function BoardColumn({ column, taskPrefix, abili
       ref={setNodeRef}
       style={sortableStyle({ transform, transition, isDragging })}
       aria-label={title}
-      className="flex max-h-full w-80 shrink-0 flex-col rounded-xl bg-muted/40"
+      className="flex max-h-full w-88 shrink-0 flex-col rounded-xl bg-board-column"
     >
       <header className="flex h-11 shrink-0 items-center gap-1 pr-1.5 pl-3">
         <div
