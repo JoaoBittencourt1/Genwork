@@ -273,6 +273,15 @@
       "addTaskTo": "Add task to {{title}}",
       "newTask": "New task"
     },
+    "assigneesPanel": {
+      "title": "Assignees",
+      "toggle": "Assignees",
+      "totalTasks": "{{count}} tasks",
+      "progressTitle": "Project progress",
+      "completedCount": "{{completed}}/{{total}} done",
+      "axisX": "Deliveries (X)",
+      "axisY": "Completed (Y)"
+    },
     "columnPresets": {
       "backlog": "Backlog",
       "todo": "To-do",
