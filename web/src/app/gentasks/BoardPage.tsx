@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { ArchiveIcon, Columns3Icon, PlusIcon, SettingsIcon } from 'lucide-react'
+import { ArchiveIcon, Columns3Icon, PanelRightIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -16,6 +16,7 @@ import { Button } from '@/shared/ui/button'
 import { Spinner } from '@/shared/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip'
 import { ArchivedTasksDialog } from './components/ArchivedTasksDialog'
+import { BoardAssigneesPanel } from './components/BoardAssigneesPanel'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { BoardCanvas } from './components/BoardCanvas'
 import { ActiveFilterBar, BoardFilterMenu } from './components/BoardFilters'
@@ -41,6 +42,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   const { can } = useAuth()
   const users = useDirectoryUsers(can(PERMISSIONS.userRead))
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER)
+  const [assigneesPanelOpen, setAssigneesPanelOpen] = useState(true)
   const [taskDialog, setTaskDialog] = useState<TaskDialogMode | null>(null)
   const [columnEditing, setColumnEditing] = useState<ColumnNameEditing | null>(null)
   const [columnDeleting, setColumnDeleting] = useState<Column | null>(null)
@@ -91,6 +93,13 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
         actions={
           <>
             <BoardFilterMenu filter={filter} labels={board.data.labels} users={users.data} onChange={setFilter} />
+            <IconAction
+              label={t('gentasks.assigneesPanel.toggle')}
+              active={assigneesPanelOpen}
+              onClick={() => setAssigneesPanelOpen((current) => !current)}
+            >
+              <PanelRightIcon />
+            </IconAction>
             <IconAction label={t('gentasks.board.archived')} onClick={() => setArchivedOpen(true)}>
               <ArchiveIcon />
             </IconAction>
@@ -123,20 +132,25 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
         <BoardBreadcrumb board={board.data} />
       </PageHeader>
       <ActiveFilterBar filter={filter} labels={board.data.labels} users={users.data} onChange={setFilter} />
-      <BoardCanvas
-        board={board.data}
-        visibleBoard={filterBoardView(board.data, filter)}
-        abilities={abilities}
-        taskDragEnabled={isTaskDragEnabled(abilities.canWriteTasks, filter)}
-        users={users.data}
-        actions={{
-          onAddTask: (column) => setTaskDialog({ kind: 'create', columnToken: column.token }),
-          onOpenTask: (task) => setTaskDialog({ kind: 'edit', task }),
-          onRename: (column) => openColumnEditing({ kind: 'rename', column }),
-          onResetName: (column) => resetColumnName.mutate(column),
-          onDelete: setColumnDeleting,
-        }}
-      />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <BoardCanvas
+          board={board.data}
+          visibleBoard={filterBoardView(board.data, filter)}
+          abilities={abilities}
+          taskDragEnabled={isTaskDragEnabled(abilities.canWriteTasks, filter)}
+          users={users.data}
+          actions={{
+            onAddTask: (column) => setTaskDialog({ kind: 'create', columnToken: column.token }),
+            onOpenTask: (task) => setTaskDialog({ kind: 'edit', task }),
+            onRename: (column) => openColumnEditing({ kind: 'rename', column }),
+            onResetName: (column) => resetColumnName.mutate(column),
+            onDelete: setColumnDeleting,
+          }}
+        />
+        {assigneesPanelOpen ? (
+          <BoardAssigneesPanel board={board.data} users={users.data} filter={filter} onFilterChange={setFilter} />
+        ) : null}
+      </div>
       <TaskDialog board={board.data} mode={taskDialog} users={users.data} abilities={abilities} onClose={() => setTaskDialog(null)} />
       <NameDialog
         open={columnEditing !== null}
@@ -169,11 +183,21 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   )
 }
 
-function IconAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+function IconAction({
+  label,
+  active,
+  onClick,
+  children,
+}: {
+  label: string
+  active?: boolean
+  onClick: () => void
+  children: ReactNode
+}) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={label} onClick={onClick}>
+        <Button variant={active ? 'secondary' : 'ghost'} size="icon-sm" aria-label={label} aria-pressed={active} onClick={onClick}>
           {children}
         </Button>
       </TooltipTrigger>
