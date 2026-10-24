@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
-import { EMPTY_FILTER, filterBoardView, isFilterActive, matchesFilter, selectedNames, toggleValue, UNASSIGNED } from './filters'
+import {
+  EMPTY_FILTER,
+  filterBoardView,
+  isAssigneeSelected,
+  isFilterActive,
+  matchesFilter,
+  selectedNames,
+  toggleAssigneeFilter,
+  toggleValue,
+  UNASSIGNED,
+} from './filters'
 import type { BoardView } from './types'
 
 function boardWithVariedTasks(): BoardView {
@@ -50,5 +60,19 @@ describe('filters', () => {
       { token: 'b', name: 'Bruno' },
     ]
     expect(selectedNames(['b', 'a', 'gone'], options)).toBe('Bruno, Ana, gone')
+  })
+
+  it('toggles and checks an assignee or unassigned filter entry', () => {
+    const withAna = toggleAssigneeFilter(EMPTY_FILTER, 'user-ana')
+    expect(isAssigneeSelected(withAna, 'user-ana')).toBe(true)
+    expect(isAssigneeSelected(withAna, null)).toBe(false)
+
+    const withUnassigned = toggleAssigneeFilter(withAna, null)
+    expect(isAssigneeSelected(withUnassigned, null)).toBe(true)
+    expect(withUnassigned.assigneeTokens).toEqual(['user-ana', UNASSIGNED])
+
+    const withoutAna = toggleAssigneeFilter(withUnassigned, 'user-ana')
+    expect(isAssigneeSelected(withoutAna, 'user-ana')).toBe(false)
+    expect(withoutAna.assigneeTokens).toEqual([UNASSIGNED])
   })
 })

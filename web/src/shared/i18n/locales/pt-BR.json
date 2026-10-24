@@ -273,6 +273,15 @@
       "addTaskTo": "Adicionar tarefa em {{title}}",
       "newTask": "Nova tarefa"
     },
+    "assigneesPanel": {
+      "title": "Responsáveis",
+      "toggle": "Responsáveis",
+      "totalTasks": "{{count}} tarefas",
+      "progressTitle": "Progresso do projeto",
+      "completedCount": "{{completed}}/{{total}} concluídas",
+      "axisX": "Entregas (X)",
+      "axisY": "Concluídas (Y)"
+    },
     "columnPresets": {
       "backlog": "Backlog",
       "todo": "A fazer",

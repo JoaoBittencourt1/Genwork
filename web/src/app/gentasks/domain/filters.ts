@@ -38,6 +38,17 @@ export function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((candidate) => candidate !== value) : [...values, value]
 }
 
+export function isAssigneeSelected(filter: TaskFilter, assigneeToken: string | null): boolean {
+  return filter.assigneeTokens.includes(assigneeToken ?? UNASSIGNED)
+}
+
+export function toggleAssigneeFilter(filter: TaskFilter, assigneeToken: string | null): TaskFilter {
+  return {
+    ...filter,
+    assigneeTokens: toggleValue(filter.assigneeTokens, assigneeToken ?? UNASSIGNED),
+  }
+}
+
 // selectedNames lists the names of the selected options in selection order; unknown tokens show as-is.
 export function selectedNames(tokens: string[], options: { token: string; name: string }[]): string {
   return tokens.map((token) => options.find((option) => option.token === token)?.name ?? token).join(', ')
