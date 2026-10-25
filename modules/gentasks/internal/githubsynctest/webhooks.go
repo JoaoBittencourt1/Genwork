@@ -6,29 +6,32 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 // Recorded webhook deliveries in testdata/webhooks; the pull request ones cite GEN-1 in the title and branch, base main.
 const (
-	PullRequestOpened          = "pull_request_opened.json"
-	PullRequestReopened        = "pull_request_reopened.json"
-	PullRequestEdited          = "pull_request_edited.json"
-	PullRequestReadyForReview  = "pull_request_ready_for_review.json"
-	PullRequestReviewRequested = "pull_request_review_requested.json"
-	PullRequestClosedMerged    = "pull_request_closed_merged.json"
-	PullRequestClosedUnmerged  = "pull_request_closed_unmerged.json"
-	PullRequestLabeled         = "pull_request_labeled.json"
-	Ping                       = "ping.json"
-	InstallationCreated        = "installation_created.json"
+	PullRequestOpened           = "pull_request_opened.json"
+	PullRequestReopened         = "pull_request_reopened.json"
+	PullRequestEdited           = "pull_request_edited.json"
+	PullRequestReadyForReview   = "pull_request_ready_for_review.json"
+	PullRequestConvertedToDraft = "pull_request_converted_to_draft.json"
+	PullRequestReviewRequested  = "pull_request_review_requested.json"
+	PullRequestClosedMerged     = "pull_request_closed_merged.json"
+	PullRequestClosedUnmerged   = "pull_request_closed_unmerged.json"
+	PullRequestLabeled          = "pull_request_labeled.json"
+	Ping                        = "ping.json"
+	InstallationCreated         = "installation_created.json"
 )
 
 // PullRequestChanges rewrites a recorded pull request; empty fields keep the recorded value.
 type PullRequestChanges struct {
-	Title   string
-	HeadRef string
-	BaseRef string
-	Body    string
-	Number  int
+	Title     string
+	HeadRef   string
+	BaseRef   string
+	Body      string
+	Number    int
+	UpdatedAt time.Time
 }
 
 func WebhookPayload(t testing.TB, name string) []byte {
@@ -51,6 +54,9 @@ func PullRequestPayload(t testing.TB, name string, changes PullRequestChanges) [
 	setIfChanged(pullRequest, "body", changes.Body)
 	setIfChanged(pullRequest["head"].(map[string]any), "ref", changes.HeadRef)
 	setIfChanged(pullRequest["base"].(map[string]any), "ref", changes.BaseRef)
+	if !changes.UpdatedAt.IsZero() {
+		pullRequest["updated_at"] = changes.UpdatedAt.UTC().Format(time.RFC3339)
+	}
 	if changes.Number != 0 {
 		pullRequest["number"], payload["number"] = changes.Number, changes.Number
 	}
