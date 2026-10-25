@@ -1,4 +1,4 @@
-import type { BoardView, ColumnWithTasks, Task } from './types'
+import type { BoardTask, BoardView, ColumnWithTasks, Task } from './types'
 
 export type TaskLocation = { columnToken: string; index: number }
 
@@ -12,6 +12,11 @@ export function findTaskLocation(view: BoardView, taskToken: string): TaskLocati
   return undefined
 }
 
+export function findBoardTask(view: BoardView, taskToken: string): BoardTask | undefined {
+  const location = findTaskLocation(view, taskToken)
+  return location ? view.columns.find((column) => column.token === location.columnToken)?.tasks[location.index] : undefined
+}
+
 // moveTask mirrors the server's ordering rules, so the board can update before the request answers;
 // keeping the previous view is enough to roll back.
 export function moveTask(view: BoardView, move: TaskMove): BoardView {
@@ -19,7 +24,7 @@ export function moveTask(view: BoardView, move: TaskMove): BoardView {
   const target = view.columns.find((column) => column.token === move.toColumnToken)
   if (!location || !target) return view
   const source = view.columns.find((column) => column.token === location.columnToken) as ColumnWithTasks
-  const moving = source.tasks[location.index] as Task
+  const moving = source.tasks[location.index] as BoardTask
 
   const columns = view.columns.map((column) => {
     let tasks = column.tasks.filter((task) => task.token !== move.taskToken)
@@ -47,11 +52,11 @@ export function isSameLocation(view: BoardView, move: TaskMove): boolean {
 }
 
 // haveSameContent tells whether two versions of a task look the same on a card: a new position alone changes nothing.
-export function haveSameContent(left: Task, right: Task): boolean {
-  return left === right || (Object.keys(left) as (keyof Task)[]).every((key) => key === 'position' || left[key] === right[key])
+export function haveSameContent<CardTask extends Task>(left: CardTask, right: CardTask): boolean {
+  return left === right || (Object.keys(left) as (keyof CardTask)[]).every((key) => key === 'position' || left[key] === right[key])
 }
 
-function renumberTasks(tasks: Task[]): Task[] {
+function renumberTasks<ColumnTask extends Task>(tasks: ColumnTask[]): ColumnTask[] {
   return tasks.map((task, index) => (task.position === index ? task : { ...task, position: index }))
 }
 

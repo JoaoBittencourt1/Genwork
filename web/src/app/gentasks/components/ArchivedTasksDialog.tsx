@@ -4,6 +4,7 @@ import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog'
 import { Spinner } from '@/shared/ui/spinner'
+import { loadError } from '@/shared/domain/errors'
 import { deleteTask, listArchivedTasks, unarchiveTask } from '../datasource/tasksDatasource'
 import type { GentasksAbilities } from '../domain/permissions'
 import { taskIdentifier } from '../domain/taskPrefix'
@@ -37,7 +38,7 @@ export function ArchivedTasksDialog({ boardToken, taskPrefix, abilities, open, o
         <DialogHeader>
           <DialogTitle>{t('gentasks.archived.title')}</DialogTitle>
         </DialogHeader>
-        <ErrorAlert error={archived.error ?? restore.error ?? remove.error} />
+        <ErrorAlert error={loadError(archived) ?? restore.error ?? remove.error} />
         {archived.isPending ? <Spinner /> : null}
         {archived.data?.length === 0 ? <p className="text-sm text-muted-foreground">{t('gentasks.archived.empty')}</p> : null}
         <ul className="flex max-h-96 flex-col gap-2 overflow-y-auto">

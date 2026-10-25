@@ -17,7 +17,6 @@ import {
 import { FieldError } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
-import { Textarea } from '@/shared/ui/textarea'
 import { archiveTask, createTask, deleteTask, moveTask, updateTask } from '../datasource/tasksDatasource'
 import { resolveColumnTitle } from '../domain/columnName'
 import { toggleValue } from '../domain/filters'
@@ -31,13 +30,17 @@ import {
   resolveColumnChange,
   type TaskDraft,
 } from '../domain/taskPatch'
+import { findBoardTask } from '../domain/ordering'
 import { isPatchEmpty } from '../domain/patch'
+import { sortPullRequests } from '../domain/pullRequests'
 import { taskIdentifier } from '../domain/taskPrefix'
-import { URGENCY_LEVELS, type BoardView, type Task, type Urgency } from '../domain/types'
+import { URGENCY_LEVELS, type BoardView, type Task, type TaskPullRequest, type Urgency } from '../domain/types'
 import { urgencyTranslationKey } from '../domain/urgency'
 import { AssigneeAvatar } from './AssigneeAvatar'
 import { ColumnStatusIcon } from './ColumnStatusIcon'
 import { LabelChip } from './LabelChip'
+import { PullRequestSummary } from './PullRequestSummary'
+import { TaskDescriptionField } from './TaskDescriptionField'
 import { gentasksQueryKeys } from './queryKeys'
 import { UrgencyIcon } from './UrgencyIcon'
 
@@ -122,18 +125,21 @@ function TaskForm({ board, mode, users, abilities, onClose }: TaskDialogProps & 
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
           />
           {titleError ? <FieldError>{titleError}</FieldError> : null}
-          <Textarea
+          <TaskDescriptionField
             value={draft.description}
-            maxLength={10000}
-            rows={10}
-            disabled={readOnly}
-            placeholder={t('gentasks.task.descriptionPlaceholder')}
-            aria-label={t('gentasks.task.description')}
-            className="min-h-48 resize-none border-none bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
-            onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+            readOnly={readOnly}
+            onChange={(description) => setDraft({ ...draft, description })}
           />
         </div>
-        <TaskProperties board={board} draft={draft} users={users} readOnly={readOnly} assigneeError={assigneeError} onChange={setDraft} />
+        <TaskProperties
+          board={board}
+          draft={draft}
+          users={users}
+          readOnly={readOnly}
+          assigneeError={assigneeError}
+          pullRequests={mode.kind === 'edit' ? (findBoardTask(board, mode.task.token)?.pullRequests ?? []) : []}
+          onChange={setDraft}
+        />
       </div>
       <div className="flex shrink-0 items-center gap-2 border-t px-4 py-3">
         {mode.kind === 'edit' && abilities.canWriteTasks ? (
@@ -181,10 +187,11 @@ type TaskPropertiesProps = {
   users: DirectoryUser[] | undefined
   readOnly: boolean
   assigneeError: string | undefined
+  pullRequests: TaskPullRequest[]
   onChange: (draft: TaskDraft) => void
 }
 
-function TaskProperties({ board, draft, users, readOnly, assigneeError, onChange }: TaskPropertiesProps) {
+function TaskProperties({ board, draft, users, readOnly, assigneeError, pullRequests, onChange }: TaskPropertiesProps) {
   const { t } = useTranslation()
   const selectedLabels = board.labels.filter((label) => draft.labelTokens.includes(label.token))
 
@@ -269,7 +276,31 @@ function TaskProperties({ board, draft, users, readOnly, assigneeError, onChange
           </DropdownMenuContent>
         </DropdownMenu>
       </Property>
+      {pullRequests.length > 0 ? <TaskPullRequestList pullRequests={pullRequests} /> : null}
     </aside>
+  )
+}
+
+function TaskPullRequestList({ pullRequests }: { pullRequests: TaskPullRequest[] }) {
+  const { t } = useTranslation()
+  return (
+    <section className="mt-4 flex flex-col gap-1">
+      <h3 className="px-2 pb-1 text-xs font-medium text-muted-foreground">{t('gentasks.task.pullRequests')}</h3>
+      <ul className="flex flex-col">
+        {sortPullRequests(pullRequests).map((pullRequest) => (
+          <li key={pullRequest.token}>
+            <a
+              href={pullRequest.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <PullRequestSummary pullRequest={pullRequest} />
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArchiveIcon, Columns3Icon, PanelRightIcon, PlusIcon, SettingsIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { PageContent } from '@/shared/components/PageContent'
 import { PageHeader } from '@/shared/components/PageHeader'
+import { liveRefreshInterval } from '@/shared/domain/liveRefresh'
 import { useDirectoryUsers } from '@/shared/hooks/useDirectoryUsers'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { Button } from '@/shared/ui/button'
@@ -22,7 +23,7 @@ import { BoardCanvas } from './components/BoardCanvas'
 import { ActiveFilterBar, BoardFilterMenu } from './components/BoardFilters'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { NameDialog } from './components/NameDialog'
-import { gentasksQueryKeys } from './components/queryKeys'
+import { gentasksMutationKeys, gentasksQueryKeys } from './components/queryKeys'
 import { TaskDialog, type TaskDialogMode } from './components/TaskDialog'
 import { useGentasksAbilities } from './components/useGentasksAbilities'
 import { addColumn, deleteColumn, readBoard, renameColumn } from './datasource/boardsDatasource'
@@ -38,7 +39,13 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   const { describeError } = useErrorMessage()
   const abilities = useGentasksAbilities()
   const queryClient = useQueryClient()
-  const board = useQuery({ queryKey: gentasksQueryKeys.board(boardToken), queryFn: () => readBoard(boardToken), enabled: abilities.canRead })
+  const savingMoves = useIsMutating({ mutationKey: gentasksMutationKeys.boardMoves(boardToken) }) > 0
+  const board = useQuery({
+    queryKey: gentasksQueryKeys.board(boardToken),
+    queryFn: () => readBoard(boardToken),
+    enabled: abilities.canRead,
+    refetchInterval: liveRefreshInterval({ savingChanges: savingMoves }),
+  })
   const { can } = useAuth()
   const users = useDirectoryUsers(can(PERMISSIONS.userRead))
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER)
@@ -69,7 +76,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   })
 
   if (!abilities.canRead) return <GentasksNoPermission />
-  if (board.isPending || board.isError) {
+  if (board.isPending || board.isLoadingError) {
     return (
       <>
         <PageHeader>

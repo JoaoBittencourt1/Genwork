@@ -46,13 +46,30 @@ export type Task = {
   updatedAt: string
 }
 
+export const PULL_REQUEST_STATES = ['open', 'draft', 'merged', 'closed'] as const
+export type PullRequestState = (typeof PULL_REQUEST_STATES)[number]
+
+// TaskPullRequest: title, state, and author are null for pull requests linked before gentasks kept their details.
+export type TaskPullRequest = {
+  token: string
+  repository: string
+  number: number
+  title: string | null
+  state: PullRequestState | null
+  author: { login: string; avatarUrl: string } | null
+  url: string
+}
+
+// BoardTask is a task as the board view returns it, with the pull requests that cite it.
+export type BoardTask = Task & { pullRequests: TaskPullRequest[] }
+
 // AssignedTask is a task from the caller's assigned-tasks list, with the board and column it sits in.
 export type AssignedTask = Task & {
   board: Pick<BoardSummary, 'token' | 'name' | 'taskPrefix'>
   column: Pick<Column, 'token' | 'preset' | 'name'>
 }
 
-export type ColumnWithTasks = Column & { tasks: Task[] }
+export type ColumnWithTasks = Column & { tasks: BoardTask[] }
 
 export type BoardView = BoardSummary & {
   columns: ColumnWithTasks[]

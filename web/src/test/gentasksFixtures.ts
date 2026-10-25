@@ -1,11 +1,13 @@
 import type {
   AssignedTask,
   BoardGithubSettings,
+  BoardTask,
   BoardView,
   ColumnWithTasks,
   GithubConnection,
   Label,
   Task,
+  TaskPullRequest,
 } from '@/app/gentasks/domain/types'
 import type { Capabilities } from '@/shared/datasource/capabilities'
 import type { DirectoryUser } from '@/shared/datasource/users'
@@ -54,6 +56,24 @@ export function assignedTaskFixture(overrides: Partial<AssignedTask> = {}): Assi
 
 type ColumnFixtureTasks = { titles: string[]; firstNumber: number }
 
+export function pullRequestFixture(overrides: Partial<TaskPullRequest> = {}): TaskPullRequest {
+  const number = overrides.number ?? 12
+  return {
+    token: `pull-request-${number}`,
+    repository: 'acme/api',
+    number,
+    title: 'PLA-1: sign in with e-mail',
+    state: 'open',
+    author: { login: 'ana-dev', avatarUrl: 'https://avatars.githubusercontent.com/u/5001?v=4' },
+    url: `https://github.com/acme/api/pull/${number}`,
+    ...overrides,
+  }
+}
+
+export function boardTaskFixture(overrides: Partial<BoardTask> = {}): BoardTask {
+  return { ...taskFixture(overrides), pullRequests: [], ...overrides }
+}
+
 function columnFixture(token: string, position: number, { titles, firstNumber }: ColumnFixtureTasks, overrides: Partial<ColumnWithTasks> = {}): ColumnWithTasks {
   return {
     token,
@@ -61,13 +81,21 @@ function columnFixture(token: string, position: number, { titles, firstNumber }:
     name: null,
     position,
     tasks: titles.map((title, index) =>
-      taskFixture({ token: `task-${title}`, number: firstNumber + index, title, columnToken: token, position: index }),
+      boardTaskFixture({
+        token: `task-${title}`,
+        number: firstNumber + index,
+        title,
+        columnToken: token,
+        position: index,
+        pullRequests: firstNumber + index === 1 ? [pullRequestFixture()] : [],
+      }),
     ),
     ...overrides,
   }
 }
 
-// boardViewFixture: backlog [A, B, C], todo [D], done [] — the default columns with tasks PLA-1 to PLA-4.
+// boardViewFixture: backlog [A, B, C], todo [D], done [] — the default columns with tasks PLA-1 to PLA-4; PLA-1 has a
+// pull request.
 export function boardViewFixture(): BoardView {
   return {
     token: 'board-1',

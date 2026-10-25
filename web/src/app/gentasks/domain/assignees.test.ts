@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DirectoryUser } from '@/shared/datasource/users'
-import { boardViewFixture, taskFixture, usersFixture } from '@/test/gentasksFixtures'
+import { boardTaskFixture, boardViewFixture, usersFixture } from '@/test/gentasksFixtures'
 import { assignTask, canAssignFromCard, summarizeBoardAssignees, summarizeBoardProgress } from './assignees'
 
 function assigneeOf(view: ReturnType<typeof boardViewFixture>, taskToken: string) {
@@ -98,7 +98,7 @@ describe('summarizeBoardProgress', () => {
           ? {
               ...column,
               tasks: [
-                taskFixture({
+                boardTaskFixture({
                   token: 'task-E',
                   number: 5,
                   title: 'Ship API',
@@ -106,7 +106,7 @@ describe('summarizeBoardProgress', () => {
                   assigneeToken: 'user-ana',
                   updatedAt: '2026-10-22T15:00:00Z',
                 }),
-                taskFixture({
+                boardTaskFixture({
                   token: 'task-F',
                   number: 6,
                   title: 'Design DB',
