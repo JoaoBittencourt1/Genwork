@@ -37,7 +37,7 @@ export function InviteTable({ onDelivered }: { onDelivered: (delivery: InviteDel
   })
 
   if (invites.isPending) return <Spinner />
-  if (invites.isError) return <ErrorAlert error={invites.error} />
+  if (invites.isLoadingError) return <ErrorAlert error={invites.error} />
   if (invites.data.length === 0) return <p className="text-sm text-muted-foreground">{t('invites.empty')}</p>
 
   return (

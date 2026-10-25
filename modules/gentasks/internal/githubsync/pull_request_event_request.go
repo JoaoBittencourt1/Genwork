@@ -2,6 +2,7 @@ package githubsync
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 )
@@ -10,10 +11,17 @@ import (
 type PullRequestEventRequest struct {
 	Action      string `json:"action"`
 	PullRequest struct {
-		Number int    `json:"number"`
-		Title  string `json:"title"`
-		Merged bool   `json:"merged"`
-		Head   struct {
+		Number    int       `json:"number"`
+		Title     string    `json:"title"`
+		State     string    `json:"state"`
+		Draft     bool      `json:"draft"`
+		Merged    bool      `json:"merged"`
+		UpdatedAt time.Time `json:"updated_at"`
+		User      struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+		} `json:"user"`
+		Head struct {
 			Ref string `json:"ref"`
 		} `json:"head"`
 		Base struct {
@@ -30,7 +38,7 @@ func DecodePullRequestEvent(body []byte) (PullRequestEvent, error) {
 	if err := json.Unmarshal(body, &request); err != nil {
 		return PullRequestEvent{}, httpapi.ErrMalformedBody
 	}
-	if request.PullRequest.Number <= 0 || request.Repository.FullName == "" {
+	if request.PullRequest.Number <= 0 || request.Repository.FullName == "" || request.PullRequest.UpdatedAt.IsZero() {
 		return PullRequestEvent{}, httpapi.ErrMalformedBody
 	}
 	return PullRequestEvent{
@@ -41,5 +49,8 @@ func DecodePullRequestEvent(body []byte) (PullRequestEvent, error) {
 		HeadRef:    request.PullRequest.Head.Ref,
 		BaseRef:    request.PullRequest.Base.Ref,
 		Merged:     request.PullRequest.Merged,
+		State:      PullRequestStateOf(request.PullRequest.State, request.PullRequest.Draft, request.PullRequest.Merged),
+		Author:     PullRequestAuthor{Login: request.PullRequest.User.Login, AvatarURL: request.PullRequest.User.AvatarURL},
+		UpdatedAt:  request.PullRequest.UpdatedAt,
 	}, nil
 }

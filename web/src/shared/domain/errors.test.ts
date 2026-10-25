@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/datasource/httpClient'
-import { errorTranslationKey, fieldErrorTranslationKey } from './errors'
+import { errorTranslationKey, fieldErrorTranslationKey, loadError } from './errors'
 
 describe('errorTranslationKey', () => {
   it('maps API error codes to translation keys', () => {
@@ -24,5 +24,16 @@ describe('fieldErrorTranslationKey', () => {
     expect(fieldErrorTranslationKey(new ApiError(400, 'validation_failed', { email: 'invalid' }), 'name')).toBeUndefined()
     expect(fieldErrorTranslationKey(new ApiError(401, 'invalid_credentials'), 'email')).toBeUndefined()
     expect(fieldErrorTranslationKey(new Error('boom'), 'email')).toBeUndefined()
+  })
+})
+
+describe('loadError', () => {
+  it('reports the error of a first load that failed', () => {
+    const error = new ApiError(503, 'core_unavailable')
+    expect(loadError({ isLoadingError: true, error })).toBe(error)
+  })
+
+  it('hides the error of a background refresh, which keeps the data already shown', () => {
+    expect(loadError({ isLoadingError: false, error: new ApiError(503, 'core_unavailable') })).toBeNull()
   })
 })

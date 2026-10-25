@@ -12,6 +12,7 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/fie
 import { Input } from '@/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { Spinner } from '@/shared/ui/spinner'
+import { loadError } from '@/shared/domain/errors'
 import { readBoardGithubSettings, updateBoardGithubSettings } from '../datasource/githubDatasource'
 import { resolveColumnTitle } from '../domain/columnName'
 import {
@@ -71,7 +72,7 @@ export function GithubSettingsSection({ board, canManageGithub }: GithubSettings
         </Alert>
       ) : null}
       {settings.isPending ? <Spinner /> : null}
-      {settings.isError ? <ErrorAlert error={settings.error} /> : null}
+      <ErrorAlert error={loadError(settings)} />
       {settings.data ? <GithubSettingsForm key={JSON.stringify(settings.data)} board={board} settings={settings.data} /> : null}
     </div>
   )

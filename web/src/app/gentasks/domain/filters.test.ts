@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
+import { boardTaskFixture, boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
 import {
   EMPTY_FILTER,
   filterBoardView,
@@ -17,9 +17,9 @@ function boardWithVariedTasks(): BoardView {
   const view = boardViewFixture()
   const backlog = view.columns[0]!
   backlog.tasks = [
-    taskFixture({ token: 't1', title: 'Urgent bug', urgency: 'urgent', labels: [bugLabel], assigneeToken: 'user-ana' }),
-    taskFixture({ token: 't2', title: 'Low chore', urgency: 'low', position: 1 }),
-    taskFixture({ token: 't3', title: 'Urgent chore', urgency: 'urgent', position: 2, assigneeToken: 'user-bruno' }),
+    boardTaskFixture({ token: 't1', title: 'Urgent bug', urgency: 'urgent', labels: [bugLabel], assigneeToken: 'user-ana' }),
+    boardTaskFixture({ token: 't2', title: 'Low chore', urgency: 'low', position: 1 }),
+    boardTaskFixture({ token: 't3', title: 'Urgent chore', urgency: 'urgent', position: 2, assigneeToken: 'user-bruno' }),
   ]
   return view
 }

@@ -48,7 +48,7 @@ func New(dependencies Dependencies) (http.Handler, error) {
 		_, _ = w.Write([]byte("ok"))
 	})
 	boards.NewBoardHandler(boards.NewBoardService(dependencies.DB, tasks.TaskRepository{}, dependencies.Now)).Register(router)
-	boardview.NewBoardViewHandler(boardview.NewBoardViewService(dependencies.DB)).Register(router)
+	boardview.NewBoardViewHandler(boardview.NewBoardViewService(dependencies.DB), dependencies.Github.WebURL).Register(router)
 	labels.NewLabelHandler(labels.NewLabelService(dependencies.DB, dependencies.Now)).Register(router)
 	taskService := tasks.NewTaskService(dependencies.DB, dependencies.UserDirectory, dependencies.Now)
 	tasks.NewTaskHandler(taskService).Register(router)

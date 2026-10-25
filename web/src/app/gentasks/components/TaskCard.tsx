@@ -9,20 +9,21 @@ import { canAssignFromCard, findAssignee } from '../domain/assignees'
 import { taskDragId } from '../domain/dragAndDrop'
 import { haveSameContent } from '../domain/ordering'
 import { taskIdentifier } from '../domain/taskPrefix'
-import type { Task } from '../domain/types'
+import type { BoardTask } from '../domain/types'
 import { isUrgencyShown, urgencyTranslationKey } from '../domain/urgency'
 import { AssigneeAvatar } from './AssigneeAvatar'
 import { LabelChip } from './LabelChip'
 import { sortableStyle } from './sortableStyle'
 import { TaskAssigneeMenu, type AssigneeChange } from './TaskAssigneeMenu'
+import { TaskPullRequestsMenu } from './TaskPullRequestsMenu'
 import { UrgencyIcon } from './UrgencyIcon'
 
 type TaskCardProps = {
-  task: Task
+  task: BoardTask
   taskPrefix: string
   users: DirectoryUser[] | undefined
   dragEnabled: boolean
-  onOpen: (task: Task) => void
+  onOpen: (task: BoardTask) => void
   // onAssign is set only for people who can write tasks; it makes the avatar a menu.
   onAssign?: (change: AssigneeChange) => void
 }
@@ -49,6 +50,9 @@ export const TaskCard = memo(function TaskCard({ task, taskPrefix, users, dragEn
       {dragEnabled ? <DragGrip title={task.title} attributes={attributes} setActivatorNodeRef={setActivatorNodeRef} /> : null}
       <TaskCardButton task={task} taskPrefix={taskPrefix} users={users} onOpen={onOpen} avatarInMenu={menuUsers !== undefined} />
       {menuUsers && onAssign ? <TaskAssigneeMenu task={task} users={menuUsers} onAssign={onAssign} /> : null}
+      {task.pullRequests.length > 0 ? (
+        <TaskPullRequestsMenu taskIdentifier={taskIdentifier(taskPrefix, task.number)} pullRequests={task.pullRequests} />
+      ) : null}
     </li>
   )
 })

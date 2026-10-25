@@ -37,7 +37,7 @@ export function MemberTable({ viewer }: { viewer: MemberViewer }) {
   const remove = useMutation({ mutationFn: (member: Member) => removeMember(member.token), onSuccess: refreshMembers })
 
   if (members.isPending) return <Spinner />
-  if (members.isError) return <ErrorAlert error={members.error} />
+  if (members.isLoadingError) return <ErrorAlert error={members.error} />
 
   const roleList = roles.data ?? []
   const rolesToAssign = assignableRoles(roleList, viewer.rolePermissions)

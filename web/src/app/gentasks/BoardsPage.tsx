@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
 import { Spinner } from '@/shared/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
+import { loadError } from '@/shared/domain/errors'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { NameDialog } from './components/NameDialog'
@@ -73,7 +74,7 @@ export function BoardsPage() {
       </PageHeader>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="empty:hidden px-6 pt-4">
-          <ErrorAlert error={boards.error ?? remove.error} />
+          <ErrorAlert error={loadError(boards) ?? remove.error} />
         </div>
         {boards.isPending ? <Spinner className="m-6" /> : null}
         {boards.data?.length === 0 ? (

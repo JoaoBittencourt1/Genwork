@@ -76,17 +76,21 @@ func (app *testApp) expectTitles(boardToken, columnToken string, want ...string)
 	}
 }
 
-func (app *testApp) pullRequestLinks(taskToken string) []githubsync.TaskPullRequest {
+func (app *testApp) pullRequestLinks(taskToken string) []githubsync.LinkedPullRequest {
 	app.t.Helper()
 	task, err := tasks.TaskRepository{}.FindByToken(context.Background(), app.db, taskToken)
 	if err != nil {
 		app.t.Fatal(err)
 	}
-	links, err := githubsync.TaskPullRequestRepository{}.ListByTask(context.Background(), app.db, task.ID)
+	linked, err := githubsync.TaskPullRequestRepository{}.ListActiveForTasks(context.Background(), app.db, []int64{task.ID})
 	if err != nil {
 		app.t.Fatal(err)
 	}
-	return links
+	return linked[task.ID]
+}
+
+func movedBy(link githubsync.LinkedPullRequest, trigger githubsync.PullRequestTrigger) bool {
+	return link.Link.LastMovedEvent != nil && *link.Link.LastMovedEvent == trigger
 }
 
 func newConnectedTestApp(t *testing.T) *testApp {
@@ -154,8 +158,8 @@ func TestWebhookMovesTaskWhenPullRequestOpened(t *testing.T) {
 	app.expectTitles(board.token, board.todo)
 	app.expectTitles(board.token, board.inProgress, "Already started", "Sign in")
 	links := app.pullRequestLinks(task.Token)
-	if len(links) != 1 || links[0].Repository != "acme/api" || links[0].PullRequestNumber != 12 ||
-		links[0].LastMovedEvent != githubsync.TriggerOpened || links[0].MergeMovedAt != nil {
+	if len(links) != 1 || links[0].PullRequest.Repository != "acme/api" || links[0].PullRequest.Number != 12 ||
+		!movedBy(links[0], githubsync.TriggerOpened) || links[0].Link.MergeMovedAt != nil {
 		t.Errorf("links = %+v", links)
 	}
 }
@@ -192,7 +196,7 @@ func TestWebhookMovesAndLocksTaskWhenMergedIntoAFinalBranch(t *testing.T) {
 	app.deliverPullRequest(githubsynctest.PullRequestClosedMerged, githubsynctest.PullRequestChanges{})
 
 	app.expectTitles(board.token, board.done, "Sign in")
-	if links := app.pullRequestLinks(task.Token); len(links) != 1 || links[0].MergeMovedAt == nil || links[0].LastMovedEvent != githubsync.TriggerMerged {
+	if links := app.pullRequestLinks(task.Token); len(links) != 1 || links[0].Link.MergeMovedAt == nil || !movedBy(links[0], githubsync.TriggerMerged) {
 		t.Errorf("links = %+v", links)
 	}
 

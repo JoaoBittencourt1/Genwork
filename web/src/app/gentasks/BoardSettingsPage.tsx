@@ -13,6 +13,7 @@ import { Button } from '@/shared/ui/button'
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
 import { Spinner } from '@/shared/ui/spinner'
+import { loadError } from '@/shared/domain/errors'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { GithubSettingsSection } from './components/GithubSettingsSection'
@@ -49,7 +50,7 @@ export function BoardSettingsPage({ boardToken }: { boardToken: string }) {
       </PageHeader>
       <PageContent className="max-w-3xl">
         {board.isPending ? <Spinner /> : null}
-        {board.isError ? <ErrorAlert error={board.error} /> : null}
+        <ErrorAlert error={loadError(board)} />
         {board.data ? (
           <div className="flex flex-col gap-10">
             <PageSection title={t('gentasks.settings.general')} description={t('gentasks.settings.generalDescription')}>

@@ -36,6 +36,21 @@ type taskBody struct {
 	ArchivedAt    *time.Time  `json:"archivedAt"`
 	CreatedAt     time.Time   `json:"createdAt"`
 	UpdatedAt     time.Time   `json:"updatedAt"`
+	// PullRequests is only part of the board view's tasks.
+	PullRequests []pullRequestBody `json:"pullRequests"`
+}
+
+type pullRequestBody struct {
+	Token      string  `json:"token"`
+	Repository string  `json:"repository"`
+	Number     int     `json:"number"`
+	Title      *string `json:"title"`
+	State      *string `json:"state"`
+	Author     *struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatarUrl"`
+	} `json:"author"`
+	URL string `json:"url"`
 }
 
 type columnBody struct {

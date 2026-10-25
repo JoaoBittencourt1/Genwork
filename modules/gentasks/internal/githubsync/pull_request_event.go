@@ -1,16 +1,30 @@
 package githubsync
 
-// PullRequestAction is the pull_request webhook "action" field; only these values can move a task.
+import (
+	"slices"
+	"time"
+)
+
+// PullRequestAction is the pull_request webhook "action" field; only these values change snapshots, links, or tasks.
 type PullRequestAction string
 
 const (
-	ActionOpened          PullRequestAction = "opened"
-	ActionReopened        PullRequestAction = "reopened"
-	ActionEdited          PullRequestAction = "edited"
-	ActionReadyForReview  PullRequestAction = "ready_for_review"
-	ActionReviewRequested PullRequestAction = "review_requested"
-	ActionClosed          PullRequestAction = "closed"
+	ActionOpened           PullRequestAction = "opened"
+	ActionReopened         PullRequestAction = "reopened"
+	ActionEdited           PullRequestAction = "edited"
+	ActionReadyForReview   PullRequestAction = "ready_for_review"
+	ActionConvertedToDraft PullRequestAction = "converted_to_draft"
+	ActionReviewRequested  PullRequestAction = "review_requested"
+	ActionClosed           PullRequestAction = "closed"
 )
+
+var handledPullRequestActions = []PullRequestAction{
+	ActionOpened, ActionReopened, ActionEdited, ActionReadyForReview, ActionConvertedToDraft, ActionReviewRequested, ActionClosed,
+}
+
+func (action PullRequestAction) IsHandled() bool {
+	return slices.Contains(handledPullRequestActions, action)
+}
 
 type PullRequestEvent struct {
 	Action     PullRequestAction
@@ -20,6 +34,16 @@ type PullRequestEvent struct {
 	HeadRef    string
 	BaseRef    string
 	Merged     bool
+	State      PullRequestState
+	Author     PullRequestAuthor
+	UpdatedAt  time.Time
+}
+
+func (event PullRequestEvent) Snapshot() PullRequestSnapshot {
+	return PullRequestSnapshot{
+		Repository: event.Repository, Number: event.Number, Title: event.Title, State: event.State, Author: event.Author,
+		GithubUpdatedAt: event.UpdatedAt,
+	}
 }
 
 // Trigger maps the event to the board setting it uses; found is false for events that never move a task.
