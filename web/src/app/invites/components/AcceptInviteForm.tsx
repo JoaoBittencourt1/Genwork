@@ -3,13 +3,13 @@ import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/app/auth/components/AuthContext'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
+import { passwordsMatch } from '@/shared/domain/password'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
 import { Button } from '@/shared/ui/button'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
 import { Spinner } from '@/shared/ui/spinner'
 import { acceptInvitation } from '../datasource/invitesDatasource'
-import { passwordsMatch } from '../domain/invite'
 
 export function AcceptInviteForm({ secret, email }: { secret: string; email: string }) {
   const { t } = useTranslation()

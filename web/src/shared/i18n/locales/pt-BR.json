@@ -23,7 +23,8 @@
     "email": "E-mail",
     "password": "Senha",
     "submit": "Entrar",
-    "submitting": "Entrando…"
+    "submitting": "Entrando…",
+    "forgotPassword": "Esqueci minha senha"
   },
   "home": {
     "greeting": "Olá, {{name}}!",
@@ -92,6 +93,25 @@
     "notFoundTitle": "Convite não encontrado",
     "notFoundDescription": "Este convite não existe, expirou, foi revogado ou já foi usado. Peça um novo convite a quem convidou você.",
     "goToLogin": "Ir para o login"
+  },
+  "forgotPassword": {
+    "title": "Esqueci minha senha",
+    "subtitle": "Informe seu e-mail e enviaremos um link para criar uma nova senha.",
+    "email": "E-mail",
+    "submit": "Enviar link",
+    "submitting": "Enviando…",
+    "sent": "Se existir uma conta com esse e-mail, enviamos um link para redefinir a senha. Ele vale por 1 hora.",
+    "backToLogin": "Voltar para o login"
+  },
+  "resetPassword": {
+    "title": "Nova senha",
+    "subtitle": "Escolha a nova senha da sua conta.",
+    "password": "Nova senha",
+    "passwordHint": "Entre 8 e 128 caracteres.",
+    "passwordConfirmation": "Confirme a senha",
+    "passwordMismatch": "As senhas não conferem.",
+    "submit": "Redefinir senha",
+    "submitting": "Salvando…"
   },
   "members": {
     "title": "Membros",
@@ -224,7 +244,8 @@
     "verification_failed": "A nova versão não respondeu a tempo.",
     "update_interrupted": "A atualização foi interrompida.",
     "invalid_client": "Este pedido de conexão cita um assistente desconhecido.",
-    "invalid_redirect_uri": "Este pedido de conexão volta para um endereço que o assistente nunca registrou."
+    "invalid_redirect_uri": "Este pedido de conexão volta para um endereço que o assistente nunca registrou.",
+    "password_reset_not_found": "Este link de redefinição não existe, expirou ou já foi usado. Peça um novo na tela de login."
   },
   "common": {
     "cancel": "Cancelar",
@@ -273,6 +294,15 @@
       "addTaskTo": "Adicionar tarefa em {{title}}",
       "newTask": "Nova tarefa"
     },
+    "assigneesPanel": {
+      "title": "Responsáveis",
+      "toggle": "Responsáveis",
+      "totalTasks": "{{count}} tarefas",
+      "progressTitle": "Progresso do projeto",
+      "completedCount": "{{completed}}/{{total}} concluídas",
+      "axisX": "Entregas (X)",
+      "axisY": "Concluídas (Y)"
+    },
     "columnPresets": {
       "backlog": "Backlog",
       "todo": "A fazer",
@@ -307,6 +337,17 @@
       "labels": "Labels",
       "noLabels": "Sem labels",
       "noLabelsOnBoard": "Crie labels nas configurações do quadro primeiro",
+      "pullRequests": "Pull requests",
+      "pullRequestCount_one": "{{count}} PR",
+      "pullRequestCount_other": "{{count}} PRs",
+      "openPullRequests": "Pull requests vinculados a {{task}}",
+      "pullRequestState": {
+        "open": "Aberto",
+        "draft": "Rascunho",
+        "merged": "Mergeado",
+        "closed": "Fechado",
+        "unknown": "Status ainda desconhecido"
+      },
       "create": "Criar tarefa",
       "archive": "Arquivar",
       "deleteTitle": "Excluir tarefa?",
@@ -314,6 +355,7 @@
       "dragHandle": "Mover tarefa {{title}}",
       "titlePlaceholder": "Título da tarefa",
       "descriptionPlaceholder": "Adicione uma descrição…",
+      "editDescription": "Editar descrição",
       "dialogDescription": "Edite o título, a descrição e as propriedades da tarefa.",
       "properties": "Propriedades",
       "status": "Status",

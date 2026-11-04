@@ -70,3 +70,12 @@ func containsTaskKey(keys []TaskKey, key TaskKey) bool {
 	}
 	return false
 }
+
+// taskKeyColumns splits keys into parallel prefix and number arrays for unnest in SQL.
+func taskKeyColumns(keys []TaskKey) (prefixes []string, numbers []int) {
+	prefixes, numbers = make([]string, 0, len(keys)), make([]int, 0, len(keys))
+	for _, key := range keys {
+		prefixes, numbers = append(prefixes, key.Prefix), append(numbers, key.Number)
+	}
+	return prefixes, numbers
+}

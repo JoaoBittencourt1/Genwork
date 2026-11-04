@@ -6,3 +6,7 @@ export const gentasksQueryKeys = {
   githubConnection: ['gentasks', 'github-connection'] as const,
   boardGithubSettings: (boardToken: string) => ['gentasks', 'board-github-settings', boardToken] as const,
 }
+
+export const gentasksMutationKeys = {
+  boardMoves: (boardToken: string) => ['gentasks', 'board-moves', boardToken] as const,
+}

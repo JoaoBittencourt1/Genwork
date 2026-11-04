@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { NO_LIVE_REFRESH } from '@/shared/domain/liveRefresh'
 import { decideAuthorization, previewAuthorization } from '../datasource/oauth'
 import type { AuthorizationDecision, AuthorizationRequest } from '../domain/authorizationRequest'
 
@@ -16,6 +17,7 @@ export function useAuthorizationPreview(request: AuthorizationRequest | null) {
       return answer
     },
     enabled: request !== null,
+    ...NO_LIVE_REFRESH,
   })
   const decision = useMutation({
     mutationFn: (choice: AuthorizationDecision) => decideAuthorization(request!, choice),

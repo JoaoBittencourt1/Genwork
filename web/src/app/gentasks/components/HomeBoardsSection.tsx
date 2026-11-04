@@ -7,6 +7,7 @@ import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { loadError } from '@/shared/domain/errors'
 import type { BoardSummary } from '../domain/types'
 
 type HomeBoardsSectionProps = {
@@ -30,7 +31,7 @@ export function HomeBoardsSection({ boards, canManageBoards }: HomeBoardsSection
         ) : null}
       </CardHeader>
       <CardContent className="space-y-2">
-        <ErrorAlert error={boards.error} />
+        <ErrorAlert error={loadError(boards)} />
         {boards.isPending ? <Skeleton className="h-24 w-full" /> : null}
         {boards.data?.length === 0 ? (
           <div className="flex flex-col items-start gap-3">

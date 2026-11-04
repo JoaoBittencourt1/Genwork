@@ -16,3 +16,8 @@ export function fieldErrorTranslationKey(error: unknown, field: string): string 
 
 export const fallbackErrorTranslationKey = `errors.${UNKNOWN_ERROR_CODE}`
 export const fallbackFieldErrorTranslationKey = `errors.fields.${INVALID_FIELD_REASON}`
+
+// A failed background refresh keeps the data already on screen, so only a failed first load is shown as an error.
+export function loadError(query: { isLoadingError: boolean; error: unknown }): unknown {
+  return query.isLoadingError ? query.error : null
+}

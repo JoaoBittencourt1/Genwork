@@ -35,6 +35,7 @@ var generousRateLimits = app.RateLimits{
 	Login:              platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	Refresh:            platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	Invitations:        platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	PasswordReset:      platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	ClientRegistration: platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	OAuthToken:         platform.RateLimit{PerMinute: 10000, Burst: 10000},
 }

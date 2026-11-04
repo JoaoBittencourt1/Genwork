@@ -6,7 +6,7 @@ import { moveTask as moveTaskRequest, updateTask } from '../datasource/tasksData
 import { assignTask } from '../domain/assignees'
 import { moveColumn, moveTask, type TaskMove } from '../domain/ordering'
 import type { BoardView } from '../domain/types'
-import { gentasksQueryKeys } from './queryKeys'
+import { gentasksMutationKeys, gentasksQueryKeys } from './queryKeys'
 import type { AssigneeChange } from './TaskAssigneeMenu'
 
 type ColumnMove = { columnToken: string; toPosition: number }
@@ -25,6 +25,7 @@ export function useBoardMoves(boardToken: string) {
   }
 
   const callbacks = {
+    mutationKey: gentasksMutationKeys.boardMoves(boardToken),
     onError: (error: unknown, _variables: unknown, context: { previous?: BoardView } | undefined) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous)
       toast.error(describeError(error))
