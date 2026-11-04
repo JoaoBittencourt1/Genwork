@@ -38,7 +38,3 @@ export function inviteActions(invite: Invite, can: PermissionCheck): InviteActio
 export function pickDefaultRole(roles: Role[]): Role | undefined {
   return roles.find((role) => role.name === DEFAULT_ROLE_NAME) ?? roles[0]
 }
-
-export function passwordsMatch(password: string, confirmation: string): boolean {
-  return password === confirmation
-}

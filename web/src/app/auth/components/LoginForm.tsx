@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
@@ -61,6 +62,9 @@ export function LoginForm() {
         <Button type="submit" disabled={submitting}>
           {submitting ? <Spinner /> : null}
           {submitting ? t('login.submitting') : t('login.submit')}
+        </Button>
+        <Button asChild variant="link" className="w-full">
+          <Link to="/forgot-password">{t('login.forgotPassword')}</Link>
         </Button>
       </FieldGroup>
     </form>

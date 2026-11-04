@@ -13,6 +13,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/members"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/modules"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/oauth"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/passwordreset"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/sessions"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/updates"
@@ -24,6 +25,7 @@ type RateLimits struct {
 	Login              platform.RateLimit
 	Refresh            platform.RateLimit
 	Invitations        platform.RateLimit
+	PasswordReset      platform.RateLimit
 	ClientRegistration platform.RateLimit
 	OAuthToken         platform.RateLimit
 }
@@ -32,6 +34,7 @@ var DefaultRateLimits = RateLimits{
 	Login:              platform.RateLimit{PerMinute: 10, Burst: 10},
 	Refresh:            platform.RateLimit{PerMinute: 60, Burst: 30},
 	Invitations:        platform.RateLimit{PerMinute: 20, Burst: 10},
+	PasswordReset:      platform.RateLimit{PerMinute: 5, Burst: 5},
 	ClientRegistration: platform.RateLimit{PerMinute: 10, Burst: 10},
 	OAuthToken:         platform.RateLimit{PerMinute: 60, Burst: 30},
 }
@@ -74,6 +77,11 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	}, invites.Settings{
 		PublicURL: settings.PublicURL, InstanceName: settings.InstanceName, DefaultLocale: settings.DefaultLocale,
 	})
+	passwordResetService := passwordreset.NewService(passwordreset.Dependencies{
+		DB: db, Users: userService, Mailer: dependencies.Mailer, Now: now,
+	}, passwordreset.Settings{
+		PublicURL: settings.PublicURL, InstanceName: settings.InstanceName, DefaultLocale: settings.DefaultLocale,
+	})
 	moduleService := modules.NewModuleService(db, discovery.CoreAPIVersion, now)
 	memberService := members.NewMemberService(db, accessService, now)
 
@@ -97,6 +105,7 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	access.NewHandler(accessService).Register(router)
 	members.NewMemberHandler(memberService).Register(router)
 	invites.NewHandler(inviteService, limitBy(settings.RateLimits.Invitations), now).Register(router)
+	passwordreset.NewHandler(passwordResetService, limitBy(settings.RateLimits.PasswordReset)).Register(router)
 	modules.NewModuleHandler(moduleService).Register(router)
 	capabilities.NewCapabilitiesHandler(moduleService, accessService, settings.Version, discovery.CoreAPIVersion).Register(router)
 	updates.NewUpdateHandler(updates.NewUpdateService(updates.NewHTTPUpdaterClient(settings.UpdaterURL, settings.UpdaterSecret))).Register(router)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { inviteFixture, rolesFixture } from '@/test/fixtures'
-import { inviteActions, passwordsMatch, pickDefaultRole, type InviteStatus } from './invite'
+import { inviteActions, pickDefaultRole, type InviteStatus } from './invite'
 
 const everyPermission = () => true
 const noPermission = () => false
@@ -31,13 +31,5 @@ describe('pickDefaultRole', () => {
   it('falls back to the first role, or nothing when there are none', () => {
     expect(pickDefaultRole([{ token: 'role-x', name: 'auditor', permissions: [] }])?.name).toBe('auditor')
     expect(pickDefaultRole([])).toBeUndefined()
-  })
-})
-
-describe('passwordsMatch', () => {
-  it('compares password and confirmation exactly', () => {
-    expect(passwordsMatch('correct horse', 'correct horse')).toBe(true)
-    expect(passwordsMatch('correct horse', 'correct Horse')).toBe(false)
-    expect(passwordsMatch('correct horse', 'correct horse ')).toBe(false)
   })
 })

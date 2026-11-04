@@ -50,6 +50,17 @@ func (service *Service) Create(ctx context.Context, db platform.DBTX, input Crea
 	})
 }
 
+// ChangePassword runs on the caller's connection or transaction and also lifts any failed-login lockout.
+func (service *Service) ChangePassword(ctx context.Context, db platform.DBTX, userID int64, password string) error {
+	if err := ValidatePasswordLength(password); err != nil {
+		return err
+	}
+	if err := service.users.UpdatePasswordHash(ctx, db, userID, service.hasher.Hash(password)); err != nil {
+		return err
+	}
+	return service.users.ClearLockout(ctx, db, userID)
+}
+
 func (service *Service) ListDirectory(ctx context.Context, db platform.DBTX) ([]User, error) {
 	return service.users.ListNotRemoved(ctx, db)
 }
