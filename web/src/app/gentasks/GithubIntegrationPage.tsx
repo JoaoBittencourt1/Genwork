@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Field, FieldDescription, FieldError, FieldLabel } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
 import { Spinner } from '@/shared/ui/spinner'
+import { loadError } from '@/shared/domain/errors'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
 import { GithubWebhookWarning } from './components/GithubWebhookWarning'
@@ -41,7 +42,7 @@ export function GithubIntegrationPage() {
         <div className="flex flex-col gap-6">
           <p className="text-sm text-muted-foreground">{t('gentasks.github.intro')}</p>
           {connection.isPending ? <Spinner /> : null}
-          {connection.isError ? <ErrorAlert error={connection.error} /> : null}
+          <ErrorAlert error={loadError(connection)} />
           {connection.data ? (
             <>
               <GithubWebhookWarning webhookUrl={connection.data.webhookUrl} />

@@ -32,15 +32,15 @@ export const TaskAssigneeMenu = memo(function TaskAssigneeMenu({ task, users, on
       >
         <AssigneeAvatar assignee={findAssignee(users, task.assigneeToken)} unassignedLabel={unassignedLabel} />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" onPointerDown={keepFromCard} onClick={keepFromCard} onKeyDown={keepFromCard}>
+      <DropdownMenuContent align="end" className="w-auto max-w-72" onPointerDown={keepFromCard} onClick={keepFromCard} onKeyDown={keepFromCard}>
         <AssigneeOption selected={task.assigneeToken === null} onSelect={() => onAssign({ taskToken: task.token, assigneeToken: null })}>
           <AssigneeAvatar assignee={undefined} unassignedLabel={unassignedLabel} />
-          {unassignedLabel}
+          <span className="truncate">{unassignedLabel}</span>
         </AssigneeOption>
         {users.map((user) => (
           <AssigneeOption key={user.token} selected={task.assigneeToken === user.token} onSelect={() => onAssign({ taskToken: task.token, assigneeToken: user.token })}>
             <AssigneeAvatar assignee={user} unassignedLabel={unassignedLabel} />
-            {user.name}
+            <span className="truncate">{user.name}</span>
           </AssigneeOption>
         ))}
       </DropdownMenuContent>
@@ -52,7 +52,7 @@ function AssigneeOption({ selected, onSelect, children }: { selected: boolean; o
   return (
     <DropdownMenuItem onSelect={onSelect}>
       {children}
-      {selected ? <CheckIcon className="ml-auto size-4" aria-hidden /> : null}
+      {selected ? <CheckIcon className="ml-auto size-4 shrink-0" aria-hidden /> : null}
     </DropdownMenuItem>
   )
 }

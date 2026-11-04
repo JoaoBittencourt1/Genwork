@@ -5,6 +5,7 @@ import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { formatTimeAgo } from '@/shared/domain/relativeTime'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { loadError } from '@/shared/domain/errors'
 import { taskIdentifier } from '../domain/taskPrefix'
 import type { AssignedTask } from '../domain/types'
 import { UrgencyIcon } from './UrgencyIcon'
@@ -19,7 +20,7 @@ export function HomeAssignedTasksSection({ assignedTasks }: { assignedTasks: Use
         <CardDescription>{t('home.assignedTasks.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        <ErrorAlert error={assignedTasks.error} />
+        <ErrorAlert error={loadError(assignedTasks)} />
         {assignedTasks.isPending ? <Skeleton className="h-24 w-full" /> : null}
         {assignedTasks.data?.length === 0 ? <p className="text-sm text-muted-foreground">{t('home.assignedTasks.empty')}</p> : null}
         {assignedTasks.data && assignedTasks.data.length > 0 ? (

@@ -1,15 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
-import { EMPTY_FILTER, filterBoardView, isFilterActive, matchesFilter, selectedNames, toggleValue, UNASSIGNED } from './filters'
+import { boardTaskFixture, boardViewFixture, bugLabel, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
+import {
+  EMPTY_FILTER,
+  filterBoardView,
+  isAssigneeSelected,
+  isFilterActive,
+  matchesFilter,
+  selectedNames,
+  toggleAssigneeFilter,
+  toggleValue,
+  UNASSIGNED,
+} from './filters'
 import type { BoardView } from './types'
 
 function boardWithVariedTasks(): BoardView {
   const view = boardViewFixture()
   const backlog = view.columns[0]!
   backlog.tasks = [
-    taskFixture({ token: 't1', title: 'Urgent bug', urgency: 'urgent', labels: [bugLabel], assigneeToken: 'user-ana' }),
-    taskFixture({ token: 't2', title: 'Low chore', urgency: 'low', position: 1 }),
-    taskFixture({ token: 't3', title: 'Urgent chore', urgency: 'urgent', position: 2, assigneeToken: 'user-bruno' }),
+    boardTaskFixture({ token: 't1', title: 'Urgent bug', urgency: 'urgent', labels: [bugLabel], assigneeToken: 'user-ana' }),
+    boardTaskFixture({ token: 't2', title: 'Low chore', urgency: 'low', position: 1 }),
+    boardTaskFixture({ token: 't3', title: 'Urgent chore', urgency: 'urgent', position: 2, assigneeToken: 'user-bruno' }),
   ]
   return view
 }
@@ -50,5 +60,19 @@ describe('filters', () => {
       { token: 'b', name: 'Bruno' },
     ]
     expect(selectedNames(['b', 'a', 'gone'], options)).toBe('Bruno, Ana, gone')
+  })
+
+  it('toggles and checks an assignee or unassigned filter entry', () => {
+    const withAna = toggleAssigneeFilter(EMPTY_FILTER, 'user-ana')
+    expect(isAssigneeSelected(withAna, 'user-ana')).toBe(true)
+    expect(isAssigneeSelected(withAna, null)).toBe(false)
+
+    const withUnassigned = toggleAssigneeFilter(withAna, null)
+    expect(isAssigneeSelected(withUnassigned, null)).toBe(true)
+    expect(withUnassigned.assigneeTokens).toEqual(['user-ana', UNASSIGNED])
+
+    const withoutAna = toggleAssigneeFilter(withUnassigned, 'user-ana')
+    expect(isAssigneeSelected(withoutAna, 'user-ana')).toBe(false)
+    expect(withoutAna.assigneeTokens).toEqual([UNASSIGNED])
   })
 })

@@ -1,0 +1,154 @@
+{
+  "action": "converted_to_draft",
+  "number": 12,
+  "pull_request": {
+    "url": "https://api.github.com/repos/acme/api/pulls/12",
+    "id": 2100000012,
+    "node_id": "PR_kwDOFixture12",
+    "html_url": "https://github.com/acme/api/pull/12",
+    "diff_url": "https://github.com/acme/api/pull/12.diff",
+    "number": 12,
+    "state": "open",
+    "locked": false,
+    "title": "GEN-1: sign in with e-mail",
+    "user": {
+      "login": "ana-dev",
+      "id": 5001,
+      "node_id": "U_kgDOFixture1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/5001?v=4",
+      "html_url": "https://github.com/ana-dev",
+      "type": "User",
+      "site_admin": false
+    },
+    "body": "Implements the sign in screen. See GEN-99 for the follow-up.",
+    "created_at": "2026-10-21T12:00:00Z",
+    "updated_at": "2026-10-21T12:20:00Z",
+    "closed_at": null,
+    "merged_at": null,
+    "merge_commit_sha": null,
+    "assignee": null,
+    "assignees": [],
+    "requested_reviewers": [],
+    "requested_teams": [],
+    "labels": [],
+    "milestone": null,
+    "draft": true,
+    "head": {
+      "label": "acme:feat/gen-1-sign-in",
+      "ref": "feat/gen-1-sign-in",
+      "sha": "1f2e3d4c5b6a79881f2e3d4c5b6a79881f2e3d4c",
+      "user": {
+        "login": "acme",
+        "id": 9001,
+        "node_id": "O_kgDOFixture",
+        "type": "Organization",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 700001,
+        "node_id": "R_kgDOFixture",
+        "name": "api",
+        "full_name": "acme/api",
+        "private": true,
+        "owner": {
+          "login": "acme",
+          "id": 9001,
+          "node_id": "O_kgDOFixture",
+          "type": "Organization",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/acme/api",
+        "description": "Acme API",
+        "fork": false,
+        "default_branch": "main",
+        "created_at": "2026-01-10T09:00:00Z",
+        "updated_at": "2026-10-21T11:58:00Z",
+        "pushed_at": "2026-10-21T11:59:00Z",
+        "visibility": "private"
+      }
+    },
+    "base": {
+      "label": "acme:main",
+      "ref": "main",
+      "sha": "9a8b7c6d5e4f30219a8b7c6d5e4f30219a8b7c6d",
+      "user": {
+        "login": "acme",
+        "id": 9001,
+        "node_id": "O_kgDOFixture",
+        "type": "Organization",
+        "site_admin": false
+      },
+      "repo": {
+        "id": 700001,
+        "node_id": "R_kgDOFixture",
+        "name": "api",
+        "full_name": "acme/api",
+        "private": true,
+        "owner": {
+          "login": "acme",
+          "id": 9001,
+          "node_id": "O_kgDOFixture",
+          "type": "Organization",
+          "site_admin": false
+        },
+        "html_url": "https://github.com/acme/api",
+        "description": "Acme API",
+        "fork": false,
+        "default_branch": "main",
+        "created_at": "2026-01-10T09:00:00Z",
+        "updated_at": "2026-10-21T11:58:00Z",
+        "pushed_at": "2026-10-21T11:59:00Z",
+        "visibility": "private"
+      }
+    },
+    "author_association": "MEMBER",
+    "auto_merge": null,
+    "merged": false,
+    "mergeable": null,
+    "rebaseable": null,
+    "mergeable_state": "unknown",
+    "merged_by": null,
+    "comments": 0,
+    "review_comments": 0,
+    "maintainer_can_modify": false,
+    "commits": 3,
+    "additions": 120,
+    "deletions": 8,
+    "changed_files": 6
+  },
+  "repository": {
+    "id": 700001,
+    "node_id": "R_kgDOFixture",
+    "name": "api",
+    "full_name": "acme/api",
+    "private": true,
+    "owner": {
+      "login": "acme",
+      "id": 9001,
+      "node_id": "O_kgDOFixture",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "html_url": "https://github.com/acme/api",
+    "description": "Acme API",
+    "fork": false,
+    "default_branch": "main",
+    "created_at": "2026-01-10T09:00:00Z",
+    "updated_at": "2026-10-21T11:58:00Z",
+    "pushed_at": "2026-10-21T11:59:00Z",
+    "visibility": "private"
+  },
+  "sender": {
+    "login": "ana-dev",
+    "id": 5001,
+    "node_id": "U_kgDOFixture1",
+    "avatar_url": "https://avatars.githubusercontent.com/u/5001?v=4",
+    "html_url": "https://github.com/ana-dev",
+    "type": "User",
+    "site_admin": false
+  },
+  "installation": {
+    "id": 55000001,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNTUwMDAwMDE="
+  }
+}

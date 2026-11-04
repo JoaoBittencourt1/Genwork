@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { boardViewFixture, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
-import { findTaskLocation, haveSameContent, isSameLocation, moveColumn, moveTask } from './ordering'
+import { boardTaskFixture, boardViewFixture, pullRequestFixture, taskFixture, titlesByColumn } from '@/test/gentasksFixtures'
+import { findBoardTask, findTaskLocation, haveSameContent, isSameLocation, moveColumn, moveTask } from './ordering'
 
 describe('moveTask', () => {
   it('moves a task to another column and renumbers both columns', () => {
@@ -65,5 +65,20 @@ describe('haveSameContent', () => {
     expect(haveSameContent(task, { ...task, position: 4 })).toBe(true)
     expect(haveSameContent(task, { ...task, title: 'Other' })).toBe(false)
     expect(haveSameContent(task, { ...task, labels: [...task.labels] })).toBe(false)
+  })
+
+  it('tells a card apart when only its pull requests changed', () => {
+    const task = boardTaskFixture({ pullRequests: [pullRequestFixture()] })
+    expect(haveSameContent(task, { ...task, position: 4 })).toBe(true)
+    expect(haveSameContent(task, { ...task, pullRequests: [pullRequestFixture({ state: 'merged' })] })).toBe(false)
+  })
+})
+
+describe('findBoardTask', () => {
+  it('finds the current version of a task on the board', () => {
+    const view = boardViewFixture()
+    expect(findBoardTask(view, 'task-D')?.title).toBe('D')
+    expect(findBoardTask(view, 'task-A')?.pullRequests).toHaveLength(1)
+    expect(findBoardTask(view, 'missing')).toBeUndefined()
   })
 })

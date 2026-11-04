@@ -21,10 +21,7 @@ type CitedTaskRepository struct{}
 // ListByKeys resolves every key in one query (rule 21); keys of unknown boards, missing numbers, and archived or deleted
 // tasks yield nothing.
 func (CitedTaskRepository) ListByKeys(ctx context.Context, db platform.DBTX, keys []TaskKey) ([]CitedTask, error) {
-	prefixes, numbers := make([]string, 0, len(keys)), make([]int, 0, len(keys))
-	for _, key := range keys {
-		prefixes, numbers = append(prefixes, key.Prefix), append(numbers, key.Number)
-	}
+	prefixes, numbers := taskKeyColumns(keys)
 	rows, err := db.Query(ctx, `
 		SELECT tasks.id, tasks.board_id, tasks.column_id, board_columns.position
 		FROM unnest($1::text[], $2::integer[]) AS cited (prefix, number)

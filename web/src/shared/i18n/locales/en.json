@@ -23,7 +23,8 @@
     "email": "E-mail",
     "password": "Password",
     "submit": "Sign in",
-    "submitting": "Signing in…"
+    "submitting": "Signing in…",
+    "forgotPassword": "Forgot your password?"
   },
   "home": {
     "greeting": "Hi, {{name}}!",
@@ -92,6 +93,25 @@
     "notFoundTitle": "Invite not found",
     "notFoundDescription": "This invite does not exist, expired, was revoked, or was already used. Ask whoever invited you for a new one.",
     "goToLogin": "Go to sign in"
+  },
+  "forgotPassword": {
+    "title": "Forgot your password?",
+    "subtitle": "Enter your e-mail and we will send a link to choose a new password.",
+    "email": "E-mail",
+    "submit": "Send link",
+    "submitting": "Sending…",
+    "sent": "If an account exists for that e-mail, we sent a link to reset the password. It is valid for 1 hour.",
+    "backToLogin": "Back to sign in"
+  },
+  "resetPassword": {
+    "title": "New password",
+    "subtitle": "Choose the new password for your account.",
+    "password": "New password",
+    "passwordHint": "Between 8 and 128 characters.",
+    "passwordConfirmation": "Confirm password",
+    "passwordMismatch": "Passwords do not match.",
+    "submit": "Reset password",
+    "submitting": "Saving…"
   },
   "members": {
     "title": "Members",
@@ -224,7 +244,8 @@
     "verification_failed": "The new version did not answer in time.",
     "update_interrupted": "The update was interrupted.",
     "invalid_client": "This connection request names an unknown assistant.",
-    "invalid_redirect_uri": "This connection request returns to an address the assistant never registered."
+    "invalid_redirect_uri": "This connection request returns to an address the assistant never registered.",
+    "password_reset_not_found": "This reset link does not exist, expired, or was already used. Ask for a new one on the sign-in screen."
   },
   "common": {
     "cancel": "Cancel",
@@ -273,6 +294,15 @@
       "addTaskTo": "Add task to {{title}}",
       "newTask": "New task"
     },
+    "assigneesPanel": {
+      "title": "Assignees",
+      "toggle": "Assignees",
+      "totalTasks": "{{count}} tasks",
+      "progressTitle": "Project progress",
+      "completedCount": "{{completed}}/{{total}} done",
+      "axisX": "Deliveries (X)",
+      "axisY": "Completed (Y)"
+    },
     "columnPresets": {
       "backlog": "Backlog",
       "todo": "To-do",
@@ -307,6 +337,17 @@
       "labels": "Labels",
       "noLabels": "No labels",
       "noLabelsOnBoard": "Create labels in the board settings first",
+      "pullRequests": "Pull requests",
+      "pullRequestCount_one": "{{count}} PR",
+      "pullRequestCount_other": "{{count}} PRs",
+      "openPullRequests": "Linked pull requests of {{task}}",
+      "pullRequestState": {
+        "open": "Open",
+        "draft": "Draft",
+        "merged": "Merged",
+        "closed": "Closed",
+        "unknown": "Status not known yet"
+      },
       "create": "Create task",
       "archive": "Archive",
       "deleteTitle": "Delete task?",
@@ -314,6 +355,7 @@
       "dragHandle": "Move task {{title}}",
       "titlePlaceholder": "Task title",
       "descriptionPlaceholder": "Add a description…",
+      "editDescription": "Edit description",
       "dialogDescription": "Edit the task title, description, and properties.",
       "properties": "Properties",
       "status": "Status",

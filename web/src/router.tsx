@@ -12,6 +12,8 @@ import { GithubIntegrationPage } from '@/app/gentasks/GithubIntegrationPage'
 import { HostPage } from '@/app/genmonitor/HostPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
+import { ForgotPasswordPage } from '@/app/passwordreset/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/app/passwordreset/ResetPasswordPage'
 import { MembersPage } from '@/app/members/MembersPage'
 import { CapabilitiesProvider } from '@/shared/components/CapabilitiesProvider'
 import { RequireModule } from '@/shared/components/RequireModule'
@@ -133,6 +135,17 @@ const acceptInviteRoute = createRoute({
   },
 })
 
+const forgotPasswordRoute = createRoute({ getParentRoute: () => rootRoute, path: '/forgot-password', component: ForgotPasswordPage })
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/reset-password/$secret',
+  component: function ResetPasswordRoute() {
+    const { secret } = resetPasswordRoute.useParams()
+    return <ResetPasswordPage secret={secret} />
+  },
+})
+
 const routeTree = rootRoute.addChildren([
   signedInLayoutRoute.addChildren([
     homeRoute,
@@ -148,6 +161,8 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   authorizeAssistantRoute,
   acceptInviteRoute,
+  forgotPasswordRoute,
+  resetPasswordRoute,
 ])
 
 export function createAppRouter(history?: RouterHistory) {

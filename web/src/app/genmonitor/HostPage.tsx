@@ -5,6 +5,7 @@ import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { PageContent } from '@/shared/components/PageContent'
 import { PageHeader } from '@/shared/components/PageHeader'
 import { Spinner } from '@/shared/ui/spinner'
+import { loadError } from '@/shared/domain/errors'
 import { NetworkCard } from './components/NetworkCard'
 import { SystemCard } from './components/SystemCard'
 import { UsageCard } from './components/UsageCard'
@@ -32,7 +33,7 @@ export function HostPage() {
             <p className="text-muted-foreground">{t('genmonitor.noPermissionDescription')}</p>
           </section>
         ) : null}
-        <ErrorAlert error={host.error} />
+        <ErrorAlert error={loadError(host)} />
         {canReadHost && host.isPending ? <Spinner /> : null}
         {snapshot ? (
           <>
