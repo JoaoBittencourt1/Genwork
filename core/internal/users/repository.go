@@ -106,6 +106,14 @@ func (Repository) UpdatePasswordHash(ctx context.Context, db platform.DBTX, id i
 	return nil
 }
 
+func (Repository) ClearLockout(ctx context.Context, db platform.DBTX, id int64) error {
+	_, err := db.Exec(ctx, `UPDATE users SET failed_login_count = 0, locked_until = NULL, updated_at = now() WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("clear lockout: %w", err)
+	}
+	return nil
+}
+
 func (Repository) UpdateRole(ctx context.Context, db platform.DBTX, id, roleID int64) error {
 	return updateNotRemovedUser(ctx, db, "update user role",
 		`UPDATE users SET role_id = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id, roleID)
