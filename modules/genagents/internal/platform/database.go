@@ -3,6 +3,7 @@ package platform
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/base64"
 	"errors"
@@ -86,4 +87,19 @@ const uniqueViolationCode = "23505"
 func IsUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode
+}
+
+// NewBearerSecret returns 256 random bits as base64url, for registration tokens and runner secrets.
+func NewBearerSecret() string {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(fmt.Sprintf("read random bytes: %v", err))
+	}
+	return base64.RawURLEncoding.EncodeToString(bytes)
+}
+
+// HashBearerSecret is how a bearer secret is stored: SHA-256 suffices for high-entropy random values (rule 67).
+func HashBearerSecret(secret string) []byte {
+	sum := sha256.Sum256([]byte(secret))
+	return sum[:]
 }

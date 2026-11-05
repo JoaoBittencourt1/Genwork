@@ -62,6 +62,8 @@ func newTestApp(t *testing.T) *testApp {
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{JWKSURL: core.JWKSURL(), Issuer: coretest.Issuer}),
 		EncryptionKey: testEncryptionKey,
 		Core:          corelink.NewClient(coreAPI.URL(), time.Second),
+		GenworkMCPURL: "http://genwork.test/mcp",
+		ClaimLongPoll: 150 * time.Millisecond,
 		Now:           clock.Now,
 	})
 	if err != nil {
@@ -86,8 +88,13 @@ type request struct {
 }
 
 type response struct {
-	status int
-	body   []byte
+	status  int
+	body    []byte
+	headers http.Header
+}
+
+func (resp response) header(name string) string {
+	return resp.headers.Get(name)
 }
 
 func (app *testApp) do(req request) response {
@@ -114,7 +121,7 @@ func (app *testApp) do(req request) response {
 	}
 	recorder := httptest.NewRecorder()
 	app.handler.ServeHTTP(recorder, httpRequest)
-	return response{status: recorder.Code, body: recorder.Body.Bytes()}
+	return response{status: recorder.Code, body: recorder.Body.Bytes(), headers: recorder.Header()}
 }
 
 func (resp response) decode(t *testing.T, target any) {

@@ -10,6 +10,8 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/mcpservers"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runexec"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/skills"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +22,10 @@ type Dependencies struct {
 	TokenVerifier httpapi.AccessTokenVerifier
 	EncryptionKey []byte
 	Core          *corelink.Client
+	// GenworkMCPURL is the instance's Genwork MCP server, which every run is configured with.
+	GenworkMCPURL string
+	// ClaimLongPoll bounds how long a runner's claim waits for work; zero keeps the default.
+	ClaimLongPoll time.Duration
 	Now           func() time.Time
 }
 
@@ -34,17 +40,38 @@ func New(dependencies Dependencies) (http.Handler, error) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
-	accountService := accounts.NewAiAccountService(dependencies.DB, secretCipher, bots.BotRepository{}, dependencies.Now)
+	db, now := dependencies.DB, dependencies.Now
+	lifecycle := runs.NewRunLifecycleService(now)
+	accountService := accounts.NewAiAccountService(db, secretCipher, bots.BotRepository{}, now)
 	accounts.NewAiAccountHandler(accountService).Register(router)
-	bots.NewBotHandler(bots.NewBotService(dependencies.DB, secretCipher, dependencies.Core, noRunCanceller{}, accountService, dependencies.Now)).Register(router)
-	skills.NewSkillHandler(skills.NewSkillService(dependencies.DB, dependencies.Now)).Register(router)
-	mcpservers.NewMcpServerHandler(mcpservers.NewMcpServerService(dependencies.DB, secretCipher, dependencies.Now)).Register(router)
+	botService := bots.NewBotService(db, secretCipher, dependencies.Core, lifecycle, accountService, now)
+	bots.NewBotHandler(botService).Register(router)
+	skills.NewSkillHandler(skills.NewSkillService(db, now)).Register(router)
+	mcpServerService := mcpservers.NewMcpServerService(db, secretCipher, now)
+	mcpservers.NewMcpServerHandler(mcpServerService).Register(router)
+
+	runnerService := runexec.NewRunnerService(db, lifecycle, now)
+	runexec.NewRunnerHandler(runnerService, now).Register(router)
+	runnerAPI := runexec.NewRunnerAPIHandler(db, runnerService,
+		runexec.NewRunClaimService(db, accountService, mcpServerService, lifecycle, now),
+		runexec.NewRunEventService(db, lifecycle, now),
+		runexec.NewGenworkTokenService(db, dependencies.Core, secretCipher, botService, lifecycle, now),
+		dependencies.GenworkMCPURL, now,
+	)
+	if dependencies.ClaimLongPoll > 0 {
+		runnerAPI.WithLongPoll(dependencies.ClaimLongPoll, 50*time.Millisecond)
+	}
+	runnerAPI.Register(router)
 	return router, nil
 }
 
-// noRunCanceller stands in until runs exist; it is replaced when the run services are wired.
-type noRunCanceller struct{}
+// Worker is a background loop the module runs next to its HTTP server.
+type Worker interface {
+	Run(ctx context.Context)
+}
 
-func (noRunCanceller) CancelActiveRunsForBot(_ context.Context, _ platform.DBTX, _ int64, _ string) error {
-	return nil
+// NewWorkers builds the background loops: the sweeper that ends runs nobody is working on.
+func NewWorkers(dependencies Dependencies) []Worker {
+	lifecycle := runs.NewRunLifecycleService(dependencies.Now)
+	return []Worker{runexec.NewRunSweeper(dependencies.DB, lifecycle, dependencies.Now)}
 }

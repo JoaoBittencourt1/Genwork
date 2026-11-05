@@ -9,6 +9,7 @@ CREATE TABLE runners (
     last_heartbeat_at       timestamptz,
     container_engine        text,
     sandbox_image           text,
+    custom_image            boolean NOT NULL DEFAULT false,
     directory_mode          boolean NOT NULL DEFAULT false,
     reported_tools          jsonb NOT NULL DEFAULT '{}',
     has_github_credentials  boolean NOT NULL DEFAULT false,

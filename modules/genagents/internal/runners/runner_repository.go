@@ -13,7 +13,7 @@ import (
 
 type RunnerRepository struct{}
 
-const runnerColumns = `id, token, name, secret_hash IS NOT NULL, last_heartbeat_at, container_engine, sandbox_image, directory_mode,
+const runnerColumns = `id, token, name, secret_hash IS NOT NULL, last_heartbeat_at, container_engine, sandbox_image, custom_image, directory_mode,
        reported_tools, has_github_credentials, max_concurrency, revoked_at, created_at`
 
 func (repository RunnerRepository) Create(ctx context.Context, db platform.DBTX, name string, registrationTokenHash []byte, at time.Time) (Runner, error) {
@@ -83,11 +83,11 @@ func (RunnerRepository) RecordHeartbeat(ctx context.Context, db platform.DBTX, i
 		return fmt.Errorf("encode reported tools: %w", err)
 	}
 	_, err = db.Exec(ctx, `
-		UPDATE runners SET last_heartbeat_at = $2, container_engine = $3, sandbox_image = $4, directory_mode = $5, reported_tools = $6,
+		UPDATE runners SET last_heartbeat_at = $2, container_engine = $3, sandbox_image = $4, custom_image = $9, directory_mode = $5, reported_tools = $6,
 		                   has_github_credentials = $7, max_concurrency = $8, updated_at = $2
 		WHERE id = $1`,
 		id, heartbeat.At, nullIfEmpty(heartbeat.ContainerEngine), nullIfEmpty(heartbeat.SandboxImage), heartbeat.DirectoryMode, tools,
-		heartbeat.HasGithubCredentials, heartbeat.MaxConcurrency)
+		heartbeat.HasGithubCredentials, heartbeat.MaxConcurrency, heartbeat.CustomImage)
 	if err != nil {
 		return fmt.Errorf("record heartbeat: %w", err)
 	}
@@ -130,7 +130,7 @@ func scanRunner(row pgx.Row) (Runner, error) {
 	var runner Runner
 	var tools []byte
 	err := row.Scan(&runner.ID, &runner.Token, &runner.Name, &runner.HasSecret, &runner.LastHeartbeatAt, &runner.ContainerEngine,
-		&runner.SandboxImage, &runner.DirectoryMode, &tools, &runner.HasGithubCredentials, &runner.MaxConcurrency, &runner.RevokedAt, &runner.CreatedAt)
+		&runner.SandboxImage, &runner.CustomImage, &runner.DirectoryMode, &tools, &runner.HasGithubCredentials, &runner.MaxConcurrency, &runner.RevokedAt, &runner.CreatedAt)
 	if err != nil {
 		return runner, err
 	}

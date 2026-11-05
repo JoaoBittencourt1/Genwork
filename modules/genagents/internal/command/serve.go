@@ -33,15 +33,17 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	}
 	defer db.Close()
 
-	handler, err := app.New(app.Dependencies{
+	dependencies := app.Dependencies{
 		DB: db,
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{
 			JWKSURL: config.CoreInternalURL + "/api/core/v1/auth/jwks", Issuer: config.PublicURL,
 		}),
 		EncryptionKey: config.EncryptionKey,
 		Core:          corelink.NewClient(config.CoreInternalURL, corelink.DefaultTimeout),
+		GenworkMCPURL: config.PublicURL + "/mcp",
 		Now:           time.Now,
-	})
+	}
+	handler, err := app.New(dependencies)
 	if err != nil {
 		return err
 	}
@@ -57,6 +59,9 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	serveCtx, stopServing := context.WithCancel(ctx)
 	defer stopServing()
 	failures := make(chan error, 2)
+	for _, worker := range app.NewWorkers(dependencies) {
+		go worker.Run(serveCtx)
+	}
 	go func() {
 		slog.Info("genagents listening", "addr", config.HTTPAddr, "version", moduleManifest.Version)
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {

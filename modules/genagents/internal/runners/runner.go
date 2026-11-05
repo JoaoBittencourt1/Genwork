@@ -31,6 +31,7 @@ type Runner struct {
 	LastHeartbeatAt      *time.Time
 	ContainerEngine      *string
 	SandboxImage         *string
+	CustomImage          bool
 	DirectoryMode        bool
 	ReportedTools        map[string]string
 	HasGithubCredentials bool
@@ -61,6 +62,7 @@ func (runner Runner) ReportsTool(cli string) bool {
 type Heartbeat struct {
 	ContainerEngine      string
 	SandboxImage         string
+	CustomImage          bool
 	DirectoryMode        bool
 	Tools                map[string]string
 	HasGithubCredentials bool

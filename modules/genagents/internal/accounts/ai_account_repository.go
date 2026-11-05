@@ -68,6 +68,19 @@ func (AiAccountRepository) List(ctx context.Context, db platform.DBTX) ([]AiAcco
 	return listed, nil
 }
 
+// ListSubscriptionByRunner lists the accounts whose sign-in profile a runner holds.
+func (AiAccountRepository) ListSubscriptionByRunner(ctx context.Context, db platform.DBTX, runnerID int64) ([]AiAccount, error) {
+	rows, err := db.Query(ctx, accountSelect+` WHERE ai_accounts.runner_id = $1 AND ai_accounts.deleted_at IS NULL ORDER BY ai_accounts.name`, runnerID)
+	if err != nil {
+		return nil, fmt.Errorf("list runner accounts: %w", err)
+	}
+	listed, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (AiAccount, error) { return scanAccount(row) })
+	if err != nil {
+		return nil, fmt.Errorf("list runner accounts: %w", err)
+	}
+	return listed, nil
+}
+
 func (AiAccountRepository) UpdateName(ctx context.Context, db platform.DBTX, id int64, name string, at time.Time) error {
 	tag, err := db.Exec(ctx, `UPDATE ai_accounts SET name = $2, updated_at = $3 WHERE id = $1 AND deleted_at IS NULL`, id, name, at)
 	if platform.IsUniqueViolation(err) {
