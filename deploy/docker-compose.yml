@@ -10,6 +10,10 @@ x-gentasks: &gentasks
   image: ${GENWORK_IMAGE_REGISTRY:?set it in deploy/.env}/genwork-gentasks:${GENWORK_VERSION:?run compose through genwork}
   env_file: .env
 
+x-genagents: &genagents
+  image: ${GENWORK_IMAGE_REGISTRY:?set it in deploy/.env}/genwork-genagents:${GENWORK_VERSION:?run compose through genwork}
+  env_file: .env
+
 x-genmonitor: &genmonitor
   image: ${GENWORK_IMAGE_REGISTRY:?set it in deploy/.env}/genwork-genmonitor:${GENWORK_VERSION:?run compose through genwork}
   env_file: .env
@@ -70,6 +74,27 @@ services:
     command: ["serve"]
     depends_on:
       gentasks-migrate:
+        condition: service_completed_successfully
+      core:
+        condition: service_started
+
+  # The genagents role and schema are provisioned by the CLI before this runs (rule 53).
+  genagents-migrate:
+    <<: *genagents
+    profiles: ["genagents"]
+    command: ["migrate"]
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # No host port: modules are reached only through the gateway (rule 57). Runners call it there, from outside the stack.
+  genagents:
+    <<: *genagents
+    profiles: ["genagents"]
+    command: ["serve"]
+    depends_on:
+      genagents-migrate:
         condition: service_completed_successfully
       core:
         condition: service_started
