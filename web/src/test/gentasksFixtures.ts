@@ -18,8 +18,8 @@ export const capabilitiesFixture: Capabilities = {
 }
 
 export const usersFixture: DirectoryUser[] = [
-  { token: 'user-ana', name: 'Ana Souza', email: 'ana@example.com', avatarColor: 'blue' },
-  { token: 'user-bruno', name: 'Bruno', email: 'bruno@example.com', avatarColor: 'pink' },
+  { token: 'user-ana', kind: 'human', name: 'Ana Souza', email: 'ana@example.com', avatarColor: 'blue' },
+  { token: 'user-bruno', kind: 'human', name: 'Bruno', email: 'bruno@example.com', avatarColor: 'pink' },
 ]
 
 export const bugLabel: Label = { token: 'label-bug', name: 'Bug', color: 'red' }
@@ -34,6 +34,7 @@ export function taskFixture(overrides: Partial<Task> = {}): Task {
     title: 'Write tests',
     description: null,
     assigneeToken: null,
+    assigneeKind: null,
     urgency: 'none',
     labels: [],
     createdBy: 'user-ana',
@@ -47,7 +48,7 @@ export function taskFixture(overrides: Partial<Task> = {}): Task {
 
 export function assignedTaskFixture(overrides: Partial<AssignedTask> = {}): AssignedTask {
   return {
-    ...taskFixture({ assigneeToken: 'user-ana', assignedAt: '2026-10-18T12:00:00Z' }),
+    ...taskFixture({ assigneeToken: 'user-ana', assigneeKind: 'human', assignedAt: '2026-10-18T12:00:00Z' }),
     board: { token: 'board-1', name: 'Platform', taskPrefix: 'PLA' },
     column: { token: 'column-backlog', preset: 'backlog', name: null },
     ...overrides,
@@ -139,6 +140,7 @@ export function boardGithubSettingsFixture(overrides: Partial<BoardGithubSetting
     reviewRequestedColumnToken: null,
     mergedColumnToken: 'column-done',
     finalBranches: ['main', 'master'],
+    repository: null,
     ...overrides,
   }
 }

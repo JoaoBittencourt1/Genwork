@@ -24,6 +24,7 @@ export function buildGithubSettingsPatch(settings: BoardGithubSettings, draft: B
   const branchesChanged =
     draft.finalBranches.length !== settings.finalBranches.length || draft.finalBranches.some((branch, index) => branch !== settings.finalBranches[index])
   if (branchesChanged) patch.finalBranches = draft.finalBranches
+  if (draft.repository !== settings.repository) patch.repository = draft.repository
   return patch
 }
 
@@ -47,4 +48,17 @@ export function finalBranchesProblem(branches: string[]): FinalBranchesProblem |
   if (branches.length > MAX_FINAL_BRANCHES) return 'tooMany'
   if (!branches.every(isValidBranchName)) return 'invalidName'
   return null
+}
+
+const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+
+// isValidRepository mirrors the API: "owner/name", where each part has letters, digits, dots, hyphens, or underscores.
+export function isValidRepository(repository: string): boolean {
+  return REPOSITORY_PATTERN.test(repository)
+}
+
+// repositoryFromInput turns the field's text into the draft value: blank clears the repository, anything else is trimmed.
+export function repositoryFromInput(text: string): string | null {
+  const trimmed = text.trim()
+  return trimmed === '' ? null : trimmed
 }

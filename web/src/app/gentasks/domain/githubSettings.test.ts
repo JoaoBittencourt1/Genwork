@@ -6,7 +6,9 @@ import {
   draftFromGithubSettings,
   finalBranchesProblem,
   isValidBranchName,
+  isValidRepository,
   removeFinalBranch,
+  repositoryFromInput,
 } from './githubSettings'
 
 describe('github settings', () => {
@@ -52,5 +54,25 @@ describe('github settings', () => {
     expect(finalBranchesProblem([])).toBe('empty')
     expect(finalBranchesProblem(Array.from({ length: 21 }, (_, index) => `release-${index}`))).toBe('tooMany')
     expect(finalBranchesProblem(['main', 'feature x'])).toBe('invalidName')
+  })
+})
+
+describe('board repository', () => {
+  const settings = boardGithubSettingsFixture({ repository: 'acme/api' })
+
+  it('validates owner/name', () => {
+    for (const repository of ['acme/api', 'a-b.c/d_e']) expect(isValidRepository(repository)).toBe(true)
+    for (const repository of ['acme', 'acme/', '/api', 'a b/c', 'a/b/c', '']) expect(isValidRepository(repository)).toBe(false)
+  })
+
+  it('sends only the repository when only it changed, and null to clear it', () => {
+    expect(buildGithubSettingsPatch(settings, { ...draftFromGithubSettings(settings), repository: 'acme/web' })).toEqual({ repository: 'acme/web' })
+    expect(buildGithubSettingsPatch(settings, { ...draftFromGithubSettings(settings), repository: null })).toEqual({ repository: null })
+    expect(buildGithubSettingsPatch(settings, draftFromGithubSettings(settings))).toEqual({})
+  })
+
+  it('turns blank text into a cleared repository', () => {
+    expect(repositoryFromInput('  acme/api ')).toBe('acme/api')
+    expect(repositoryFromInput('   ')).toBeNull()
   })
 })
