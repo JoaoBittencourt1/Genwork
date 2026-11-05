@@ -496,3 +496,36 @@ func TestBranchNamesCiteTheTaskKey(t *testing.T) {
 		t.Error("two branches for the same task collide")
 	}
 }
+
+func TestRunListShowsRecentRunsAndFiltersActiveOnes(t *testing.T) {
+	app := newTestApp(t)
+	app.assignedDevBot("task-1", nil)
+	expectStatus(t, app.notifyAssignment("task-1"), http.StatusAccepted)
+	runner := app.registerRunner("build-box", heartbeatOptions{tools: []string{"claude"}, github: true})
+	claimed, _ := app.claim(runner, 1)
+	app.postEvents(runner, claimed.RunToken, eventBody{Sequence: 1, Type: "result", Payload: map[string]any{"summary": "done"}})
+	expectStatus(t, app.do(request{method: "POST", path: "/api/genagents/v1/tasks/task-1/conversation/messages", body: map[string]any{"text": "one more"}}), http.StatusAccepted)
+
+	var all, active struct {
+		Runs []struct {
+			Token     string  `json:"token"`
+			Kind      string  `json:"kind"`
+			State     string  `json:"state"`
+			BotName   string  `json:"botName"`
+			TaskToken *string `json:"taskToken"`
+			TaskKey   string  `json:"taskKey"`
+		} `json:"runs"`
+	}
+	app.do(request{method: "GET", path: "/api/genagents/v1/runs"}).decode(t, &all)
+	app.do(request{method: "GET", path: "/api/genagents/v1/runs?state=active&limit=10"}).decode(t, &active)
+
+	if len(all.Runs) != 2 || all.Runs[0].State != "queued" || all.Runs[1].State != "succeeded" || all.Runs[0].BotName != "Dev Bot" ||
+		all.Runs[0].TaskToken == nil || *all.Runs[0].TaskToken != "task-1" || all.Runs[0].TaskKey != "GEN-1" {
+		t.Errorf("all runs = %+v", all.Runs)
+	}
+	if len(active.Runs) != 1 || active.Runs[0].State != "queued" {
+		t.Errorf("active runs = %+v", active.Runs)
+	}
+	expectValidationError(t, app.do(request{method: "GET", path: "/api/genagents/v1/runs?limit=0"}), "limit")
+	expectError(t, app.do(request{method: "GET", path: "/api/genagents/v1/runs", accessToken: app.tokenWith()}), http.StatusForbidden, "forbidden")
+}

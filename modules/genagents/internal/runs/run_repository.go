@@ -192,3 +192,46 @@ func scanRun(row pgx.Row) (Run, error) {
 	}
 	return run, json.Unmarshal(spec, &run.Spec)
 }
+
+// RunSummary is a run with the task and bot it belongs to, as run lists show it.
+type RunSummary struct {
+	Run       Run
+	TaskToken *string
+	BotName   string
+}
+
+const runSummarySelect = `
+SELECT runs.id, runs.token, runs.conversation_id, conversations.token, runs.bot_id, runs.kind, runs.state, runs.failure_reason,
+       runs.requester_user_token, runs.runner_id, runs.cli_session_id, runs.spec, runs.waiting_since, runs.timeout_at, runs.created_at,
+       runs.claimed_at, runs.ended_at, conversations.task_token, bots.name
+FROM runs
+JOIN conversations ON conversations.id = runs.conversation_id
+JOIN bots ON bots.id = runs.bot_id`
+
+// ListRecent returns the most recent runs, newest first; activeOnly keeps only runs not yet over.
+func (RunRepository) ListRecent(ctx context.Context, db platform.DBTX, activeOnly bool, limit int) ([]RunSummary, error) {
+	condition := ""
+	if activeOnly {
+		condition = ` WHERE runs.state IN ('queued', 'running', 'waiting_for_input')`
+	}
+	rows, err := db.Query(ctx, runSummarySelect+condition+` ORDER BY runs.id DESC LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list recent runs: %w", err)
+	}
+	listed, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (RunSummary, error) {
+		var summary RunSummary
+		var spec []byte
+		err := row.Scan(&summary.Run.ID, &summary.Run.Token, &summary.Run.ConversationID, &summary.Run.ConversationToken, &summary.Run.BotID,
+			&summary.Run.Kind, &summary.Run.State, &summary.Run.FailureReason, &summary.Run.RequesterUserToken, &summary.Run.RunnerID,
+			&summary.Run.CLISessionID, &spec, &summary.Run.WaitingSince, &summary.Run.TimeoutAt, &summary.Run.CreatedAt, &summary.Run.ClaimedAt,
+			&summary.Run.EndedAt, &summary.TaskToken, &summary.BotName)
+		if err != nil {
+			return summary, err
+		}
+		return summary, json.Unmarshal(spec, &summary.Run.Spec)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list recent runs: %w", err)
+	}
+	return listed, nil
+}

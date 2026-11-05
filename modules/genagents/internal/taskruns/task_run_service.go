@@ -219,3 +219,8 @@ func (service *TaskRunService) chooseReviewer(ctx context.Context, tx pgx.Tx, bo
 		return bots.Bot{}, httpapi.NewValidationError(map[string]string{"botToken": "reviewer_required"})
 	}
 }
+
+// ListRuns lists the most recent runs, or only the active ones.
+func (service *TaskRunService) ListRuns(ctx context.Context, activeOnly bool, limit int) ([]runs.RunSummary, error) {
+	return service.runs.ListRecent(ctx, service.db, activeOnly, limit)
+}

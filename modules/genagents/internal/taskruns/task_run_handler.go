@@ -3,6 +3,7 @@ package taskruns
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
@@ -25,6 +26,22 @@ func NewTaskConversationResponse(view TaskConversationView) TaskConversationResp
 		response.ActiveRun = &runs.ActiveRunResponse{Token: view.ActiveRun.Run.Token, Kind: view.ActiveRun.Run.Kind, State: view.ActiveRun.Run.State, BotName: view.ActiveRun.BotName}
 	}
 	return response
+}
+
+type RunSummaryResponse struct {
+	Token         string              `json:"token"`
+	Kind          runs.RunKind        `json:"kind"`
+	State         runs.RunState       `json:"state"`
+	FailureReason *runs.FailureReason `json:"failureReason"`
+	BotName       string              `json:"botName"`
+	TaskToken     *string             `json:"taskToken"`
+	TaskKey       string              `json:"taskKey"`
+	CreatedAt     time.Time           `json:"createdAt"`
+	EndedAt       *time.Time          `json:"endedAt"`
+}
+
+type RunListResponse struct {
+	Runs []RunSummaryResponse `json:"runs"`
 }
 
 type TaskAssignmentRequest struct {
@@ -56,6 +73,7 @@ func NewTaskRunHandler(runService *TaskRunService, conversations *TaskConversati
 func (handler *TaskRunHandler) Register(router *httpapi.Router) {
 	read := httpapi.RequirePermission(access.PermissionRunRead)
 	write := httpapi.RequirePermission(access.PermissionRunWrite)
+	router.HandleFunc("GET /api/genagents/v1/runs", read, handler.listRuns)
 	router.HandleFunc("POST /api/genagents/v1/task-assignments", write, handler.notifyAssignment)
 	router.HandleFunc("POST /api/genagents/v1/tasks/{taskToken}/bot-reviews", write, handler.requestReview)
 	router.HandleFunc("GET /api/genagents/v1/tasks/{taskToken}/conversation", read, handler.readConversation)
@@ -136,4 +154,34 @@ func (handler *TaskRunHandler) stopRuns(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+const (
+	defaultRunListLimit = 50
+	maxRunListLimit     = 200
+)
+
+func (handler *TaskRunHandler) listRuns(w http.ResponseWriter, r *http.Request) {
+	limit := defaultRunListLimit
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > maxRunListLimit {
+			httpapi.WriteError(w, r, httpapi.NewValidationError(map[string]string{"limit": "invalid"}))
+			return
+		}
+		limit = parsed
+	}
+	listed, err := handler.runs.ListRuns(r.Context(), r.URL.Query().Get("state") == "active", limit)
+	if err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	response := RunListResponse{Runs: make([]RunSummaryResponse, 0, len(listed))}
+	for _, summary := range listed {
+		response.Runs = append(response.Runs, RunSummaryResponse{
+			Token: summary.Run.Token, Kind: summary.Run.Kind, State: summary.Run.State, FailureReason: summary.Run.FailureReason, BotName: summary.BotName,
+			TaskToken: summary.TaskToken, TaskKey: summary.Run.Spec.TaskKey, CreatedAt: summary.Run.CreatedAt, EndedAt: summary.Run.EndedAt,
+		})
+	}
+	httpapi.WriteJSON(w, http.StatusOK, response)
 }
