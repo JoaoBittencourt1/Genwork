@@ -11,6 +11,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/app"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/gentasksclient"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/manifest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/registration"
@@ -40,6 +41,7 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 		}),
 		EncryptionKey: config.EncryptionKey,
 		Core:          corelink.NewClient(config.CoreInternalURL, corelink.DefaultTimeout),
+		Gentasks:      gentasksclient.NewClient(config.GatewayInternalURL, gentasksclient.DefaultTimeout),
 		GenworkMCPURL: config.PublicURL + "/mcp",
 		Now:           time.Now,
 	}
@@ -59,7 +61,11 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	serveCtx, stopServing := context.WithCancel(ctx)
 	defer stopServing()
 	failures := make(chan error, 2)
-	for _, worker := range app.NewWorkers(dependencies) {
+	workers, err := app.NewWorkers(dependencies)
+	if err != nil {
+		return err
+	}
+	for _, worker := range workers {
 		go worker.Run(serveCtx)
 	}
 	go func() {

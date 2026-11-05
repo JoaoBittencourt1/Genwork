@@ -13,6 +13,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runexec"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/skills"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/taskruns"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,6 +23,7 @@ type Dependencies struct {
 	TokenVerifier httpapi.AccessTokenVerifier
 	EncryptionKey []byte
 	Core          *corelink.Client
+	Gentasks      taskruns.GentasksClient
 	// GenworkMCPURL is the instance's Genwork MCP server, which every run is configured with.
 	GenworkMCPURL string
 	// ClaimLongPoll bounds how long a runner's claim waits for work; zero keeps the default.
@@ -50,6 +52,9 @@ func New(dependencies Dependencies) (http.Handler, error) {
 	mcpServerService := mcpservers.NewMcpServerService(db, secretCipher, now)
 	mcpservers.NewMcpServerHandler(mcpServerService).Register(router)
 
+	taskRunService := taskruns.NewTaskRunService(db, dependencies.Gentasks, lifecycle, now)
+	taskruns.NewTaskRunHandler(taskRunService, taskruns.NewTaskConversationService(db, dependencies.Gentasks, lifecycle, now)).Register(router)
+
 	runnerService := runexec.NewRunnerService(db, lifecycle, now)
 	runexec.NewRunnerHandler(runnerService, now).Register(router)
 	runnerAPI := runexec.NewRunnerAPIHandler(db, runnerService,
@@ -70,8 +75,20 @@ type Worker interface {
 	Run(ctx context.Context)
 }
 
-// NewWorkers builds the background loops: the sweeper that ends runs nobody is working on.
-func NewWorkers(dependencies Dependencies) []Worker {
-	lifecycle := runs.NewRunLifecycleService(dependencies.Now)
-	return []Worker{runexec.NewRunSweeper(dependencies.DB, lifecycle, dependencies.Now)}
+// NewWorkers builds the background loops: the sweeper that ends runs nobody is working on, and the reconciliation that
+// catches assignments whose notification was lost.
+func NewWorkers(dependencies Dependencies) ([]Worker, error) {
+	secretCipher, err := platform.NewSecretCipher(dependencies.EncryptionKey)
+	if err != nil {
+		return nil, err
+	}
+	db, now := dependencies.DB, dependencies.Now
+	lifecycle := runs.NewRunLifecycleService(now)
+	accountService := accounts.NewAiAccountService(db, secretCipher, bots.BotRepository{}, now)
+	botService := bots.NewBotService(db, secretCipher, dependencies.Core, lifecycle, accountService, now)
+	taskRunService := taskruns.NewTaskRunService(db, dependencies.Gentasks, lifecycle, now)
+	return []Worker{
+		runexec.NewRunSweeper(db, lifecycle, now),
+		taskruns.NewReconciliationService(db, dependencies.Gentasks, dependencies.Core, botService, taskRunService),
+	}, nil
 }
