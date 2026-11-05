@@ -22,19 +22,20 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 RUN npm install --global "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" "@openai/codex@${CODEX_VERSION}" "@vibe-kit/grok-cli@${GROK_CLI_VERSION}" \
     && npm cache clean --force
 
-# The Cursor agent ships through an installer script that cannot be pinned; it installs to /root/.local and is moved
-# out of the root's home so the unprivileged sandbox user can run it.
-RUN curl -fsSL "${CURSOR_AGENT_INSTALLER}" | bash \
-    && mv /root/.local/bin/cursor-agent /usr/local/bin/cursor-agent 2>/dev/null || true; \
-    if [ -d /root/.local/share/cursor-agent ]; then mv /root/.local/share/cursor-agent /usr/local/share/cursor-agent && chmod -R a+rX /usr/local/share/cursor-agent; fi; \
-    chmod -R a+rX /usr/local/bin
+# The Cursor agent ships through an installer script that cannot be pinned, so it is installed into its own directory,
+# which any user can read, and linked onto the PATH.
+RUN mkdir -p /opt/cursor \
+    && HOME=/opt/cursor curl -fsSL "${CURSOR_AGENT_INSTALLER}" | HOME=/opt/cursor bash \
+    && ln -s "$(ls /opt/cursor/.local/share/cursor-agent/versions/*/cursor-agent | head -1)" /usr/local/bin/cursor-agent \
+    && chmod -R a+rX /opt/cursor \
+    && cursor-agent --version
 
 LABEL org.opencontainers.image.title="genwork-sandbox" \
       org.opencontainers.image.version="${VERSION}" \
       genwork.tool.claude="${CLAUDE_CODE_VERSION}" \
       genwork.tool.codex="${CODEX_VERSION}" \
       genwork.tool.grok="${GROK_CLI_VERSION}" \
-      genwork.tool.cursor-agent="installer"
+      genwork.tool.cursor-agent="latest"
 
 # Runs unprivileged with a temporary home: the runner starts the container with its own uid, a read-only root file
 # system, and tmpfs for /tmp and $HOME.

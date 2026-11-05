@@ -23,6 +23,7 @@ jobs:
       gentasks: ${{ steps.filter.outputs.gentasks }}
       genagents: ${{ steps.filter.outputs.genagents }}
       genmonitor: ${{ steps.filter.outputs.genmonitor }}
+      runner: ${{ steps.filter.outputs.runner }}
       cli: ${{ steps.filter.outputs.cli }}
       mcp: ${{ steps.filter.outputs.mcp }}
       web: ${{ steps.filter.outputs.web }}
@@ -53,6 +54,8 @@ jobs:
               - 'modules/genagents/**'
             genmonitor:
               - 'modules/genmonitor/**'
+            runner:
+              - 'runner/**'
               - 'sdk/**'
               - 'VERSION'
               - 'Makefile'
@@ -198,6 +201,21 @@ jobs:
       - run: make lint-genmonitor
       - run: make test-genmonitor
       - run: make build-genmonitor
+
+  runner:
+    name: Runner · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.runner == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: runner/go.mod
+      - run: make lint-runner
+      - run: make test-runner
+      - run: make build-runner
+      - run: make build-sandbox
 
   cli:
     name: CLI · Lint · Test · Build
