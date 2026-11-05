@@ -7,7 +7,7 @@ This umbrella change is delivered as separate OpenSpec changes, one per delivery
 | 1 | Delivery 1, `genagents-bots-foundation`: AI accounts, bots, skills, MCP servers, runners, task runs and conversation, bot review, admin chat, core bot members and delegated sessions | — | — |
 | 2 | Delivery 2, orchestration: manager bots, org chart, delegation, heartbeats and wake-up queue, atomic checkout, routines | 1 | 3 |
 | 3 | Delivery 3, OKRs: cycles, objectives, key results, check-ins, task and board links, goal ancestry, retrospectives | 1 | 2 |
-| 4 | Delivery 4, budgets and governance: usage records, budgets, approvals, audit log, configuration revisions, pause, resume, terminate; skill versions | 2 | 5 |
+| 4 | Delivery 4, budgets and governance: usage records, budgets, approvals, audit log, configuration revisions, pause, resume, terminate; skill versions; sandbox egress allowlist | 2 | 5 |
 | 5 | Delivery 5, provider API runtime for chat, review, and heartbeat runs on API-key accounts | 1 | 2, 3, 4 |
 | 6 | Delivery 6, events: move gentasks ↔ genagents hints and reconciliation to the platform event bus | event bus decision, 2 | — |
 
