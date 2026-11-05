@@ -23,11 +23,15 @@ The task run prompt SHALL include the task key, title, description, labels, boar
 - **THEN** the run fails with `no_repository` and the conversation tells the requester how to set one
 
 ### Requirement: What a dev bot does
-A dev bot run SHALL: create a branch named after the task key, implement the task, run the repository's checks it can find, push the branch, and open a pull request whose title cites the task key, so the existing GitHub sync links and moves the task. It SHALL post status updates in the conversation as it goes and SHALL end with a summary and the pull request link. It SHALL NOT merge pull requests.
+A dev bot run SHALL: work on a branch named after the task key, implement the task inside its sandbox, run the repository's checks it can find, commit its changes locally, and end with a pull request title (citing the task key) and description. The runner SHALL then push the branch from the host and open the pull request, so the existing GitHub sync links and moves the task. A run that ends without commits SHALL NOT open a pull request. It SHALL post status updates in the conversation as it goes and SHALL end with a summary and the pull request link. It SHALL NOT merge pull requests.
 
 #### Scenario: Successful run
 - **WHEN** "Dev Bot" finishes `GEN-42`
 - **THEN** a pull request titled with `GEN-42` exists, the task shows it, and the conversation ends with the summary and link
+
+#### Scenario: Nothing to commit
+- **WHEN** a dev run finishes without committing any change
+- **THEN** no branch is pushed, no pull request is opened, and the conversation explains why
 
 #### Scenario: Bot needs input
 - **WHEN** the bot cannot proceed without a decision

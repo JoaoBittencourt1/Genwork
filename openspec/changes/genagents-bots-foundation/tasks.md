@@ -15,17 +15,18 @@ Dependency graph, by layer (rules 43–45). Go phases follow rule 47's order (te
 | 9 | genagents: runner API (registration, heartbeat, claims, events, messages, Genwork tokens, sweeper) | 5 | 8 |
 | 10 | genagents: task runs, conversations, reconciliation, reviews | 4, 8, 9 | 11 |
 | 11 | genagents: admin chat | 3, 8, 9 | 10 |
-| 12 | runner: foundation (register, config, heartbeat, profiles, claim loop, workspace, event posting) with a stub adapter | 9 | 13 |
-| 13 | gentasks: assignment hint client and bot review proxy | 4, 10 | 12 |
-| 14 | runner: Claude Code and Codex adapters, skills and MCP config | 12 | 15, 16 |
-| 15 | runner: Cursor and Grok adapters, GitHub PR and review posting | 12 | 14, 16 |
-| 16 | mcp: genmonitor and genagents toolsets | 10, 11 | 14, 15, 17 |
-| 17 | web: genagents and gentasks logic (types, datasource, domain, MSW fixtures, tests) | 10, 11, 13 (contracts in specs) | 16 |
-| 18 | web: genagents management pages | 17 | 19, 20 |
-| 19 | web: admin chat page | 17 | 18, 20 |
-| 20 | web: gentasks assignee picker, board repository field, conversation panel, "Bot review" | 17 | 18, 19 |
-| 21 | release: runner build and publish, installer listing, constitution row, docs | 12 | 14–20 |
-| 22 | full gates and manual end-to-end verification | 1–21 | — |
+| 12 | runner: foundation (register, config, heartbeat, profiles, claim loop, host workspace and clone, event posting) with stub adapter and stub sandbox | 9 | 14 |
+| 13 | runner: sandbox (container launcher over the Engine API, directory mode, sandbox image) | 12 | 14 |
+| 14 | gentasks: assignment hint client and bot review proxy | 4, 10 | 12, 13 |
+| 15 | runner: Claude Code and Codex adapters, skills and MCP config | 13 | 16, 17 |
+| 16 | runner: Cursor and Grok adapters, host-side push, PR, and review posting | 13 | 15, 17 |
+| 17 | mcp: genmonitor and genagents toolsets | 10, 11 | 15, 16, 18 |
+| 18 | web: genagents and gentasks logic (types, datasource, domain, MSW fixtures, tests) | 10, 11, 14 (contracts in specs) | 17 |
+| 19 | web: genagents management pages | 18 | 20, 21 |
+| 20 | web: admin chat page | 18 | 19, 21 |
+| 21 | web: gentasks assignee picker, board repository field, conversation panel, "Bot review" | 18 | 19, 20 |
+| 22 | release: runner binaries and sandbox image, installer listing, constitution updates, docs | 13 | 15–21 |
+| 23 | full gates and manual end-to-end verification | 1–22 | — |
 
 ## Phase 1 — core bot member foundation (branch: feat/core-bot-members-foundation)
 
@@ -122,82 +123,91 @@ Dependency graph, by layer (rules 43–45). Go phases follow rule 47's order (te
 
 ## Phase 12 — runner foundation (branch: feat/runner-foundation)
 
-- [ ] 12.1 Write tests in `runner/tests/` against an `httptest` genagents stub: register stores the secret with owner-only file permissions; config requires the instance URL (rule 1); heartbeat reports tools, slots, and GitHub credential presence; the claim loop respects concurrency; events are posted in order with retries; the workspace is created per run and removed with secret files in every end state; timeout stops the adapter; messages are delivered to the adapter at turn boundaries
-- [ ] 12.2 Create `runner/` (`go.mod`, `cmd/genwork-runner`, `internal/command`, `internal/config`, `internal/registration`, `internal/heartbeat`, `internal/claims`, `internal/workspace`) with the `ProviderAdapter` interface and a stub adapter for tests
+- [ ] 12.1 Write tests in `runner/tests/` against an `httptest` genagents stub: register stores the secret with owner-only file permissions; config requires the instance URL (rule 1); heartbeat reports tools, slots, and GitHub credential presence; the claim loop respects concurrency; events are posted in order with retries; the workspace is created per run (clone on the host, branch checked out before execution) and removed with secret files in every end state; timeout stops the sandbox (stub `SandboxLauncher`); messages are delivered to the adapter at turn boundaries
+- [ ] 12.2 Create `runner/` (`go.mod`, `cmd/genwork-runner`, `internal/command`, `internal/config`, `internal/registration`, `internal/heartbeat`, `internal/claims`, `internal/workspace`) with the `ProviderAdapter` and `SandboxLauncher` interfaces and stubs for tests
 - [ ] 12.3 Implement `account login` profile directories per account
 - [ ] 12.4 Wire the runner into `make lint`, `make test`, `make build`, and CI
 - [ ] 12.5 Run `make lint` and runner tests
 - [ ] 12.6 Open PR
 
-## Phase 13 — gentasks hint client and review proxy (branch: feat/gentasks-genagents-integration)
+## Phase 13 — runner sandbox (branch: feat/runner-sandbox)
 
-- [ ] 13.1 Write tests with a stubbed genagents API and core capabilities: assignee change to or from a bot sends the hint after commit; none when genagents is disabled; failure does not fail the assignment; `POST /tasks/{token}/bot-reviews` needs `gentasks.task.write`, forwards body and caller token, relays 400 and 409, and answers 404 when genagents is disabled
-- [ ] 13.2 Implement `GenagentsClient`, the hint after assignee changes, and the review proxy handler
-- [ ] 13.3 Run `make lint` and gentasks tests
-- [ ] 13.4 Open PR
+- [ ] 13.1 Record Docker Engine API fixtures (create, start, logs stream, wait with OOM, stop, remove, list by label) and serve them from an `httptest` socket stub (rule 25)
+- [ ] 13.2 Write tests: container spec has non-root user, all capabilities dropped, no-new-privileges, read-only root with tmpfs, CPU/memory/pids limits from config, only the workspace and the run's own account profile mounted, bridge network, run label; never mounts the engine socket or passes the runner secret or GitHub token; stop then kill after 10 s; OOM maps to `sandbox_limit`; leftover labelled containers removed on start; startup fails without an engine unless `--directory-mode`; heartbeat reports engine, image digest, CLI versions from the image, and directory mode
+- [ ] 13.3 Implement the `SandboxLauncher` interface, `ContainerSandbox` over the Engine API, and `DirectorySandbox`
+- [ ] 13.4 Write `runner/sandbox/Dockerfile` with pinned CLI and toolchain versions, and add its build to `make build` (no push yet)
+- [ ] 13.5 Run `make lint`, runner tests, and `make build`
+- [ ] 13.6 Open PR
 
-## Phase 14 — runner Claude Code and Codex adapters (branch: feat/runner-claude-codex-adapters)
+## Phase 14 — gentasks hint client and review proxy (branch: feat/gentasks-genagents-integration)
 
-- [ ] 14.1 Record CLI stream fixtures (Claude Code stream JSON, Codex JSON events) for success, tool use, waiting for input, auth failure, and garbage output
-- [ ] 14.2 Write tests: command line and environment per mode (profile dir vs API key), skills placed where each CLI reads them, MCP config written with the Genwork MCP and the bot's servers, event mapping, resume with a message, `adapter_error` on unparseable output, auth failure reported as account error
-- [ ] 14.3 Implement both adapters
-- [ ] 14.4 Run `make lint` and runner tests
-- [ ] 14.5 Open PR
+- [ ] 14.1 Write tests with a stubbed genagents API and core capabilities: assignee change to or from a bot sends the hint after commit; none when genagents is disabled; failure does not fail the assignment; `POST /tasks/{token}/bot-reviews` needs `gentasks.task.write`, forwards body and caller token, relays 400 and 409, and answers 404 when genagents is disabled
+- [ ] 14.2 Implement `GenagentsClient`, the hint after assignee changes, and the review proxy handler
+- [ ] 14.3 Run `make lint` and gentasks tests
+- [ ] 14.4 Open PR
 
-## Phase 15 — runner Cursor and Grok adapters, GitHub posting (branch: feat/runner-cursor-grok-github)
+## Phase 15 — runner Claude Code and Codex adapters (branch: feat/runner-claude-codex-adapters)
 
-- [ ] 15.1 Record CLI fixtures for Cursor and Grok and GitHub REST fixtures (create pull request, create review with comments, failure)
-- [ ] 15.2 Write tests: adapters as in 14.2; branch naming; pull request title cites the task key; review JSON validated before posting; `github_post_failed` posts the full review text to the conversation; the GitHub token never appears in events or logs
-- [ ] 15.3 Implement both adapters and the GitHub client
+- [ ] 15.1 Record CLI stream fixtures (Claude Code stream JSON, Codex JSON events) for success, tool use, waiting for input, auth failure, and garbage output
+- [ ] 15.2 Write tests: command line and environment per mode (profile dir vs API key), skills placed where each CLI reads them, MCP config written with the Genwork MCP and the bot's servers, event mapping, resume with a message, `adapter_error` on unparseable output, auth failure reported as account error
+- [ ] 15.3 Implement both adapters
 - [ ] 15.4 Run `make lint` and runner tests
 - [ ] 15.5 Open PR
 
-## Phase 16 — MCP toolsets (branch: feat/mcp-genmonitor-genagents-tools)
+## Phase 16 — runner Cursor and Grok adapters, GitHub posting (branch: feat/runner-cursor-grok-github)
 
-- [ ] 16.1 Write tests in `mcp/tests/`: genmonitor and genagents tools appear only when the module is enabled and the caller holds each permission; tool calls forward the token; bot-member tokens work like user tokens
-- [ ] 16.2 Implement `mcp/internal/genmonitor` and `mcp/internal/genagents` toolsets
-- [ ] 16.3 Run `make lint` and mcp tests
-- [ ] 16.4 Open PR
+- [ ] 16.1 Record CLI fixtures for Cursor and Grok and GitHub REST fixtures (create pull request, create review with comments, failure)
+- [ ] 16.2 Write tests: adapters as in 14.2; branch naming; push and pull request from the host only after the run returns a result with commits; no push or PR without commits; pull request title cites the task key; review JSON validated before posting; `github_post_failed` posts the full review text to the conversation; the GitHub token never appears in events or logs
+- [ ] 16.3 Implement both adapters and the GitHub client
+- [ ] 16.4 Run `make lint` and runner tests
+- [ ] 16.5 Open PR
 
-## Phase 17 — web logic (branch: feat/web-genagents-logic)
+## Phase 17 — MCP toolsets (branch: feat/mcp-genmonitor-genagents-tools)
 
-- [ ] 17.1 Add MSW fixtures and handlers in `web/src/test/` for every genagents endpoint and the new gentasks fields and endpoints
-- [ ] 17.2 Write tests: datasource request shapes and error mapping; model filtering by account; provider mode rules (xAI has no subscription); page and action visibility from permissions and capabilities; `conversationRefreshInterval`; conversation entry ordering and merge of incremental reads; "Bot review" enabled only with open or draft PRs; reviewer picker rules; assignee grouping of bots
-- [ ] 17.3 Implement `web/src/app/genagents/{datasource,domain}`, the shared conversation types in `web/src/shared/domain/`, and the gentasks datasource and domain additions
-- [ ] 17.4 Run `make lint` and web tests
-- [ ] 17.5 Open PR
+- [ ] 17.1 Write tests in `mcp/tests/`: genmonitor and genagents tools appear only when the module is enabled and the caller holds each permission; tool calls forward the token; bot-member tokens work like user tokens
+- [ ] 17.2 Implement `mcp/internal/genmonitor` and `mcp/internal/genagents` toolsets
+- [ ] 17.3 Run `make lint` and mcp tests
+- [ ] 17.4 Open PR
 
-## Phase 18 — web management pages (branch: feat/web-genagents-pages)
+## Phase 18 — web logic (branch: feat/web-genagents-logic)
 
-- [ ] 18.1 Add English and pt-BR copy for Accounts, Bots, Skills, MCP servers, and Runners
-- [ ] 18.2 Implement the five pages as shadcn tables with form dialogs, the AI navigation section, and routes (adding missing shadcn components with `npx shadcn@latest add`, rule 73)
-- [ ] 18.3 Run `make lint` and web tests
-- [ ] 18.4 Open PR
+- [ ] 18.1 Add MSW fixtures and handlers in `web/src/test/` for every genagents endpoint and the new gentasks fields and endpoints
+- [ ] 18.2 Write tests: datasource request shapes and error mapping; model filtering by account; provider mode rules (xAI has no subscription); page and action visibility from permissions and capabilities; `conversationRefreshInterval`; conversation entry ordering and merge of incremental reads; "Bot review" enabled only with open or draft PRs; reviewer picker rules; assignee grouping of bots
+- [ ] 18.3 Implement `web/src/app/genagents/{datasource,domain}`, the shared conversation types in `web/src/shared/domain/`, and the gentasks datasource and domain additions
+- [ ] 18.4 Run `make lint` and web tests
+- [ ] 18.5 Open PR
 
-## Phase 19 — web admin chat (branch: feat/web-genagents-admin-chat)
+## Phase 19 — web management pages (branch: feat/web-genagents-pages)
 
-- [ ] 19.1 Add English and pt-BR copy
-- [ ] 19.2 Implement the admin chat page: chat list, messages, collapsible tool activity, message box, "Stop", polling
+- [ ] 19.1 Add English and pt-BR copy for Accounts, Bots, Skills, MCP servers, and Runners
+- [ ] 19.2 Implement the five pages as shadcn tables with form dialogs, the AI navigation section, and routes (adding missing shadcn components with `npx shadcn@latest add`, rule 73)
 - [ ] 19.3 Run `make lint` and web tests
 - [ ] 19.4 Open PR
 
-## Phase 20 — web gentasks additions (branch: feat/web-gentasks-bots)
+## Phase 20 — web admin chat (branch: feat/web-genagents-admin-chat)
 
 - [ ] 20.1 Add English and pt-BR copy
-- [ ] 20.2 Implement the assignee picker "Bots" group and bot avatar, the board repository field in GitHub settings, the "Bot conversation" panel, and the "Bot review" button with reviewer picker, all hidden when genagents is disabled
+- [ ] 20.2 Implement the admin chat page: chat list, messages, collapsible tool activity, message box, "Stop", polling
 - [ ] 20.3 Run `make lint` and web tests
 - [ ] 20.4 Open PR
 
-## Phase 21 — release, installer, docs (branch: chore/runner-release-docs)
+## Phase 21 — web gentasks additions (branch: feat/web-gentasks-bots)
 
-- [ ] 21.1 Write tests for the installer listing genagents and for release artifact names including `genwork-runner`
-- [ ] 21.2 Build and publish `genwork-runner` for linux/darwin amd64/arm64 in the release workflow through `make build` (rule 75)
-- [ ] 21.3 Add `runner/` to the constitution component table; write `runner/README.md` (install, register, account sign-in, GitHub credentials, safety notes) and the genagents section of the main README; add `.env.example` placeholders
-- [ ] 21.4 Run `make lint`, `make test`, and `make build`
-- [ ] 21.5 Open PR
+- [ ] 21.1 Add English and pt-BR copy
+- [ ] 21.2 Implement the assignee picker "Bots" group and bot avatar, the board repository field in GitHub settings, the "Bot conversation" panel, and the "Bot review" button with reviewer picker, all hidden when genagents is disabled
+- [ ] 21.3 Run `make lint` and web tests
+- [ ] 21.4 Open PR
 
-## Phase 22 — gates and manual verification
+## Phase 22 — release, installer, docs (branch: chore/runner-release-docs)
 
-- [ ] 22.1 Run `make lint`, `make test`, and `make build` on `main` with every phase merged
-- [ ] 22.2 Manual verification with the developer (rule 41): link two Claude accounts (one subscription on a runner, one API key) and a Codex account; create a dev, a reviewer, and an assistant bot with skills and an extra MCP server; set a board repository; assign a task to the dev bot → status updates in the panel, reply mid-run, pull request opened citing the task and linked on the card; press "Bot review" → GitHub review with comments and summary in the panel; admin chat as admin reads tasks and host metrics and creates a task; member cannot see the admin chat; disable genagents → bot UI disappears and gentasks keeps working; pt-BR copy; dark and light themes
-- [ ] 22.3 Archive the change after sign-off
+- [ ] 22.1 Write tests for the installer listing genagents and for release artifact names including `genwork-runner`
+- [ ] 22.2 Build and publish `genwork-runner` for linux/darwin amd64/arm64 and the `genwork-sandbox` image in the release workflow through `make build` (rule 75)
+- [ ] 22.3 Add `runner/` to the constitution component table and a sentence to rule 84 stating that the runner, outside the stack, may use its own machine's container engine for sandboxes; write `runner/README.md` (install, container engine (rootless recommended), custom sandbox images, directory mode, register, account sign-in, GitHub credentials, safety notes) and the genagents section of the main README; add `.env.example` placeholders
+- [ ] 22.4 Run `make lint`, `make test`, and `make build`
+- [ ] 22.5 Open PR
+
+## Phase 23 — gates and manual verification
+
+- [ ] 23.1 Run `make lint`, `make test`, and `make build` on `main` with every phase merged
+- [ ] 23.2 Manual verification with the developer (rule 41): link two Claude accounts (one subscription on a runner, one API key) and a Codex account; create a dev, a reviewer, and an assistant bot with skills and an extra MCP server; set a board repository; assign a task to the dev bot → a sandbox container starts and is removed at the end, status updates in the panel, reply mid-run, pull request opened citing the task and linked on the card; from inside a run, confirm the bot cannot see other account profiles or the GitHub token; press "Bot review" → GitHub review with comments and summary in the panel; admin chat as admin reads tasks and host metrics and creates a task; member cannot see the admin chat; disable genagents → bot UI disappears and gentasks keeps working; pt-BR copy; dark and light themes
+- [ ] 23.3 Archive the change after sign-off
