@@ -55,6 +55,7 @@ type Task struct {
 	Title             string
 	Description       *string
 	AssigneeUserToken *string
+	AssigneeKind      AssigneeKind
 	AssignedAt        *time.Time
 	Urgency           Urgency
 	Position          *int

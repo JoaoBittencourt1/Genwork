@@ -32,6 +32,8 @@ type BoardGithubSettings struct {
 	ReviewRequested *MappedColumn
 	Merged          *MappedColumn
 	FinalBranches   []string
+	// Repository is the "owner/name" repository bots work in for this board's tasks; nil while it is not set.
+	Repository *string
 }
 
 func (settings BoardGithubSettings) ColumnFor(trigger PullRequestTrigger) *MappedColumn {
@@ -58,6 +60,7 @@ type SavedBoardGithubSettings struct {
 	ReviewRequestedColumnID *int64
 	MergedColumnID          *int64
 	FinalBranches           []string
+	Repository              *string
 	At                      time.Time
 }
 
@@ -68,6 +71,7 @@ func (settings BoardGithubSettings) ToSaved(at time.Time) SavedBoardGithubSettin
 		ReviewRequestedColumnID: mappedColumnID(settings.ReviewRequested),
 		MergedColumnID:          mappedColumnID(settings.Merged),
 		FinalBranches:           settings.FinalBranches,
+		Repository:              settings.Repository,
 		At:                      at,
 	}
 }

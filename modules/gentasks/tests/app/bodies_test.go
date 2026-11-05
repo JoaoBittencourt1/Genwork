@@ -29,6 +29,7 @@ type taskBody struct {
 	Title         string      `json:"title"`
 	Description   *string     `json:"description"`
 	AssigneeToken *string     `json:"assigneeToken"`
+	AssigneeKind  *string     `json:"assigneeKind"`
 	Urgency       string      `json:"urgency"`
 	Labels        []labelBody `json:"labels"`
 	CreatedBy     string      `json:"createdBy"`

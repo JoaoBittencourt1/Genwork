@@ -22,6 +22,7 @@ func TestSDKTypesMatchRecordedFixtures(t *testing.T) {
 	targets := map[string]any{
 		"jwks.json":                      &tokens.JSONWebKeySet{},
 		"directory_user.json":            &coreclient.DirectoryUser{},
+		"directory_bot_user.json":        &coreclient.DirectoryUser{},
 		"user_not_found.json":            &errorFixture{},
 		"registered_module.json":         &registration.RegisteredModule{},
 		"incompatible_core_version.json": &errorFixture{},

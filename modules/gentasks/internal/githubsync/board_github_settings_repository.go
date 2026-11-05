@@ -17,7 +17,8 @@ SELECT boards.id, settings.id IS NOT NULL,
        opened.id, opened.token, opened.position,
        review.id, review.token, review.position,
        merged.id, merged.token, merged.position,
-       coalesce(settings.final_branches, $2::text[])
+       coalesce(settings.final_branches, $2::text[]),
+       settings.repository
 FROM boards
 LEFT JOIN board_github_settings settings ON settings.board_id = boards.id
 LEFT JOIN board_columns opened ON opened.id = settings.opened_column_id AND opened.deleted_at IS NULL
@@ -67,16 +68,17 @@ func (BoardGithubSettingsRepository) ListByBoards(ctx context.Context, db platfo
 func (BoardGithubSettingsRepository) Save(ctx context.Context, db platform.DBTX, settings SavedBoardGithubSettings) error {
 	_, err := db.Exec(ctx, `
 		INSERT INTO board_github_settings (token, board_id, opened_column_id, review_requested_column_id, merged_column_id, final_branches,
-		                                   created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+		                                   repository, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
 		ON CONFLICT (board_id) DO UPDATE SET
 			opened_column_id = EXCLUDED.opened_column_id,
 			review_requested_column_id = EXCLUDED.review_requested_column_id,
 			merged_column_id = EXCLUDED.merged_column_id,
 			final_branches = EXCLUDED.final_branches,
+			repository = EXCLUDED.repository,
 			updated_at = EXCLUDED.updated_at`,
 		platform.NewPublicToken(), settings.BoardID, settings.OpenedColumnID, settings.ReviewRequestedColumnID, settings.MergedColumnID,
-		settings.FinalBranches, settings.At)
+		settings.FinalBranches, settings.Repository, settings.At)
 	if err != nil {
 		return fmt.Errorf("save board github settings: %w", err)
 	}
@@ -103,7 +105,7 @@ func scanBoardGithubSettings(row pgx.Row) (BoardGithubSettings, error) {
 		&opened.id, &opened.token, &opened.position,
 		&review.id, &review.token, &review.position,
 		&merged.id, &merged.token, &merged.position,
-		&settings.FinalBranches)
+		&settings.FinalBranches, &settings.Repository)
 	settings.Opened, settings.ReviewRequested, settings.Merged = opened.toMapped(), review.toMapped(), merged.toMapped()
 	return settings, err
 }
