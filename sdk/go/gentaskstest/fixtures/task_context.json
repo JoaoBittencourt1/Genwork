@@ -1,0 +1,35 @@
+{
+  "assigneeKind": "bot",
+  "assigneeToken": "dev-bot-token",
+  "board": {
+    "name": "Genwork",
+    "taskPrefix": "GEN",
+    "token": "9iPESWzTAyAtaX9ZHCzqhA"
+  },
+  "description": "Make it faster",
+  "key": "GEN-1",
+  "labels": [
+    {
+      "color": "blue",
+      "name": "backend",
+      "token": "GO4D1fHorfTdkPMuLkHWMA"
+    }
+  ],
+  "pullRequests": [
+    {
+      "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1",
+        "login": "dev-bot"
+      },
+      "number": 12,
+      "repository": "acme/api",
+      "state": "open",
+      "title": "GEN-1 Speed up the API",
+      "token": "UHItdG9rZW4tZXhhbXBsZQ",
+      "url": "https://github.com/acme/api/pull/12"
+    }
+  ],
+  "repository": "acme/api",
+  "title": "Speed up the API",
+  "token": "J5O77Z-yMDZ9Zz7CbG9LLg"
+}
