@@ -1,0 +1,5 @@
+*
+!sdk/go
+!modules/genagents
+modules/genagents/bin
+**/coverage.out
