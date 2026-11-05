@@ -9,6 +9,12 @@ import { BoardSettingsPage } from '@/app/gentasks/BoardSettingsPage'
 import { BoardsPage } from '@/app/gentasks/BoardsPage'
 import { GithubCallbackPage } from '@/app/gentasks/GithubCallbackPage'
 import { GithubIntegrationPage } from '@/app/gentasks/GithubIntegrationPage'
+import { AccountsPage } from '@/app/genagents/AccountsPage'
+import { AdminChatPage } from '@/app/genagents/AdminChatPage'
+import { BotsPage } from '@/app/genagents/BotsPage'
+import { McpServersPage } from '@/app/genagents/McpServersPage'
+import { RunnersPage } from '@/app/genagents/RunnersPage'
+import { SkillsPage } from '@/app/genagents/SkillsPage'
 import { HostPage } from '@/app/genmonitor/HostPage'
 import { HomePage } from '@/app/home/HomePage'
 import { AcceptInvitePage } from '@/app/invites/AcceptInvitePage'
@@ -107,6 +113,66 @@ const hostRoute = createRoute({
   ),
 })
 
+const aiAccountsRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/accounts',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <AccountsPage />
+    </RequireModule>
+  ),
+})
+
+const aiBotsRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/bots',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <BotsPage />
+    </RequireModule>
+  ),
+})
+
+const aiSkillsRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/skills',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <SkillsPage />
+    </RequireModule>
+  ),
+})
+
+const aiMcpServersRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/mcp-servers',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <McpServersPage />
+    </RequireModule>
+  ),
+})
+
+const aiRunnersRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/runners',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <RunnersPage />
+    </RequireModule>
+  ),
+})
+
+const aiChatRoute = createRoute({
+  getParentRoute: () => signedInLayoutRoute,
+  path: '/ai/chat',
+  component: () => (
+    <RequireModule moduleId={MODULE_IDS.genagents}>
+      <AdminChatPage />
+    </RequireModule>
+  ),
+})
+
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/login',
@@ -157,6 +223,12 @@ const routeTree = rootRoute.addChildren([
     githubIntegrationRoute,
     githubCallbackRoute,
     hostRoute,
+    aiAccountsRoute,
+    aiBotsRoute,
+    aiSkillsRoute,
+    aiMcpServersRoute,
+    aiRunnersRoute,
+    aiChatRoute,
   ]),
   loginRoute,
   authorizeAssistantRoute,

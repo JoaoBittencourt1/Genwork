@@ -7,7 +7,13 @@
       "members": "Membros",
       "tasks": "Tarefas",
       "host": "Servidor",
-      "assistants": "Assistentes de IA"
+      "assistants": "Assistentes de IA",
+      "aiAccounts": "Contas de IA",
+      "aiBots": "Bots",
+      "aiSkills": "Skills",
+      "aiMcpServers": "Servidores MCP",
+      "aiRunners": "Runners",
+      "aiChat": "Chat de admin"
     },
     "navigation": "Navegação",
     "toggleSidebar": "Mostrar ou ocultar a barra lateral",
@@ -208,7 +214,18 @@
       "too_long": "Valor muito longo.",
       "required": "Obrigatório.",
       "not_nullable": "Este valor não pode ficar vazio.",
-      "unknown_module": "Módulo desconhecido."
+      "unknown_module": "Módulo desconhecido.",
+      "secret_value_required": "Um segredo precisa de um valor.",
+      "not_available_for_account": "Esta conta não oferece esse modelo.",
+      "unsupported_by_provider": "Este provedor não suporta esse modo.",
+      "missing_provider_cli": "Esse runner não reporta a CLI deste provedor.",
+      "not_enabled": "Este módulo não está habilitado.",
+      "not_an_assistant": "Escolha um bot assistente habilitado.",
+      "not_a_reviewer": "Escolha um bot revisor habilitado.",
+      "no_reviewer_bot": "Nenhum bot revisor está habilitado.",
+      "reviewer_required": "Escolha qual bot revisor chamar.",
+      "invalid_front_matter": "O texto precisa de front matter com nome e descrição.",
+      "not_applicable": "Esta conta não tem chave de API."
     },
     "board_not_found": "Quadro não encontrado.",
     "column_not_found": "Coluna não encontrada.",
@@ -245,7 +262,26 @@
     "update_interrupted": "A atualização foi interrompida.",
     "invalid_client": "Este pedido de conexão cita um assistente desconhecido.",
     "invalid_redirect_uri": "Este pedido de conexão volta para um endereço que o assistente nunca registrou.",
-    "password_reset_not_found": "Este link de redefinição não existe, expirou ou já foi usado. Peça um novo na tela de login."
+    "password_reset_not_found": "Este link de redefinição não existe, expirou ou já foi usado. Peça um novo na tela de login.",
+    "account_name_taken": "Outra conta já tem este nome.",
+    "account_not_found": "Conta não encontrada.",
+    "account_in_use": "Bots ainda usam esta conta: {{bots}}. Altere ou remova-os primeiro.",
+    "model_already_defined": "Este modelo já está disponível para a conta.",
+    "model_not_found": "Modelo não encontrado.",
+    "bot_name_taken": "Outro bot já tem este nome.",
+    "bot_not_found": "Bot não encontrado.",
+    "skill_name_taken": "Outra skill já tem este nome.",
+    "skill_not_found": "Skill não encontrada.",
+    "mcp_server_name_taken": "Outro servidor MCP já tem este nome.",
+    "mcp_server_not_found": "Servidor MCP não encontrado.",
+    "runner_name_taken": "Outro runner já tem este nome.",
+    "runner_not_found": "Runner não encontrado.",
+    "chat_not_found": "Chat não encontrado.",
+    "conversation_not_found": "Conversa não encontrada.",
+    "run_not_active": "Não há execução ativa para parar.",
+    "run_already_active": "Já há uma execução desse tipo ativa para esta tarefa.",
+    "no_open_pull_requests": "Esta tarefa não tem pull request aberto ou em rascunho para revisar.",
+    "gentasks_unavailable": "As tarefas estão indisponíveis agora. Tente de novo."
   },
   "common": {
     "cancel": "Cancelar",
@@ -260,7 +296,8 @@
     "unavailableDescription": "Este módulo não está habilitado nesta instalação.",
     "names": {
       "gentasks": "Tarefas",
-      "genmonitor": "Servidor"
+      "genmonitor": "Servidor",
+      "genagents": "IA"
     }
   },
   "gentasks": {
@@ -359,7 +396,8 @@
       "dialogDescription": "Edite o título, a descrição e as propriedades da tarefa.",
       "properties": "Propriedades",
       "status": "Status",
-      "createdAt": "Criada em {{date}}"
+      "createdAt": "Criada em {{date}}",
+      "botsGroup": "Bots"
     },
     "labels": {
       "title": "Labels",
@@ -448,6 +486,31 @@
           "empty": "Mantenha pelo menos uma branch final.",
           "tooMany": "Use no máximo 20 branches finais.",
           "invalidName": "Nomes de branch não podem ter espaços."
+        },
+        "repository": "Repositório dos bots",
+        "repositoryHint": "O repositório em que os bots trabalham nas tarefas deste board, no formato owner/name.",
+        "repositoryInvalid": "Use o formato owner/name, por exemplo acme/api."
+      }
+    },
+    "bot": {
+      "conversation": "Conversa com o bot",
+      "someone": "Alguém",
+      "run": {
+        "queued": "{{bot}} está esperando um runner.",
+        "running": "{{bot}} está trabalhando.",
+        "waiting_for_input": "{{bot}} está esperando sua resposta.",
+        "succeeded": "{{bot}} terminou.",
+        "failed": "{{bot}} falhou.",
+        "cancelled": "A execução foi cancelada."
+      },
+      "review": {
+        "button": "Revisão por bot",
+        "requested": "Revisão solicitada.",
+        "reviewer": "Bot revisor",
+        "chooseReviewer": "Escolha um revisor",
+        "disabled": {
+          "noOpenPullRequest": "Vincule antes um pull request aberto ou em rascunho.",
+          "noReviewerBot": "Nenhum bot revisor está habilitado."
         }
       }
     }
@@ -572,6 +635,226 @@
       "deny": "Recusar",
       "invalidTitle": "Pedido de conexão inválido",
       "invalid": "Este pedido de conexão é inválido. Comece a conexão de novo pelo assistente."
+    }
+  },
+  "conversation": {
+    "entries": "Conversa",
+    "result": "Resultado",
+    "assistant": "Bot",
+    "noText": "(sem texto)",
+    "messageLabel": "Mensagem",
+    "messagePlaceholder": "Escreva uma mensagem…",
+    "stop": "Parar",
+    "send": "Enviar",
+    "entry": {
+      "unknown": "Atualização do sistema.",
+      "run_queued": "Na fila, esperando um runner.",
+      "run_started": "Iniciada no runner {{runner}}.",
+      "run_succeeded": "Concluída.",
+      "run_cancelled": "Cancelada ({{causeText}}).",
+      "run_failed": "Falhou: {{reasonText}}",
+      "only_dev_bots_work_tasks": "{{bot}} não é um bot dev, então não trabalha em {{taskKey}}."
+    },
+    "cause": {
+      "user": "parada por uma pessoa",
+      "reassigned": "a tarefa foi reatribuída",
+      "bot_disabled": "o bot foi desabilitado",
+      "system": "pelo sistema"
+    },
+    "reason": {
+      "runner_revoked": "o runner foi revogado",
+      "runner_lost": "o runner parou de responder",
+      "timeout": "a execução passou do tempo limite",
+      "sandbox_limit": "o sandbox atingiu um limite de recursos",
+      "adapter_error": "não foi possível usar a saída da ferramenta de IA",
+      "no_repository": "o board não tem repositório; defina um nas configurações de GitHub do board",
+      "no_reply": "ninguém respondeu em 24 horas",
+      "github_post_failed": "o GitHub recusou a requisição",
+      "account_error": "a conta de IA foi recusada: {{message}}",
+      "session_revoked": "a sessão do chat terminou; reabra o chat para continuar",
+      "run_failed": "a execução falhou"
+    }
+  },
+  "genagents": {
+    "noPermissionTitle": "Sem acesso",
+    "noPermissionDescription": "Seu papel não permite abrir esta página.",
+    "actions": "Ações",
+    "providers": {
+      "anthropic": "Anthropic (Claude)",
+      "openai": "OpenAI (ChatGPT / Codex)",
+      "cursor": "Cursor",
+      "xai": "xAI (Grok)"
+    },
+    "accounts": {
+      "title": "Contas de IA",
+      "description": "Vincule as contas de IA do time, com uma assinatura conectada em um runner ou uma chave de API.",
+      "termsNote": "Confira os termos do seu provedor antes de compartilhar uma assinatura pessoal com automação; a chave de API é sempre uma opção.",
+      "columns": {
+        "name": "Nome",
+        "provider": "Provedor",
+        "mode": "Modo",
+        "status": "Status"
+      },
+      "modes": {
+        "subscription": "Assinatura",
+        "api_key": "Chave de API"
+      },
+      "statuses": {
+        "pending_sign_in": "Aguardando login",
+        "ready": "Pronta",
+        "error": "Erro"
+      },
+      "signInCommand": "Comando de login",
+      "add": "Vincular uma conta",
+      "apiKey": "Chave de API",
+      "runner": "Runner",
+      "chooseRunner": "Escolha um runner",
+      "models": "Modelos",
+      "modelsOf": "Modelos de {{name}}",
+      "customModel": "ID de modelo personalizado",
+      "customModelPlaceholder": "Um modelo lançado depois do catálogo",
+      "addModel": "Adicionar modelo",
+      "removeModel": "Remover o modelo {{id}}",
+      "remove": "Remover {{name}}",
+      "removeTitle": "Remover conta?",
+      "removeDescription": "“{{name}}” será desvinculada. O perfil de login dela é apagado do runner."
+    },
+    "bots": {
+      "title": "Bots",
+      "description": "Trabalhadores de IA com identidade própria de membro: trabalham tarefas, revisam pull requests e conversam.",
+      "columns": {
+        "name": "Nome",
+        "kind": "Tipo",
+        "model": "Modelo",
+        "account": "Conta",
+        "enabled": "Habilitado"
+      },
+      "kinds": {
+        "dev": "Dev",
+        "reviewer": "Revisor",
+        "assistant": "Assistente"
+      },
+      "efforts": {
+        "default": "Padrão do provedor",
+        "low": "Baixo",
+        "medium": "Médio",
+        "high": "Alto"
+      },
+      "add": "Criar um bot",
+      "edit": "Editar",
+      "editTitle": "Editar {{name}}",
+      "toggle": "Habilitar {{name}}",
+      "rotateSecret": "Rotacionar segredo",
+      "remove": "Remover {{name}}",
+      "removeTitle": "Remover bot?",
+      "removeDescription": "“{{name}}” e o membro dele serão removidos, e as execuções ativas canceladas.",
+      "chooseAccount": "Escolha uma conta",
+      "chooseModel": "Escolha um modelo",
+      "role": "Papel do membro",
+      "instructions": "Instruções",
+      "effort": "Esforço de raciocínio",
+      "maxTurns": "Máx. de turnos",
+      "timeoutMinutes": "Tempo limite (minutos)",
+      "skills": "Skills",
+      "mcpServers": "Servidores MCP",
+      "problems": {
+        "required": "Obrigatório.",
+        "invalid": "Valor inválido."
+      }
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Instruções reutilizáveis no formato Agent Skills, anexadas aos bots.",
+      "columns": {
+        "name": "Nome",
+        "description": "Descrição",
+        "version": "Versão"
+      },
+      "add": "Criar uma skill",
+      "edit": "Editar",
+      "editTitle": "Editar {{name}}",
+      "remove": "Remover {{name}}",
+      "removeTitle": "Remover skill?",
+      "removeDescription": "“{{name}}” será desanexada de todos os bots.",
+      "import": "Cole um SKILL.md para preencher o formulário",
+      "importPlaceholder": "---\nname: pr-review\ndescription: Revisa pull requests\n---",
+      "body": "Corpo do SKILL.md",
+      "files": "Arquivos extras",
+      "newFilePath": "Caminho de um novo arquivo",
+      "addFile": "Adicionar arquivo",
+      "removeFile": "Remover {{path}}"
+    },
+    "mcpServers": {
+      "title": "Servidores MCP",
+      "description": "Servidores MCP externos que os bots podem usar, além do MCP do Genwork que toda execução recebe.",
+      "columns": {
+        "name": "Nome",
+        "transport": "Transporte",
+        "target": "URL ou comando"
+      },
+      "add": "Registrar um servidor",
+      "edit": "Editar",
+      "editTitle": "Editar {{name}}",
+      "remove": "Remover {{name}}",
+      "removeTitle": "Remover servidor MCP?",
+      "removeDescription": "“{{name}}” será desanexado de todos os bots.",
+      "url": "URL",
+      "command": "Comando",
+      "args": "Argumentos",
+      "stdioNote": "Um servidor stdio roda dentro do sandbox, que precisa ter o comando instalado.",
+      "headers": "Cabeçalhos",
+      "env": "Ambiente",
+      "secret": "Segredo",
+      "entryName": "Nome",
+      "entryValue": "Valor",
+      "keepStored": "Deixe vazio para manter o valor guardado",
+      "addEntry": "Adicionar",
+      "removeEntry": "Remover item"
+    },
+    "runners": {
+      "title": "Runners",
+      "description": "Máquinas sob seu controle que rodam os bots em sandboxes e guardam os logins das assinaturas.",
+      "columns": {
+        "name": "Nome",
+        "status": "Status",
+        "sandbox": "Sandbox",
+        "tools": "CLIs"
+      },
+      "statuses": {
+        "online": "Online",
+        "offline": "Offline",
+        "revoked": "Revogado",
+        "pending": "Ainda não registrado"
+      },
+      "warnings": {
+        "directoryMode": "Modo diretório: roda sem isolamento. Apenas para desenvolvimento.",
+        "noGithubCredentials": "Sem credenciais do GitHub: não pega execuções de tarefa nem revisões.",
+        "customImage": "Imagem de sandbox personalizada."
+      },
+      "directoryMode": "Modo diretório",
+      "add": "Criar um runner",
+      "create": "Criar",
+      "revoke": "Revogar",
+      "revokeTitle": "Revogar runner?",
+      "revokeDescription": "“{{name}}” deixa de ser aceito na hora e as execuções dele falham.",
+      "registerTitle": "Registrar o runner",
+      "registerDescription": "Rode este comando na máquina do runner em até uma hora. O token vale uma vez e não é mostrado de novo.",
+      "registerCommand": "Comando de registro"
+    },
+    "adminChat": {
+      "title": "Chat de admin",
+      "newChat": "Novo chat",
+      "pickAChat": "Escolha um chat ou comece um novo. A IA age como você, pelo MCP do Genwork.",
+      "assistant": "Bot assistente",
+      "chooseAssistant": "Escolha um assistente",
+      "start": "Começar",
+      "with": "Conversando com {{name}}",
+      "you": "Você",
+      "delete": "Apagar {{title}}",
+      "deleteTitle": "Apagar chat?",
+      "deleteDescription": "“{{title}}” será apagado e a sessão dele encerrada.",
+      "sessionEnded": "A sessão deste chat foi encerrada. Reabra o chat para continuar.",
+      "reopen": "Reabrir"
     }
   }
 }

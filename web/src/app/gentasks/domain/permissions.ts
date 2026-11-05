@@ -23,3 +23,10 @@ export function gentasksAbilities(can: (permission: string) => boolean): Gentask
     canManageGithub: can(GENTASKS_PERMISSIONS.githubManage),
   }
 }
+
+// GENAGENTS_PERMISSIONS_FOR_GENTASKS names the genagents permissions the task dialog checks to show its bot features.
+export const GENAGENTS_PERMISSIONS_FOR_GENTASKS = {
+  botRead: 'genagents.bot.read',
+  runRead: 'genagents.run.read',
+  runWrite: 'genagents.run.write',
+} as const

@@ -2,10 +2,11 @@ import { CheckIcon } from 'lucide-react'
 import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { DirectoryUser } from '@/shared/datasource/users'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/ui/dropdown-menu'
 import { findAssignee } from '../domain/assignees'
 import type { Task } from '../domain/types'
 import { AssigneeAvatar } from './AssigneeAvatar'
+import { useAssigneeGroups, useBotsGroupLabel } from './AssigneeOptions'
 
 export type AssigneeChange = { taskToken: string; assigneeToken: string | null }
 
@@ -20,6 +21,8 @@ type TaskAssigneeMenuProps = {
 export const TaskAssigneeMenu = memo(function TaskAssigneeMenu({ task, users, onAssign }: TaskAssigneeMenuProps) {
   const { t } = useTranslation()
   const unassignedLabel = t('gentasks.task.unassigned')
+  const groups = useAssigneeGroups(users, task.assigneeToken)
+  const botsLabel = useBotsGroupLabel()
   const keepFromCard = (event: { stopPropagation: () => void }) => event.stopPropagation()
 
   return (
@@ -37,12 +40,24 @@ export const TaskAssigneeMenu = memo(function TaskAssigneeMenu({ task, users, on
           <AssigneeAvatar assignee={undefined} unassignedLabel={unassignedLabel} />
           <span className="truncate">{unassignedLabel}</span>
         </AssigneeOption>
-        {users.map((user) => (
+        {groups.people.map((user) => (
           <AssigneeOption key={user.token} selected={task.assigneeToken === user.token} onSelect={() => onAssign({ taskToken: task.token, assigneeToken: user.token })}>
             <AssigneeAvatar assignee={user} unassignedLabel={unassignedLabel} />
             <span className="truncate">{user.name}</span>
           </AssigneeOption>
         ))}
+        {groups.bots.length > 0 ? (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{botsLabel}</DropdownMenuLabel>
+            {groups.bots.map((bot) => (
+              <AssigneeOption key={bot.token} selected={task.assigneeToken === bot.token} onSelect={() => onAssign({ taskToken: task.token, assigneeToken: bot.token })}>
+                <AssigneeAvatar assignee={bot} unassignedLabel={unassignedLabel} />
+                <span className="truncate">{bot.name}</span>
+              </AssigneeOption>
+            ))}
+          </>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   )

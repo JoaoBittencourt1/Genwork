@@ -7,7 +7,13 @@
       "members": "Members",
       "tasks": "Tasks",
       "host": "Server",
-      "assistants": "AI assistants"
+      "assistants": "AI assistants",
+      "aiAccounts": "AI accounts",
+      "aiBots": "Bots",
+      "aiSkills": "Skills",
+      "aiMcpServers": "MCP servers",
+      "aiRunners": "Runners",
+      "aiChat": "Admin chat"
     },
     "navigation": "Navigation",
     "toggleSidebar": "Toggle sidebar",
@@ -208,7 +214,18 @@
       "too_long": "Value is too long.",
       "required": "Required.",
       "not_nullable": "This value cannot be empty.",
-      "unknown_module": "Unknown module."
+      "unknown_module": "Unknown module.",
+      "secret_value_required": "A secret needs a value.",
+      "not_available_for_account": "This account does not offer that model.",
+      "unsupported_by_provider": "This provider does not support that mode.",
+      "missing_provider_cli": "That runner does not report this provider's CLI.",
+      "not_enabled": "This module is not enabled.",
+      "not_an_assistant": "Choose an enabled assistant bot.",
+      "not_a_reviewer": "Choose an enabled reviewer bot.",
+      "no_reviewer_bot": "No reviewer bot is enabled.",
+      "reviewer_required": "Choose which reviewer bot to ask.",
+      "invalid_front_matter": "The text needs front matter with a name and a description.",
+      "not_applicable": "This account has no API key."
     },
     "board_not_found": "Board not found.",
     "column_not_found": "Column not found.",
@@ -245,7 +262,26 @@
     "update_interrupted": "The update was interrupted.",
     "invalid_client": "This connection request names an unknown assistant.",
     "invalid_redirect_uri": "This connection request returns to an address the assistant never registered.",
-    "password_reset_not_found": "This reset link does not exist, expired, or was already used. Ask for a new one on the sign-in screen."
+    "password_reset_not_found": "This reset link does not exist, expired, or was already used. Ask for a new one on the sign-in screen.",
+    "account_name_taken": "Another account already has this name.",
+    "account_not_found": "Account not found.",
+    "account_in_use": "Bots still use this account: {{bots}}. Change or remove them first.",
+    "model_already_defined": "This model is already available for the account.",
+    "model_not_found": "Model not found.",
+    "bot_name_taken": "Another bot already has this name.",
+    "bot_not_found": "Bot not found.",
+    "skill_name_taken": "Another skill already has this name.",
+    "skill_not_found": "Skill not found.",
+    "mcp_server_name_taken": "Another MCP server already has this name.",
+    "mcp_server_not_found": "MCP server not found.",
+    "runner_name_taken": "Another runner already has this name.",
+    "runner_not_found": "Runner not found.",
+    "chat_not_found": "Chat not found.",
+    "conversation_not_found": "Conversation not found.",
+    "run_not_active": "There is no active run to stop.",
+    "run_already_active": "A run of this kind is already active for this task.",
+    "no_open_pull_requests": "This task has no open or draft pull request to review.",
+    "gentasks_unavailable": "Tasks are unavailable right now. Try again."
   },
   "common": {
     "cancel": "Cancel",
@@ -260,7 +296,8 @@
     "unavailableDescription": "This module is not enabled on this installation.",
     "names": {
       "gentasks": "Tasks",
-      "genmonitor": "Server"
+      "genmonitor": "Server",
+      "genagents": "AI"
     }
   },
   "gentasks": {
@@ -359,7 +396,8 @@
       "dialogDescription": "Edit the task title, description, and properties.",
       "properties": "Properties",
       "status": "Status",
-      "createdAt": "Created {{date}}"
+      "createdAt": "Created {{date}}",
+      "botsGroup": "Bots"
     },
     "labels": {
       "title": "Labels",
@@ -448,6 +486,31 @@
           "empty": "Keep at least one final branch.",
           "tooMany": "Use at most 20 final branches.",
           "invalidName": "Branch names cannot contain spaces."
+        },
+        "repository": "Repository for bots",
+        "repositoryHint": "The repository bots work in for this board's tasks, as owner/name.",
+        "repositoryInvalid": "Use the owner/name format, for example acme/api."
+      }
+    },
+    "bot": {
+      "conversation": "Bot conversation",
+      "someone": "Someone",
+      "run": {
+        "queued": "{{bot}} is waiting for a runner.",
+        "running": "{{bot}} is working.",
+        "waiting_for_input": "{{bot}} is waiting for your reply.",
+        "succeeded": "{{bot}} finished.",
+        "failed": "{{bot}} failed.",
+        "cancelled": "The run was cancelled."
+      },
+      "review": {
+        "button": "Bot review",
+        "requested": "Review requested.",
+        "reviewer": "Reviewer bot",
+        "chooseReviewer": "Choose a reviewer",
+        "disabled": {
+          "noOpenPullRequest": "Link an open or draft pull request first.",
+          "noReviewerBot": "No reviewer bot is enabled."
         }
       }
     }
@@ -572,6 +635,226 @@
       "deny": "Deny",
       "invalidTitle": "Invalid connection request",
       "invalid": "This connection request is invalid. Start the connection again from the assistant."
+    }
+  },
+  "conversation": {
+    "entries": "Conversation",
+    "result": "Result",
+    "assistant": "Bot",
+    "noText": "(no text)",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Write a message…",
+    "stop": "Stop",
+    "send": "Send",
+    "entry": {
+      "unknown": "Update from the system.",
+      "run_queued": "Queued, waiting for a runner.",
+      "run_started": "Started on runner {{runner}}.",
+      "run_succeeded": "Finished.",
+      "run_cancelled": "Cancelled ({{causeText}}).",
+      "run_failed": "Failed: {{reasonText}}",
+      "only_dev_bots_work_tasks": "{{bot}} is not a dev bot, so it does not work on {{taskKey}}."
+    },
+    "cause": {
+      "user": "stopped by a person",
+      "reassigned": "the task was reassigned",
+      "bot_disabled": "the bot was disabled",
+      "system": "by the system"
+    },
+    "reason": {
+      "runner_revoked": "the runner was revoked",
+      "runner_lost": "the runner stopped responding",
+      "timeout": "the run exceeded its timeout",
+      "sandbox_limit": "the sandbox hit a resource limit",
+      "adapter_error": "the AI tool's output could not be used",
+      "no_repository": "the board has no repository; set one in the board's GitHub settings",
+      "no_reply": "nobody replied in 24 hours",
+      "github_post_failed": "GitHub refused the request",
+      "account_error": "the AI account was refused: {{message}}",
+      "session_revoked": "the chat's session ended; reopen the chat to continue",
+      "run_failed": "the run failed"
+    }
+  },
+  "genagents": {
+    "noPermissionTitle": "No access",
+    "noPermissionDescription": "Your role does not allow you to open this page.",
+    "actions": "Actions",
+    "providers": {
+      "anthropic": "Anthropic (Claude)",
+      "openai": "OpenAI (ChatGPT / Codex)",
+      "cursor": "Cursor",
+      "xai": "xAI (Grok)"
+    },
+    "accounts": {
+      "title": "AI accounts",
+      "description": "Link the team's AI accounts, with a subscription signed in on a runner or an API key.",
+      "termsNote": "Check your provider's terms before sharing a consumer subscription with automation; an API key is always an option.",
+      "columns": {
+        "name": "Name",
+        "provider": "Provider",
+        "mode": "Mode",
+        "status": "Status"
+      },
+      "modes": {
+        "subscription": "Subscription",
+        "api_key": "API key"
+      },
+      "statuses": {
+        "pending_sign_in": "Waiting for sign-in",
+        "ready": "Ready",
+        "error": "Error"
+      },
+      "signInCommand": "Sign-in command",
+      "add": "Link an account",
+      "apiKey": "API key",
+      "runner": "Runner",
+      "chooseRunner": "Choose a runner",
+      "models": "Models",
+      "modelsOf": "Models of {{name}}",
+      "customModel": "Custom model id",
+      "customModelPlaceholder": "A model released after the catalog",
+      "addModel": "Add model",
+      "removeModel": "Remove model {{id}}",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove account?",
+      "removeDescription": "“{{name}}” will be unlinked. Its sign-in profile is deleted from the runner."
+    },
+    "bots": {
+      "title": "Bots",
+      "description": "AI workers with their own member identity: they work tasks, review pull requests, and chat.",
+      "columns": {
+        "name": "Name",
+        "kind": "Kind",
+        "model": "Model",
+        "account": "Account",
+        "enabled": "Enabled"
+      },
+      "kinds": {
+        "dev": "Dev",
+        "reviewer": "Reviewer",
+        "assistant": "Assistant"
+      },
+      "efforts": {
+        "default": "Provider default",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "add": "Create a bot",
+      "edit": "Edit",
+      "editTitle": "Edit {{name}}",
+      "toggle": "Enable {{name}}",
+      "rotateSecret": "Rotate secret",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove bot?",
+      "removeDescription": "“{{name}}” and its member will be removed, and its active runs cancelled.",
+      "chooseAccount": "Choose an account",
+      "chooseModel": "Choose a model",
+      "role": "Role of its member",
+      "instructions": "Instructions",
+      "effort": "Reasoning effort",
+      "maxTurns": "Max turns",
+      "timeoutMinutes": "Timeout (minutes)",
+      "skills": "Skills",
+      "mcpServers": "MCP servers",
+      "problems": {
+        "required": "Required.",
+        "invalid": "Invalid value."
+      }
+    },
+    "skills": {
+      "title": "Skills",
+      "description": "Reusable instructions in the Agent Skills format, attached to bots.",
+      "columns": {
+        "name": "Name",
+        "description": "Description",
+        "version": "Version"
+      },
+      "add": "Create a skill",
+      "edit": "Edit",
+      "editTitle": "Edit {{name}}",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove skill?",
+      "removeDescription": "“{{name}}” will be detached from every bot.",
+      "import": "Paste a SKILL.md to fill the form",
+      "importPlaceholder": "---\nname: pr-review\ndescription: Reviews pull requests\n---",
+      "body": "SKILL.md body",
+      "files": "Extra files",
+      "newFilePath": "Path of a new file",
+      "addFile": "Add file",
+      "removeFile": "Remove {{path}}"
+    },
+    "mcpServers": {
+      "title": "MCP servers",
+      "description": "External MCP servers bots can use, besides the Genwork MCP every run gets.",
+      "columns": {
+        "name": "Name",
+        "transport": "Transport",
+        "target": "URL or command"
+      },
+      "add": "Register a server",
+      "edit": "Edit",
+      "editTitle": "Edit {{name}}",
+      "remove": "Remove {{name}}",
+      "removeTitle": "Remove MCP server?",
+      "removeDescription": "“{{name}}” will be detached from every bot.",
+      "url": "URL",
+      "command": "Command",
+      "args": "Arguments",
+      "stdioNote": "A stdio server runs inside the sandbox, which needs the command installed.",
+      "headers": "Headers",
+      "env": "Environment",
+      "secret": "Secret",
+      "entryName": "Name",
+      "entryValue": "Value",
+      "keepStored": "Leave empty to keep the stored value",
+      "addEntry": "Add",
+      "removeEntry": "Remove entry"
+    },
+    "runners": {
+      "title": "Runners",
+      "description": "Machines you control that run the bots in sandboxes and hold the subscription sign-ins.",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "sandbox": "Sandbox",
+        "tools": "CLIs"
+      },
+      "statuses": {
+        "online": "Online",
+        "offline": "Offline",
+        "revoked": "Revoked",
+        "pending": "Not registered yet"
+      },
+      "warnings": {
+        "directoryMode": "Directory mode: runs without isolation. Development only.",
+        "noGithubCredentials": "No GitHub credentials: it cannot take task runs or reviews.",
+        "customImage": "Custom sandbox image."
+      },
+      "directoryMode": "Directory mode",
+      "add": "Create a runner",
+      "create": "Create",
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke runner?",
+      "revokeDescription": "“{{name}}” stops being accepted at once and its running runs fail.",
+      "registerTitle": "Register the runner",
+      "registerDescription": "Run this command on the runner's machine within one hour. The token works once and is not shown again.",
+      "registerCommand": "Register command"
+    },
+    "adminChat": {
+      "title": "Admin chat",
+      "newChat": "New chat",
+      "pickAChat": "Pick a chat or start a new one. The AI acts as you, through the Genwork MCP.",
+      "assistant": "Assistant bot",
+      "chooseAssistant": "Choose an assistant",
+      "start": "Start",
+      "with": "Chatting with {{name}}",
+      "you": "You",
+      "delete": "Delete {{title}}",
+      "deleteTitle": "Delete chat?",
+      "deleteDescription": "“{{title}}” will be deleted and its session ended.",
+      "sessionEnded": "This chat's session was ended. Reopen the chat to continue.",
+      "reopen": "Reopen"
     }
   }
 }

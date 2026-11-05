@@ -1,6 +1,7 @@
 import { Link, useMatchRoute } from '@tanstack/react-router'
-import { BotIcon, HomeIcon, KanbanSquareIcon, ServerIcon, UsersIcon } from 'lucide-react'
+import { BotIcon, HomeIcon, KanbanSquareIcon, KeyRoundIcon, MessageSquareIcon, PlugIcon, ServerIcon, SparklesIcon, UsersIcon, WorkflowIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { GENAGENTS_PERMISSIONS } from '@/app/genagents/domain/permissions'
 import { GENMONITOR_PERMISSIONS } from '@/app/genmonitor/domain/permissions'
 import { GENTASKS_PERMISSIONS } from '@/app/gentasks/domain/permissions'
 import { useCapabilities } from '@/shared/components/CapabilitiesContext'
@@ -44,6 +45,48 @@ export function AppSidebar() {
       label: t('app.nav.host'),
       icon: ServerIcon,
       visible: isModuleEnabled(enabledModules, MODULE_IDS.genmonitor) && can(GENMONITOR_PERMISSIONS.hostRead),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/accounts',
+      label: t('app.nav.aiAccounts'),
+      icon: KeyRoundIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.accountManage),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/bots',
+      label: t('app.nav.aiBots'),
+      icon: BotIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.botRead),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/skills',
+      label: t('app.nav.aiSkills'),
+      icon: SparklesIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.skillManage),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/mcp-servers',
+      label: t('app.nav.aiMcpServers'),
+      icon: PlugIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.mcpServerManage),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/runners',
+      label: t('app.nav.aiRunners'),
+      icon: WorkflowIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.runnerManage),
+      matchesNested: false,
+    },
+    {
+      to: '/ai/chat',
+      label: t('app.nav.aiChat'),
+      icon: MessageSquareIcon,
+      visible: isModuleEnabled(enabledModules, MODULE_IDS.genagents) && can(GENAGENTS_PERMISSIONS.adminChatUse),
       matchesNested: false,
     },
     {

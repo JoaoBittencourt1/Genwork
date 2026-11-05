@@ -21,8 +21,10 @@ import {
   draftFromGithubSettings,
   finalBranchesProblem,
   GITHUB_COLUMN_FIELDS,
+  isValidRepository,
   MAX_BRANCH_NAME_LENGTH,
   removeFinalBranch,
+  repositoryFromInput,
   type BoardGithubSettingsDraft,
   type GithubColumnField,
 } from '../domain/githubSettings'
@@ -85,6 +87,7 @@ function GithubSettingsForm({ board, settings }: { board: BoardView; settings: B
   const [newBranch, setNewBranch] = useState('')
   const patch = buildGithubSettingsPatch(settings, draft)
   const branchesProblem = finalBranchesProblem(draft.finalBranches)
+  const repositoryInvalid = draft.repository !== null && !isValidRepository(draft.repository)
   const save = useMutation({
     mutationFn: () => updateBoardGithubSettings(board.token, patch),
     onSuccess: (saved) => {
@@ -130,6 +133,19 @@ function GithubSettingsForm({ board, settings }: { board: BoardView; settings: B
           ) : null}
         </Field>
       ))}
+      <Field data-invalid={repositoryInvalid}>
+        <FieldLabel htmlFor="github-repository">{t('gentasks.github.settings.repository')}</FieldLabel>
+        <Input
+          id="github-repository"
+          className="w-64"
+          value={draft.repository ?? ''}
+          placeholder="owner/name"
+          aria-invalid={repositoryInvalid}
+          onChange={(event) => setDraft({ ...draft, repository: repositoryFromInput(event.target.value) })}
+        />
+        <FieldDescription>{t('gentasks.github.settings.repositoryHint')}</FieldDescription>
+        {repositoryInvalid ? <FieldError>{t('gentasks.github.settings.repositoryInvalid')}</FieldError> : null}
+      </Field>
       <Field data-invalid={Boolean(branchesProblem)}>
         <FieldLabel htmlFor="github-new-branch">{t('gentasks.github.settings.finalBranches')}</FieldLabel>
         <ul className="flex flex-wrap gap-2" aria-label={t('gentasks.github.settings.finalBranches')}>
@@ -173,7 +189,7 @@ function GithubSettingsForm({ board, settings }: { board: BoardView; settings: B
         {branchesProblem ? <FieldError>{t(`gentasks.github.settings.branchProblems.${branchesProblem}`)}</FieldError> : null}
       </Field>
       <div>
-        <Button type="submit" size="sm" disabled={save.isPending || isPatchEmpty(patch) || branchesProblem !== null}>
+        <Button type="submit" size="sm" disabled={save.isPending || isPatchEmpty(patch) || branchesProblem !== null || repositoryInvalid}>
           {save.isPending ? t('common.saving') : t('common.save')}
         </Button>
       </div>

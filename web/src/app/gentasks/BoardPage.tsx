@@ -19,6 +19,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip'
 import { ArchivedTasksDialog } from './components/ArchivedTasksDialog'
 import { BoardAssigneesPanel } from './components/BoardAssigneesPanel'
 import { BoardBreadcrumb } from './components/BoardBreadcrumb'
+import { BotAssignmentContext } from './components/BotAssignmentContext'
+import { useBotAssignmentValue } from './components/useBotAssignment'
 import { BoardCanvas } from './components/BoardCanvas'
 import { ActiveFilterBar, BoardFilterMenu } from './components/BoardFilters'
 import { GentasksNoPermission } from './components/GentasksNoPermission'
@@ -48,6 +50,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   })
   const { can } = useAuth()
   const users = useDirectoryUsers(can(PERMISSIONS.userRead))
+  const botAssignment = useBotAssignmentValue()
   const [filter, setFilter] = useState<TaskFilter>(EMPTY_FILTER)
   const [assigneesPanelOpen, setAssigneesPanelOpen] = useState(true)
   const [taskDialog, setTaskDialog] = useState<TaskDialogMode | null>(null)
@@ -95,7 +98,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
   const firstColumn = board.data.columns[0]
 
   return (
-    <>
+    <BotAssignmentContext.Provider value={botAssignment}>
       <PageHeader
         actions={
           <>
@@ -186,7 +189,7 @@ export function BoardPage({ boardToken }: { boardToken: string }) {
         open={archivedOpen}
         onOpenChange={setArchivedOpen}
       />
-    </>
+    </BotAssignmentContext.Provider>
   )
 }
 
