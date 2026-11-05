@@ -1,51 +1,28 @@
 package taskruns
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 )
 
-type EntryResponse struct {
-	Sequence    int64           `json:"sequence"`
-	Type        runs.EntryType  `json:"type"`
-	Payload     json.RawMessage `json:"payload"`
-	AuthorToken *string         `json:"authorToken"`
-	RunToken    *string         `json:"runToken"`
-	CreatedAt   time.Time       `json:"createdAt"`
-}
-
-type ActiveRunResponse struct {
-	Token   string        `json:"token"`
-	Kind    runs.RunKind  `json:"kind"`
-	State   runs.RunState `json:"state"`
-	BotName string        `json:"botName"`
-}
-
 type TaskConversationResponse struct {
-	Conversation *string            `json:"conversation"`
-	Entries      []EntryResponse    `json:"entries"`
-	LastSequence int64              `json:"lastSequence"`
-	ActiveRun    *ActiveRunResponse `json:"activeRun"`
+	Conversation *string                 `json:"conversation"`
+	Entries      []runs.EntryResponse    `json:"entries"`
+	LastSequence int64                   `json:"lastSequence"`
+	ActiveRun    *runs.ActiveRunResponse `json:"activeRun"`
 }
 
 func NewTaskConversationResponse(view TaskConversationView) TaskConversationResponse {
-	response := TaskConversationResponse{Entries: make([]EntryResponse, 0, len(view.Entries)), LastSequence: view.LastSequence}
+	response := TaskConversationResponse{Entries: runs.NewEntryResponses(view.Entries), LastSequence: view.LastSequence}
 	if view.Conversation != nil {
 		response.Conversation = &view.Conversation.Token
 	}
-	for _, entry := range view.Entries {
-		response.Entries = append(response.Entries, EntryResponse{
-			Sequence: entry.Sequence, Type: entry.Type, Payload: entry.Payload, AuthorToken: entry.AuthorToken, RunToken: entry.RunToken, CreatedAt: entry.CreatedAt,
-		})
-	}
 	if view.ActiveRun != nil {
-		response.ActiveRun = &ActiveRunResponse{Token: view.ActiveRun.Run.Token, Kind: view.ActiveRun.Run.Kind, State: view.ActiveRun.Run.State, BotName: view.ActiveRun.BotName}
+		response.ActiveRun = &runs.ActiveRunResponse{Token: view.ActiveRun.Run.Token, Kind: view.ActiveRun.Run.Kind, State: view.ActiveRun.Run.State, BotName: view.ActiveRun.BotName}
 	}
 	return response
 }

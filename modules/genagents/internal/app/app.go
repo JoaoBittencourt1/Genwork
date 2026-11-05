@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/accounts"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/adminchat"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/bots"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/mcpservers"
@@ -54,6 +55,8 @@ func New(dependencies Dependencies) (http.Handler, error) {
 
 	taskRunService := taskruns.NewTaskRunService(db, dependencies.Gentasks, lifecycle, now)
 	taskruns.NewTaskRunHandler(taskRunService, taskruns.NewTaskConversationService(db, dependencies.Gentasks, lifecycle, now)).Register(router)
+
+	adminchat.NewAdminChatHandler(adminchat.NewAdminChatService(db, dependencies.Core, secretCipher, lifecycle, now)).Register(router)
 
 	runnerService := runexec.NewRunnerService(db, lifecycle, now)
 	runexec.NewRunnerHandler(runnerService, now).Register(router)
