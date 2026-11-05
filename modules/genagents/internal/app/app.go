@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/accounts"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/bots"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/mcpservers"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/skills"
@@ -17,6 +19,7 @@ type Dependencies struct {
 	DB            *pgxpool.Pool
 	TokenVerifier httpapi.AccessTokenVerifier
 	EncryptionKey []byte
+	Core          *corelink.Client
 	Now           func() time.Time
 }
 
@@ -31,15 +34,17 @@ func New(dependencies Dependencies) (http.Handler, error) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
-	accountService := accounts.NewAiAccountService(dependencies.DB, secretCipher, noAccountUsage{}, dependencies.Now)
+	accountService := accounts.NewAiAccountService(dependencies.DB, secretCipher, bots.BotRepository{}, dependencies.Now)
 	accounts.NewAiAccountHandler(accountService).Register(router)
+	bots.NewBotHandler(bots.NewBotService(dependencies.DB, secretCipher, dependencies.Core, noRunCanceller{}, accountService, dependencies.Now)).Register(router)
 	skills.NewSkillHandler(skills.NewSkillService(dependencies.DB, dependencies.Now)).Register(router)
 	mcpservers.NewMcpServerHandler(mcpservers.NewMcpServerService(dependencies.DB, secretCipher, dependencies.Now)).Register(router)
 	return router, nil
 }
 
-type noAccountUsage struct{}
+// noRunCanceller stands in until runs exist; it is replaced when the run services are wired.
+type noRunCanceller struct{}
 
-func (noAccountUsage) ListBotNamesUsingAccount(_ context.Context, _ platform.DBTX, _ int64) ([]string, error) {
-	return nil, nil
+func (noRunCanceller) CancelActiveRunsForBot(_ context.Context, _ platform.DBTX, _ int64, _ string) error {
+	return nil
 }

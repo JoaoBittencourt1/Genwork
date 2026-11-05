@@ -1,0 +1,13 @@
+{
+  "token": "Qm90LW1lbWJlci10b2tlbi0x",
+  "kind": "bot",
+  "name": "Dev Bot",
+  "email": "",
+  "avatarColor": "purple",
+  "role": {"token": "cm9sZS1tZW1iZXItdG9rZW4", "name": "member"},
+  "status": "active",
+  "joinedAt": "2026-11-05T12:00:00Z",
+  "lastSignInAt": null,
+  "restrictedModules": [],
+  "clientSecret": "c2VjcmV0LW9mLXRoZS1ib3QtbWVtYmVyLTAwMDAwMDA"
+}

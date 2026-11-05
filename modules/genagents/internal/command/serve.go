@@ -10,6 +10,7 @@ import (
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/app"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/manifest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/registration"
@@ -38,6 +39,7 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 			JWKSURL: config.CoreInternalURL + "/api/core/v1/auth/jwks", Issuer: config.PublicURL,
 		}),
 		EncryptionKey: config.EncryptionKey,
+		Core:          corelink.NewClient(config.CoreInternalURL, corelink.DefaultTimeout),
 		Now:           time.Now,
 	})
 	if err != nil {

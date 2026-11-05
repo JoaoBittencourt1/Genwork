@@ -12,6 +12,8 @@ import (
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/app"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelinktest"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform/dbtest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/coretest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/tokens"
@@ -44,6 +46,7 @@ type testApp struct {
 	handler http.Handler
 	db      *pgxpool.Pool
 	core    *coretest.FakeCore
+	coreAPI *corelinktest.FakeCore
 	clock   *testClock
 	token   string
 }
@@ -53,16 +56,18 @@ func newTestApp(t *testing.T) *testApp {
 	db := dbtest.NewMigratedSchema(t)
 	core := coretest.NewFakeCore(t)
 	clock := &testClock{current: time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)}
+	coreAPI := corelinktest.NewFakeCore(t, clock.Now)
 	handler, err := app.New(app.Dependencies{
 		DB:            db,
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{JWKSURL: core.JWKSURL(), Issuer: coretest.Issuer}),
 		EncryptionKey: testEncryptionKey,
+		Core:          corelink.NewClient(coreAPI.URL(), time.Second),
 		Now:           clock.Now,
 	})
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
-	testApp := &testApp{t: t, handler: handler, db: db, core: core, clock: clock}
+	testApp := &testApp{t: t, handler: handler, db: db, core: core, coreAPI: coreAPI, clock: clock}
 	testApp.token = testApp.tokenWith(access.Permissions...)
 	return testApp
 }
