@@ -13,6 +13,7 @@ This is a monorepo. Components and stacks:
 | `sdk/go/` | Shared Go library modules use to talk to core (registration, token validation, events) |
 | `cli/` | Go installer CLI for self-hosted setups; also runs as the `updater` container (rule 84) |
 | `mcp/` | Go MCP server (`genwork-mcp`): a client of the gateway that exposes core and enabled modules as tools |
+| `runner/` | Go process (`genwork-runner`) an admin installs on a machine they control: it claims bot runs and executes them in disposable sandbox containers, with the `genwork-sandbox` image |
 | `web/` | SPA: Vite + React (TypeScript), served as static files |
 | `clients/macos/` | Swift / SwiftUI |
 | `clients/windows/` | C# / .NET (UI framework TBD) |
@@ -88,7 +89,7 @@ These are not decided yet. Do not pick one silently in code or specs; raise it w
 67. **Credentials and bearer secrets are never stored or logged in clear.** Refresh tokens, invite tokens, and any other bearer secret are stored only as a hash (SHA-256 suffices for high-entropy random values) and compared in constant time. Passwords, tokens, and `Authorization` headers never appear in logs, error messages, or traces.
 68. **Authentication responses never reveal which part failed.** An unknown e-mail and a wrong password return the same error in comparable time (hash a dummy password when the account does not exist). Login and sign-up endpoints are rate limited per client address and per account, using the address the server resolves — never a client-controlled header such as the first `X-Forwarded-For` value.
 69. **Access tokens are short-lived; refresh tokens rotate.** Access token: signed JWT, at most 15 minutes. Refresh token: opaque, bound to one session, single-use — each refresh issues a new one, and presenting an already-used one revokes the whole session. The web app keeps the refresh token in an `httpOnly; Secure; SameSite=Strict` cookie and the access token only in memory; native clients keep tokens in the OS secure store (Keychain, Windows Credential Manager, Secret Service).
-84. **Only the updater touches the Docker socket.** The `updater` service is the only container that mounts it. It publishes no port and has no gateway route, accepts requests only from core carrying `GENWORK_UPDATER_SECRET` (compared in constant time, never logged), and only installs checksum-verified releases of the configured release channel — never arbitrary images or commands.
+84. **Only the updater touches the Docker socket.** The `updater` service is the only container that mounts it. It publishes no port and has no gateway route, accepts requests only from core carrying `GENWORK_UPDATER_SECRET` (compared in constant time, never logged), and only installs checksum-verified releases of the configured release channel — never arbitrary images or commands. The runner (`runner/`) is outside the stack, not a container of it and publishing no port, so it may use its own machine's container engine to start sandboxes for bot runs; it never mounts that socket into a sandbox.
 
 ## Persistence
 

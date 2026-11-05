@@ -22,7 +22,7 @@ Components touched: **core** (bot members, delegated sessions), **genagents modu
 
 ### `modules/genagents/module.yaml`
 
-- `id: genagents`, `core: ">=1.4.0 <2.0.0"` (needs bot members and delegated sessions), `apiPrefix: /api/genagents/v1`
+- `id: genagents`, `core: ">=1.1.0 <2.0.0"` (needs bot members and delegated sessions, which core's API version 1.1.0 introduces; the range is checked against the core API version, not the platform release), `apiPrefix: /api/genagents/v1`
 - `requires: []`. gentasks is an optional integration in both directions: without gentasks, bots and the admin chat still work; without genagents, gentasks hides bot features.
 - Permissions: `genagents.account.manage` [admin], `genagents.bot.read` [admin, member], `genagents.bot.manage` [admin], `genagents.skill.manage` [admin], `genagents.mcpserver.manage` [admin], `genagents.runner.manage` [admin], `genagents.run.read` [admin, member], `genagents.run.write` [admin, member], `genagents.adminchat.use` [admin]
 - Events: publishes none, consumes none (the event bus is still an open decision; module-to-module calls use versioned HTTP APIs, rule 54).
