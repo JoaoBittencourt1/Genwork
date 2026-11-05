@@ -14,6 +14,10 @@ const (
 	ClientNative ClientType = "native"
 	// ClientOAuth is an AI assistant's grant; it starts only through the OAuth code exchange, never a password sign-in.
 	ClientOAuth ClientType = "oauth"
+	// ClientBot is a bot member's client-credentials grant: it has no refresh token and ends with its access token.
+	ClientBot ClientType = "bot"
+	// ClientDelegated is a session a user grants a module to act as them; it starts only through the grant endpoint.
+	ClientDelegated ClientType = "delegated"
 )
 
 // SignsInWithPassword tells the client types a password sign-in may start.
@@ -24,6 +28,9 @@ func (client ClientType) SignsInWithPassword() bool {
 const (
 	IdleLifetime     = 30 * 24 * time.Hour
 	AbsoluteLifetime = 90 * 24 * time.Hour
+
+	DelegatedIdleLifetime     = 24 * time.Hour
+	DelegatedAbsoluteLifetime = 7 * 24 * time.Hour
 )
 
 var (
@@ -40,6 +47,8 @@ type Session struct {
 	ClientType        ClientType
 	DeviceName        *string
 	OAuthClientID     *int64
+	DelegatedModule   *string
+	Purpose           *string
 	CreatedAt         time.Time
 	LastUsedAt        time.Time
 	IdleExpiresAt     time.Time
@@ -51,8 +60,15 @@ func (session Session) IsExpiredAt(now time.Time) bool {
 	return !now.Before(session.IdleExpiresAt) || !now.Before(session.AbsoluteExpiresAt)
 }
 
-func nextIdleExpiry(now, absoluteExpiresAt time.Time) time.Time {
-	idleExpiresAt := now.Add(IdleLifetime)
+func (session Session) idleLifetime() time.Duration {
+	if session.ClientType == ClientDelegated {
+		return DelegatedIdleLifetime
+	}
+	return IdleLifetime
+}
+
+func nextIdleExpiry(now, absoluteExpiresAt time.Time, idleLifetime time.Duration) time.Time {
+	idleExpiresAt := now.Add(idleLifetime)
 	if idleExpiresAt.After(absoluteExpiresAt) {
 		return absoluteExpiresAt
 	}

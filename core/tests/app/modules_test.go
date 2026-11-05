@@ -240,7 +240,7 @@ func TestCapabilitiesWithoutModules(t *testing.T) {
 
 	body := app.capabilities()
 
-	if len(body.Modules) != 0 || body.Core.Version != "test" || body.Core.API != "1.0.0" {
+	if len(body.Modules) != 0 || body.Core.Version != "test" || body.Core.API != "1.1.0" {
 		t.Errorf("capabilities = %+v", body)
 	}
 }

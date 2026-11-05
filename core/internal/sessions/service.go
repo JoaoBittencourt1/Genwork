@@ -26,6 +26,11 @@ type StartInput struct {
 	DeviceName *string
 	// OAuthClientID is the OAuth client of an oauth session, and nil for every other client type.
 	OAuthClientID *int64
+	// Lifetime and WithoutRefreshToken start a session that ends on its own and cannot be refreshed.
+	Lifetime            time.Duration
+	WithoutRefreshToken bool
+	DelegatedModule     *string
+	Purpose             *string
 }
 
 // ErrRefreshTokenOfOtherClient means the refresh token belongs to a session the presenting client does not own.
@@ -35,10 +40,14 @@ var ErrRefreshTokenOfOtherClient = errors.New("refresh token of another client")
 func (service *Service) Start(ctx context.Context, db platform.DBTX, input StartInput) (Session, string, error) {
 	now := service.now()
 	session, err := service.sessions.Create(ctx, db, NewSession{
-		UserID: input.UserID, ClientType: input.ClientType, DeviceName: input.DeviceName, OAuthClientID: input.OAuthClientID, Now: now,
+		UserID: input.UserID, ClientType: input.ClientType, DeviceName: input.DeviceName, OAuthClientID: input.OAuthClientID,
+		Lifetime: input.Lifetime, DelegatedModule: input.DelegatedModule, Purpose: input.Purpose, Now: now,
 	})
 	if err != nil {
 		return Session{}, "", err
+	}
+	if input.WithoutRefreshToken {
+		return session, "", nil
 	}
 	refreshSecret, err := service.sessions.CreateRefreshToken(ctx, db, session.ID, now)
 	if err != nil {

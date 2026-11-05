@@ -42,6 +42,8 @@ type SessionResponse struct {
 	CreatedAt  time.Time `json:"createdAt"`
 	LastUsedAt time.Time `json:"lastUsedAt"`
 	Current    bool      `json:"current"`
+	Module     *string   `json:"module,omitempty"`
+	Purpose    *string   `json:"purpose,omitempty"`
 }
 
 type SessionListResponse struct {
@@ -139,6 +141,8 @@ func (handler *Handler) listSessions(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:  session.CreatedAt,
 			LastUsedAt: session.LastUsedAt,
 			Current:    session.ID == principal.SessionID,
+			Module:     session.DelegatedModule,
+			Purpose:    session.Purpose,
 		})
 	}
 	platform.WriteJSON(w, http.StatusOK, response)

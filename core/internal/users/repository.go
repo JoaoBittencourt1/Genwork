@@ -14,6 +14,11 @@ var ErrUserNotFound = errors.New("user not found")
 
 type Repository struct{}
 
+type NewBot struct {
+	Name   string
+	RoleID int64
+}
+
 type NewUser struct {
 	Email        string
 	Name         string
@@ -21,7 +26,7 @@ type NewUser struct {
 	RoleID       int64
 }
 
-const userColumns = `id, token, email, name, password_hash, role_id, failed_login_count, locked_until, last_login_at, created_at, deactivated_at`
+const userColumns = `id, token, kind, COALESCE(email, ''), name, COALESCE(password_hash, ''), role_id, failed_login_count, locked_until, last_login_at, created_at, deactivated_at`
 
 func (Repository) Create(ctx context.Context, db platform.DBTX, newUser NewUser) (User, error) {
 	row := db.QueryRow(ctx, `
@@ -39,8 +44,26 @@ func (Repository) Create(ctx context.Context, db platform.DBTX, newUser NewUser)
 	return user, nil
 }
 
+func (Repository) CreateBot(ctx context.Context, db platform.DBTX, newBot NewBot) (User, error) {
+	row := db.QueryRow(ctx, `
+		INSERT INTO users (kind, name, role_id)
+		VALUES ('bot', $1, $2)
+		RETURNING `+userColumns,
+		newBot.Name, newBot.RoleID)
+	user, err := scanUser(row)
+	if err != nil {
+		return User{}, fmt.Errorf("create bot member: %w", err)
+	}
+	return user, nil
+}
+
+func (Repository) UpdateName(ctx context.Context, db platform.DBTX, id int64, name string) error {
+	return updateNotRemovedUser(ctx, db, "update user name",
+		`UPDATE users SET name = $2, updated_at = now() WHERE id = $1 AND deleted_at IS NULL`, id, name)
+}
+
 func (Repository) FindByEmail(ctx context.Context, db platform.DBTX, normalizedEmail string) (User, error) {
-	return scanSingleUser(db.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE email = $1 AND deleted_at IS NULL`, normalizedEmail))
+	return scanSingleUser(db.QueryRow(ctx, `SELECT `+userColumns+` FROM users WHERE email = $1 AND kind = 'human' AND deleted_at IS NULL`, normalizedEmail))
 }
 
 func (Repository) FindByID(ctx context.Context, db platform.DBTX, id int64) (User, error) {
@@ -67,7 +90,7 @@ func (Repository) ListNotRemoved(ctx context.Context, db platform.DBTX) ([]User,
 
 func (Repository) ExistsByEmail(ctx context.Context, db platform.DBTX, normalizedEmail string) (bool, error) {
 	var exists bool
-	err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1 AND deleted_at IS NULL)`, normalizedEmail).Scan(&exists)
+	err := db.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1 AND kind = 'human' AND deleted_at IS NULL)`, normalizedEmail).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check user e-mail: %w", err)
 	}
@@ -154,7 +177,7 @@ func scanSingleUser(row pgx.Row) (User, error) {
 
 func scanUser(row pgx.Row) (User, error) {
 	var user User
-	err := row.Scan(&user.ID, &user.Token, &user.Email, &user.Name, &user.PasswordHash, &user.RoleID,
+	err := row.Scan(&user.ID, &user.Token, &user.Kind, &user.Email, &user.Name, &user.PasswordHash, &user.RoleID,
 		&user.FailedLoginCount, &user.LockedUntil, &user.LastLoginAt, &user.CreatedAt, &user.DeactivatedAt)
 	return user, err
 }

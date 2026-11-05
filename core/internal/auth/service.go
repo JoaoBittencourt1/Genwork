@@ -144,6 +144,30 @@ func (service *Service) StartOAuthSignIn(ctx context.Context, db platform.DBTX, 
 	return service.issueAccessToken(ctx, session, refreshToken)
 }
 
+// StartBotSignIn starts the session of a bot member's client-credentials grant: it ends with its access token and has
+// no refresh token.
+func (service *Service) StartBotSignIn(ctx context.Context, db platform.DBTX, userID int64, botName string) (SignIn, error) {
+	session, _, err := service.sessions.Start(ctx, db, sessions.StartInput{
+		UserID: userID, ClientType: sessions.ClientBot, DeviceName: &botName,
+		Lifetime: AccessTokenLifetime, WithoutRefreshToken: true,
+	})
+	if err != nil {
+		return SignIn{}, err
+	}
+	return service.issueAccessToken(ctx, session, "")
+}
+
+// StartDelegatedSignIn starts a session the user grants a module; its refresh token is returned once to that module.
+func (service *Service) StartDelegatedSignIn(ctx context.Context, db platform.DBTX, userID int64, moduleName, purpose string) (SignIn, error) {
+	session, refreshToken, err := service.sessions.Start(ctx, db, sessions.StartInput{
+		UserID: userID, ClientType: sessions.ClientDelegated, DelegatedModule: &moduleName, Purpose: &purpose,
+	})
+	if err != nil {
+		return SignIn{}, err
+	}
+	return service.issueAccessToken(ctx, session, refreshToken)
+}
+
 func (service *Service) RefreshForOAuthClient(ctx context.Context, refreshToken string, oauthClientID int64) (SignIn, error) {
 	session, rotatedRefreshToken, err := service.sessions.RotateForOAuthClient(ctx, refreshToken, oauthClientID)
 	if err != nil {

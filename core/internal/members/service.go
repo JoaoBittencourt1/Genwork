@@ -166,3 +166,11 @@ func (service *MemberService) assembleMembers(ctx context.Context, db platform.D
 	}
 	return assembled, nil
 }
+
+func (service *MemberService) assembleOne(ctx context.Context, user users.User) (Member, error) {
+	assembled, err := service.assembleMembers(ctx, service.db, []users.User{user})
+	if err != nil {
+		return Member{}, err
+	}
+	return assembled[0], nil
+}

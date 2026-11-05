@@ -16,6 +16,7 @@ const (
 	authMethodNone         = "none"
 	grantAuthorizationCode = "authorization_code"
 	grantRefreshToken      = "refresh_token"
+	grantClientCredentials = "client_credentials"
 )
 
 // RegisterClientRequest is RFC 7591 client metadata. Unknown metadata is ignored, as the RFC requires, so the
@@ -136,6 +137,8 @@ type TokenRequest struct {
 	ClientID     string
 	CodeVerifier string
 	RefreshToken string
+	// ClientSecret comes from HTTP Basic, never from the form, and only the client_credentials grant uses it.
+	ClientSecret string
 }
 
 // tokenParameters may each appear once (RFC 6749 §3.2).
@@ -166,6 +169,8 @@ func (request TokenRequest) validate() error {
 		if request.RefreshToken == "" || request.ClientID == "" {
 			return newProtocolError("invalid_request", "refresh_token and client_id are required")
 		}
+	case grantClientCredentials:
+		return nil
 	default:
 		return errUnsupportedGrantType
 	}

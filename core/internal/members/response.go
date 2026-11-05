@@ -9,6 +9,7 @@ import (
 
 type MemberResponse struct {
 	Token             string                     `json:"token"`
+	Kind              users.MemberKind           `json:"kind"`
 	Name              string                     `json:"name"`
 	Email             string                     `json:"email"`
 	AvatarColor       users.AvatarColor          `json:"avatarColor"`
@@ -30,6 +31,7 @@ func NewMemberResponse(member Member) MemberResponse {
 	}
 	return MemberResponse{
 		Token:             member.User.Token,
+		Kind:              member.User.Kind,
 		Name:              member.User.Name,
 		Email:             member.User.Email,
 		AvatarColor:       member.User.AvatarColor(),
@@ -39,4 +41,14 @@ func NewMemberResponse(member Member) MemberResponse {
 		LastSignInAt:      member.User.LastLoginAt,
 		RestrictedModules: restrictedModules,
 	}
+}
+
+// BotSecretResponse carries the bot member and its client secret; the secret is shown only here, once.
+type BotSecretResponse struct {
+	MemberResponse
+	ClientSecret string `json:"clientSecret"`
+}
+
+func NewBotSecretResponse(member Member, clientSecret string) BotSecretResponse {
+	return BotSecretResponse{MemberResponse: NewMemberResponse(member), ClientSecret: clientSecret}
 }

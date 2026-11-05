@@ -38,6 +38,7 @@ var generousRateLimits = app.RateLimits{
 	PasswordReset:      platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	ClientRegistration: platform.RateLimit{PerMinute: 10000, Burst: 10000},
 	OAuthToken:         platform.RateLimit{PerMinute: 10000, Burst: 10000},
+	BotToken:           platform.RateLimit{PerMinute: 10000, Burst: 10000},
 }
 
 type testClock struct {
@@ -119,6 +120,9 @@ type request struct {
 	moduleSecret string
 	webClient    bool
 	cookies      []*http.Cookie
+	// basicUser and basicPassword are sent as HTTP Basic credentials.
+	basicUser     string
+	basicPassword string
 }
 
 type response struct {
@@ -146,6 +150,9 @@ func (app *testApp) do(req request) response {
 	httpRequest.Header.Set("Content-Type", contentType)
 	if req.accessToken != "" {
 		httpRequest.Header.Set("Authorization", "Bearer "+req.accessToken)
+	}
+	if req.basicUser != "" {
+		httpRequest.SetBasicAuth(req.basicUser, req.basicPassword)
 	}
 	if req.moduleSecret != "" {
 		httpRequest.Header.Set("Authorization", "Bearer "+req.moduleSecret)

@@ -10,7 +10,7 @@ import (
 const (
 	ProductID = "genwork"
 	// CoreAPIVersion is the semantic version of the contracts modules and clients consume (rule 61).
-	CoreAPIVersion = "1.0.0"
+	CoreAPIVersion = "1.1.0"
 )
 
 func APIMajorVersion() string {

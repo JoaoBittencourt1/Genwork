@@ -97,9 +97,19 @@ func (handler *OAuthHandler) issueToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var signIn auth.SignIn
-	if request.GrantType == grantAuthorizationCode {
+	switch request.GrantType {
+	case grantAuthorizationCode:
 		signIn, err = handler.service.ExchangeCode(r.Context(), request)
-	} else {
+	case grantClientCredentials:
+		var found bool
+		request.ClientID, request.ClientSecret, found = r.BasicAuth()
+		if !found {
+			w.Header().Set("WWW-Authenticate", `Basic realm="genwork"`)
+			writeProtocolError(w, errInvalidBotClient)
+			return
+		}
+		signIn, err = handler.service.IssueBotToken(r.Context(), request.ClientID, request.ClientSecret)
+	default:
 		signIn, err = handler.service.Refresh(r.Context(), request)
 	}
 	var protocolError *ProtocolError

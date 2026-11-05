@@ -119,3 +119,12 @@ func (app *testApp) removeMember(accessToken, memberToken string) response {
 	app.t.Helper()
 	return app.do(request{method: "DELETE", path: "/api/core/v1/members/" + memberToken, accessToken: accessToken})
 }
+
+func (app *testApp) storedUserByEmail(email string) users.User {
+	app.t.Helper()
+	stored, err := users.Repository{}.FindByEmail(context.Background(), app.db, email)
+	if err != nil {
+		app.t.Fatalf("find user %s: %v", email, err)
+	}
+	return stored
+}

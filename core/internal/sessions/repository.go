@@ -22,23 +22,37 @@ type NewSession struct {
 	ClientType    ClientType
 	DeviceName    *string
 	OAuthClientID *int64
-	Now           time.Time
+	// Lifetime bounds both the idle and the absolute expiry; zero keeps the default lifetimes.
+	Lifetime        time.Duration
+	DelegatedModule *string
+	Purpose         *string
+	Now             time.Time
 }
 
 const sessionColumns = `
 	sessions.id, sessions.token, users.id, users.token, users.role_id, sessions.client_type, sessions.device_name,
-	sessions.oauth_client_id, sessions.created_at, sessions.last_used_at, sessions.idle_expires_at, sessions.absolute_expires_at,
+	sessions.oauth_client_id, sessions.delegated_module, sessions.purpose, sessions.created_at, sessions.last_used_at, sessions.idle_expires_at, sessions.absolute_expires_at,
 	sessions.revoked_at`
 
 func (Repository) Create(ctx context.Context, db platform.DBTX, newSession NewSession) (Session, error) {
 	absoluteExpiresAt := newSession.Now.Add(AbsoluteLifetime)
+	idleLifetime := IdleLifetime
+	if newSession.ClientType == ClientDelegated {
+		absoluteExpiresAt = newSession.Now.Add(DelegatedAbsoluteLifetime)
+		idleLifetime = DelegatedIdleLifetime
+	}
+	idleExpiresAt := nextIdleExpiry(newSession.Now, absoluteExpiresAt, idleLifetime)
+	if newSession.Lifetime > 0 {
+		absoluteExpiresAt = newSession.Now.Add(newSession.Lifetime)
+		idleExpiresAt = absoluteExpiresAt
+	}
 	var sessionID int64
 	err := db.QueryRow(ctx, `
-		INSERT INTO sessions (user_id, client_type, device_name, oauth_client_id, created_at, last_used_at, idle_expires_at, absolute_expires_at)
-		VALUES ($1, $2, $3, $4, $5, $5, $6, $7)
+		INSERT INTO sessions (user_id, client_type, device_name, oauth_client_id, delegated_module, purpose, created_at, last_used_at, idle_expires_at, absolute_expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $8, $9)
 		RETURNING id`,
-		newSession.UserID, string(newSession.ClientType), newSession.DeviceName, newSession.OAuthClientID, newSession.Now,
-		nextIdleExpiry(newSession.Now, absoluteExpiresAt), absoluteExpiresAt).Scan(&sessionID)
+		newSession.UserID, string(newSession.ClientType), newSession.DeviceName, newSession.OAuthClientID,
+		newSession.DelegatedModule, newSession.Purpose, newSession.Now, idleExpiresAt, absoluteExpiresAt).Scan(&sessionID)
 	if err != nil {
 		return Session{}, fmt.Errorf("create session: %w", err)
 	}
@@ -107,7 +121,7 @@ func (Repository) RevokeForUser(ctx context.Context, db platform.DBTX, userID in
 
 func (Repository) ExtendIdleExpiry(ctx context.Context, db platform.DBTX, session Session, now time.Time) (Session, error) {
 	session.LastUsedAt = now
-	session.IdleExpiresAt = nextIdleExpiry(now, session.AbsoluteExpiresAt)
+	session.IdleExpiresAt = nextIdleExpiry(now, session.AbsoluteExpiresAt, session.idleLifetime())
 	_, err := db.Exec(ctx, `UPDATE sessions SET last_used_at = $2, idle_expires_at = $3 WHERE id = $1`,
 		session.ID, session.LastUsedAt, session.IdleExpiresAt)
 	if err != nil {
@@ -145,7 +159,7 @@ func (Repository) LockRefreshToken(ctx context.Context, db platform.DBTX, secret
 		FOR UPDATE OF refresh_tokens, sessions`, platform.HashBearerSecret(secret)).Scan(
 		&locked.ID, &locked.UsedAt,
 		&session.ID, &session.Token, &session.UserID, &session.UserToken, &session.RoleID, &clientType, &session.DeviceName,
-		&session.OAuthClientID, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt, &session.AbsoluteExpiresAt,
+		&session.OAuthClientID, &session.DelegatedModule, &session.Purpose, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt, &session.AbsoluteExpiresAt,
 		&session.RevokedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return lockedRefreshToken{}, ErrRefreshTokenNotFound
@@ -181,7 +195,7 @@ func scanSession(row pgx.Row) (Session, error) {
 	var session Session
 	var clientType string
 	err := row.Scan(&session.ID, &session.Token, &session.UserID, &session.UserToken, &session.RoleID, &clientType,
-		&session.DeviceName, &session.OAuthClientID, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt,
+		&session.DeviceName, &session.OAuthClientID, &session.DelegatedModule, &session.Purpose, &session.CreatedAt, &session.LastUsedAt, &session.IdleExpiresAt,
 		&session.AbsoluteExpiresAt, &session.RevokedAt)
 	session.ClientType = ClientType(clientType)
 	return session, err
