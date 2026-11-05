@@ -42,9 +42,16 @@ func newEngineClient(socketPath string) *engineClient {
 	return &engineClient{httpClient: &http.Client{Transport: transport}}
 }
 
-// FindSocket picks the engine socket: the configured one, DOCKER_HOST, then the well-known locations.
+// FindSocket picks the engine socket. A socket configured on purpose is the only one tried, so a typo never falls back to
+// another engine; without one, DOCKER_HOST and then the well-known locations are tried.
 func FindSocket(configured string, getenv func(string) string) (string, error) {
-	candidates := []string{configured}
+	if configured != "" {
+		if info, err := os.Stat(configured); err == nil && info.Mode()&os.ModeSocket != 0 {
+			return configured, nil
+		}
+		return "", ErrNoEngine
+	}
+	candidates := []string{}
 	if host, found := strings.CutPrefix(getenv("DOCKER_HOST"), "unix://"); found {
 		candidates = append(candidates, host)
 	}

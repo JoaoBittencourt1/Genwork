@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"codex-thread-1"}
+{"type":"item.completed","item":{"type":"command_execution","command":"go build ./..."}}
+{"type":"item.completed","item":{"type":"agent_message","text":"Finished. {\"pullRequestTitle\": \"GEN-2 Fix\", \"pullRequestBody\": \"Fixed\"}"}}
+{"type":"turn.completed"}

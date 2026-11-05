@@ -154,7 +154,7 @@ func Load(getenv Getenv, version, imageRegistry string) (Config, error) {
 	}
 	config.SandboxImage = getenv(environmentSandbox)
 	config.CustomImage = config.SandboxImage != ""
-	if config.SandboxImage == "" {
+	if config.SandboxImage == "" && imageRegistry != "" {
 		config.SandboxImage = DefaultSandboxImage(imageRegistry, version)
 	}
 	config.Limits = Limits{CPUs: DefaultSandboxCPUs, Memory: DefaultSandboxMemory, PIDs: DefaultSandboxPIDs}

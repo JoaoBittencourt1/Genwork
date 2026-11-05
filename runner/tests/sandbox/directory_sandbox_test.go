@@ -119,13 +119,10 @@ func TestFindSocketPrefersTheConfiguredSocket(t *testing.T) {
 	}
 }
 
-func TestFindSocketFailsWithBothOptionsWhenThereIsNoEngine(t *testing.T) {
+func TestConfiguredSocketIsTheOnlyOneTried(t *testing.T) {
 	_, err := sandbox.FindSocket("/nonexistent.sock", func(string) string { return "" })
 
-	if err == nil || !strings.Contains(err.Error(), "--directory-mode") {
-		// A machine with a real engine socket legitimately finds one.
-		if err != nil {
-			t.Errorf("error = %v", err)
-		}
+	if err == nil || !strings.Contains(err.Error(), "--directory-mode") || !strings.Contains(err.Error(), "Docker or Podman") {
+		t.Errorf("error = %v", err)
 	}
 }
