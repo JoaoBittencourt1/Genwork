@@ -81,7 +81,7 @@ func (service *BotMemberService) Update(ctx context.Context, caller platform.Pri
 	return service.members.assembleOne(ctx, updated)
 }
 
-// RotateSecret invalidates the previous secret at once; the bot's current access tokens live out their 15 minutes.
+// RotateSecret invalidates the previous secret and revokes every session of the bot at once.
 func (service *BotMemberService) RotateSecret(ctx context.Context, caller platform.Principal, botToken string) (Member, string, error) {
 	secret := platform.NewBearerSecret()
 	var target users.User
@@ -90,7 +90,11 @@ func (service *BotMemberService) RotateSecret(ctx context.Context, caller platfo
 		if target, err = service.findManageableBot(ctx, tx, caller, botToken); err != nil {
 			return err
 		}
-		return service.credentials.Rotate(ctx, tx, target.ID, users.HashBotSecret(secret), service.now())
+		now := service.now()
+		if err := service.credentials.Rotate(ctx, tx, target.ID, users.HashBotSecret(secret), now); err != nil {
+			return err
+		}
+		return service.members.sessions.RevokeAllForUser(ctx, tx, target.ID, now)
 	})
 	if err != nil {
 		return Member{}, "", err

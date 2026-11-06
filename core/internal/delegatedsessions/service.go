@@ -22,7 +22,8 @@ func NewDelegatedSessionService(db *pgxpool.Pool, authService *auth.Service) *De
 	return &DelegatedSessionService{db: db, auth: authService}
 }
 
-// Grant starts a session of the caller that only the named, enabled module will hold.
+// Grant starts a session of the caller for the named, enabled module. The module is a label for the session list and
+// the audit trail: the token is a normal bearer token and is not limited to that module's APIs.
 func (service *DelegatedSessionService) Grant(ctx context.Context, caller platform.Principal, input GrantInput) (auth.SignIn, error) {
 	found, err := service.modules.FindByNames(ctx, service.db, []string{input.Module})
 	if err != nil {

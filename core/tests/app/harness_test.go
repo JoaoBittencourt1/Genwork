@@ -123,6 +123,8 @@ type request struct {
 	// basicUser and basicPassword are sent as HTTP Basic credentials.
 	basicUser     string
 	basicPassword string
+	// remoteAddr is the client's address ("ip:port"); empty keeps httptest's default.
+	remoteAddr string
 }
 
 type response struct {
@@ -148,6 +150,9 @@ func (app *testApp) do(req request) response {
 	}
 	httpRequest := httptest.NewRequest(req.method, req.path, reader)
 	httpRequest.Header.Set("Content-Type", contentType)
+	if req.remoteAddr != "" {
+		httpRequest.RemoteAddr = req.remoteAddr
+	}
 	if req.accessToken != "" {
 		httpRequest.Header.Set("Authorization", "Bearer "+req.accessToken)
 	}

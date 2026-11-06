@@ -43,7 +43,7 @@ func (current *execution) finishTask(ctx context.Context, outcome adapters.Outco
 	if !hasDraft {
 		draft = PullRequestDraft{Title: current.run.TaskKey + " " + current.run.TaskTitle, Description: outcome.FinalText}
 	}
-	if err := current.workspace.Push(ctx, repositoryDir, current.branch); err != nil {
+	if err := current.workspace.Push(ctx, current.run.Repository, repositoryDir, current.branch); err != nil {
 		current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)
 		return "", true
 	}

@@ -16,7 +16,7 @@ Every member SHALL have a kind, `human` or `bot`. Existing members SHALL be `hum
 - **THEN** the response is the generic invalid-credentials error used for any failed login (rule 68)
 
 ### Requirement: Bot member management
-A caller holding `core.member.manage` SHALL be able to create a bot member (name and role), rename it, change its role, and deactivate or remove it, with the same soft-delete and deactivation rules as human members. Creating a bot member SHALL return its token and a client secret **once**; core SHALL store only a hash of the secret (rule 67). The caller SHALL be able to rotate the secret, which invalidates the previous one immediately.
+A caller holding `core.member.manage` SHALL be able to create a bot member (name and role), rename it, change its role, and deactivate or remove it, with the same soft-delete and deactivation rules as human members. Creating a bot member SHALL return its token and a client secret **once**; core SHALL store only a hash of the secret (rule 67). The caller SHALL be able to rotate the secret, which invalidates the previous one and revokes every session of the bot immediately.
 
 #### Scenario: Create a bot member
 - **WHEN** an admin's request creates bot member "Dev Bot" with role `member`
@@ -24,14 +24,14 @@ A caller holding `core.member.manage` SHALL be able to create a bot member (name
 
 #### Scenario: Rotate the secret
 - **WHEN** the secret of a bot member is rotated
-- **THEN** a token request with the previous secret fails and one with the new secret succeeds
+- **THEN** a token request with the previous secret fails, one with the new secret succeeds, and access tokens issued before the rotation stop working
 
 #### Scenario: Member without permission
 - **WHEN** a caller without `core.member.manage` tries to create a bot member
 - **THEN** the request is rejected with 403
 
 ### Requirement: Bot member authentication
-Core's OAuth token endpoint SHALL accept the `client_credentials` grant with a bot member token as client id and its secret, and SHALL issue the usual short-lived access token (rule 69) whose subject is the bot member, carrying the bot's role permissions. No refresh token SHALL be issued for this grant. A deactivated or removed bot member SHALL NOT obtain tokens, and access tokens SHALL expire within 15 minutes of issue. Token requests SHALL be rate limited per bot member.
+Core's OAuth token endpoint SHALL accept the `client_credentials` grant with a bot member token as client id and its secret, and SHALL issue the usual short-lived access token (rule 69) whose subject is the bot member, carrying the bot's role permissions. No refresh token SHALL be issued for this grant. A deactivated or removed bot member SHALL NOT obtain tokens, and access tokens SHALL expire within 15 minutes of issue. Token requests SHALL be rate limited per client address and bot member, so a third party cannot exhaust a bot's requests by guessing its public token.
 
 #### Scenario: Token for an active bot
 - **WHEN** an active bot member requests a token with a valid secret

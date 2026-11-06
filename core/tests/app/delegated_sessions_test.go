@@ -178,3 +178,17 @@ func contains(values []string, wanted string) bool {
 	}
 	return false
 }
+
+func TestOnlyAPersonsOwnSignInCanGrantADelegatedSession(t *testing.T) {
+	app := newTestApp(t)
+	admin, delegated := app.delegatedAdminSession()
+	bot := app.createBot(admin.AccessToken, "Dev Bot", "member")
+	var botSignIn struct {
+		AccessToken string `json:"access_token"`
+	}
+	app.botToken(bot.Token, bot.ClientSecret).decode(t, &botSignIn)
+
+	expectError(t, app.grantDelegatedSession(botSignIn.AccessToken, "gentasks", "Chat"), http.StatusForbidden, "forbidden")
+	expectError(t, app.grantDelegatedSession(delegated.AccessToken, "gentasks", "Chat"), http.StatusForbidden, "forbidden")
+	expectStatus(t, app.grantDelegatedSession(admin.AccessToken, "gentasks", "Chat"), http.StatusOK)
+}

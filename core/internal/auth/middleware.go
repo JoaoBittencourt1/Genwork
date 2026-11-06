@@ -41,6 +41,7 @@ func (authenticator *Authenticator) RequireAuthentication(next http.Handler) htt
 			RoleID:       session.RoleID,
 			SessionID:    session.ID,
 			SessionToken: session.Token,
+			ClientType:   string(session.ClientType),
 		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

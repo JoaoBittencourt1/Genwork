@@ -273,3 +273,39 @@ func TestDirectoryAndMeReportKind(t *testing.T) {
 	}
 	_ = bot
 }
+
+func TestAnotherClientCannotExhaustABotsTokenRequests(t *testing.T) {
+	limits := generousRateLimits
+	limits.BotToken = platform.RateLimit{PerMinute: 1, Burst: 2}
+	app := newTestApp(t, withRateLimits(limits))
+	admin := app.signedInAdmin()
+	bot := app.createBot(admin.AccessToken, "Dev Bot", "member")
+	attack := func() response {
+		return app.do(request{
+			method: "POST", path: "/api/core/v1/oauth/token", form: url.Values{"grant_type": {"client_credentials"}},
+			basicUser: bot.Token, basicPassword: "x", remoteAddr: "203.0.113.9:4000",
+		})
+	}
+
+	for range 5 {
+		attack()
+	}
+
+	expectStatus(t, attack(), http.StatusTooManyRequests)
+	expectStatus(t, app.botToken(bot.Token, bot.ClientSecret), http.StatusOK)
+}
+
+func TestRotatingTheSecretRevokesTheBotsSessions(t *testing.T) {
+	app := newTestApp(t)
+	admin := app.signedInAdmin()
+	bot := app.createBot(admin.AccessToken, "Dev Bot", "member")
+	var token struct {
+		AccessToken string `json:"access_token"`
+	}
+	app.botToken(bot.Token, bot.ClientSecret).decode(t, &token)
+	expectStatus(t, app.do(request{method: "GET", path: "/api/core/v1/auth/sessions", accessToken: token.AccessToken}), http.StatusOK)
+
+	expectStatus(t, app.do(request{method: "POST", path: "/api/core/v1/bots/" + bot.Token + "/secret", accessToken: admin.AccessToken}), http.StatusOK)
+
+	expectError(t, app.do(request{method: "GET", path: "/api/core/v1/auth/sessions", accessToken: token.AccessToken}), http.StatusUnauthorized, "invalid_token")
+}

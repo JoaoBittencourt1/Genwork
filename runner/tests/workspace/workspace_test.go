@@ -108,7 +108,7 @@ func TestCommitsAheadPushAndTheDefaultBranch(t *testing.T) {
 	if err != nil || ahead != 1 {
 		t.Fatalf("ahead = %d, err = %v", ahead, err)
 	}
-	if err := created.Push(ctx, directory, "bot/gen-1-abc123"); err != nil {
+	if err := created.Push(ctx, "acme/api", directory, "bot/gen-1-abc123"); err != nil {
 		t.Fatalf("push: %v", err)
 	}
 	if base, err := created.DefaultBranch(ctx, directory); err != nil || base != "main" {
@@ -204,5 +204,91 @@ func TestInvalidRunTokensAreRefused(t *testing.T) {
 	}
 	if manager.RepositoryURL("acme/api") != "/acme/api.git" {
 		t.Errorf("url = %s", manager.RepositoryURL("acme/api"))
+	}
+}
+
+func commitFile(t *testing.T, directory, name string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(directory, name), []byte("x\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git(t, directory, "add", ".")
+	git(t, directory, "commit", "-m", "change")
+}
+
+func preparedClone(t *testing.T) (*workspace.Workspace, string, *gitremotetest.Remote) {
+	t.Helper()
+	created, _, remote := newWorkspace(t)
+	directory, err := created.Clone(context.Background(), "acme/api", "")
+	if err != nil {
+		t.Fatalf("clone: %v", err)
+	}
+	if err := created.PrepareBranch(context.Background(), directory, "bot/x", "Bot", "bot@bots.genwork.invalid"); err != nil {
+		t.Fatal(err)
+	}
+	return created, directory, remote
+}
+
+func TestPushNeverRunsHooksTheSandboxPlanted(t *testing.T) {
+	created, directory, remote := preparedClone(t)
+	leak := filepath.Join(t.TempDir(), "leak")
+	hook := "#!/bin/sh\nenv > " + leak + "\n"
+	if err := os.WriteFile(filepath.Join(directory, ".git", "hooks", "pre-push"), []byte(hook), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	git(t, directory, "config", "core.hooksPath", filepath.Join(directory, ".git", "hooks"))
+	commitFile(t, directory, "a.txt")
+
+	if err := created.Push(context.Background(), "acme/api", directory, "bot/x"); err != nil {
+		t.Fatalf("push: %v", err)
+	}
+
+	if _, err := os.Stat(leak); !os.IsNotExist(err) {
+		t.Error("a hook planted in .git ran on the host")
+	}
+	if !contains(remote.Branches(t), "bot/x") {
+		t.Errorf("remote branches = %v", remote.Branches(t))
+	}
+}
+
+func TestPushIgnoresARemoteURLTheSandboxRewrote(t *testing.T) {
+	created, directory, remote := preparedClone(t)
+	attacker := t.TempDir()
+	git(t, attacker, "init", "--bare")
+	git(t, directory, "config", "remote.origin.url", attacker)
+	git(t, directory, "config", "remote.origin.pushurl", attacker)
+	commitFile(t, directory, "a.txt")
+
+	if err := created.Push(context.Background(), "acme/api", directory, "bot/x"); err != nil {
+		t.Fatalf("push: %v", err)
+	}
+
+	if !contains(remote.Branches(t), "bot/x") {
+		t.Errorf("the branch did not reach the configured server: %v", remote.Branches(t))
+	}
+	if out := git(t, attacker, "branch", "--list"); out != "" {
+		t.Errorf("the rewritten remote received the push: %s", out)
+	}
+}
+
+func TestLocalCommandsDoNotReceiveTheToken(t *testing.T) {
+	created, directory, _ := preparedClone(t)
+	leak := filepath.Join(t.TempDir(), "leak")
+	// fsmonitor would run on rev-list if the host honored the repository's configuration.
+	script := filepath.Join(t.TempDir(), "monitor.sh")
+	if err := os.WriteFile(script, []byte("#!/bin/sh\nenv > "+leak+"\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	git(t, directory, "config", "core.fsmonitor", script)
+
+	if _, err := created.CommitsAhead(context.Background(), directory); err != nil {
+		t.Fatalf("commits ahead: %v", err)
+	}
+	if _, err := created.DefaultBranch(context.Background(), directory); err != nil {
+		t.Fatalf("default branch: %v", err)
+	}
+
+	if data, err := os.ReadFile(leak); err == nil && strings.Contains(string(data), token) {
+		t.Error("a local command ran the repository's fsmonitor with the token")
 	}
 }

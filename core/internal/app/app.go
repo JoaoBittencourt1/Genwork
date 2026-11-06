@@ -117,7 +117,7 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	capabilities.NewCapabilitiesHandler(moduleService, accessService, settings.Version, discovery.CoreAPIVersion).Register(router)
 	updates.NewUpdateHandler(updates.NewUpdateService(updates.NewHTTPUpdaterClient(settings.UpdaterURL, settings.UpdaterSecret))).Register(router)
 	oauthService := oauth.NewOAuthService(db, authService, sessionService, settings.RateLimits.BotToken, oauth.OAuthServiceSettings{PublicURL: settings.PublicURL}, now)
-	oauth.NewOAuthHandler(oauthService, settings.PublicURL, limitBy(settings.RateLimits.ClientRegistration), limitBy(settings.RateLimits.OAuthToken), now).
+	oauth.NewOAuthHandler(oauthService, settings.PublicURL, limitBy(settings.RateLimits.ClientRegistration), limitBy(settings.RateLimits.OAuthToken), settings.TrustedProxies, now).
 		Register(router)
 	return router
 }

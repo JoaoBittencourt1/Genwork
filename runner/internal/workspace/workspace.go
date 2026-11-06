@@ -1,12 +1,17 @@
 // Package workspace creates one directory per run, clones the repository into it on the host, and removes it with every
 // secret file when the run ends. Git runs on the host with the runner's own token, handed over through a one-off
 // credential helper and never written into the repository's configuration.
+//
+// The sandbox writes into the clone's .git, so the host treats everything in it as hostile: hooks, filters and the
+// remote's URL are never trusted, only commands that talk to the Git server carry the token, and the credential helper
+// answers only for the configured Git server's host.
 package workspace
 
 import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,19 +20,41 @@ import (
 )
 
 const (
-	directoryMode  = 0o700
-	tokenVariable  = "GENWORK_GIT_TOKEN"
-	credentialHelp = `!f() { echo username=x-access-token; echo "password=$` + tokenVariable + `"; }; f`
+	directoryMode = 0o700
+	tokenVariable = "GENWORK_GIT_TOKEN"
+	hostVariable  = "GENWORK_GIT_HOST"
+	// credentialHelp answers only when git asks for the configured Git server's host, so a rewritten remote URL
+	// (url.<base>.insteadOf, remote.origin.url) never receives the token.
+	credentialHelp = `!f() { ok=; while IFS= read -r line; do [ "$line" = "host=$` + hostVariable + `" ] && ok=1; done; ` +
+		`[ -n "$ok" ] && { echo username=x-access-token; echo "password=$` + tokenVariable + `"; }; }; f`
 )
+
+// untrustedConfig neutralizes repository configuration the sandbox may have written: a hook, a filesystem monitor, or
+// a helper program would otherwise run on the host.
+var untrustedConfig = []string{
+	"-c", "core.hooksPath=/dev/null",
+	"-c", "core.fsmonitor=false",
+	"-c", "core.sshCommand=false",
+	"-c", "core.gitProxy=false",
+	"-c", "core.pager=cat",
+	"-c", "core.editor=true",
+	"-c", "diff.external=",
+	"-c", "protocol.ext.allow=never",
+}
 
 type Manager struct {
 	root       string
 	gitBaseURL string
+	gitHost    string
 	token      string
 }
 
 func NewManager(root, gitBaseURL, githubToken string) *Manager {
-	return &Manager{root: root, gitBaseURL: strings.TrimRight(gitBaseURL, "/"), token: githubToken}
+	manager := &Manager{root: root, gitBaseURL: strings.TrimRight(gitBaseURL, "/"), token: githubToken}
+	if parsed, err := url.Parse(manager.gitBaseURL); err == nil {
+		manager.gitHost = parsed.Host
+	}
+	return manager
 }
 
 // Workspace is one run's directory: Dir is what the sandbox mounts, and Repositories are the clones inside it.
@@ -78,15 +105,18 @@ func (manager *Manager) RepositoryURL(repository string) string {
 	return manager.gitBaseURL + "/" + repository + ".git"
 }
 
+// git runs on the host. Only an authenticated command gets the token and the credential helper; every command ignores
+// the hooks and helpers the sandbox may have planted in the repository's configuration.
 func (workspace *Workspace) git(ctx context.Context, directory string, authenticated bool, arguments ...string) (string, error) {
-	var command *exec.Cmd
+	prefix := append([]string{}, untrustedConfig...)
+	environment := append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_CONFIG_NOSYSTEM=1")
 	if authenticated {
-		command = exec.CommandContext(ctx, "git", append([]string{"-c", "credential.helper=", "-c", "credential.helper=" + credentialHelp}, arguments...)...)
-	} else {
-		command = exec.CommandContext(ctx, "git", arguments...)
+		prefix = append(prefix, "-c", "credential.helper=", "-c", "credential.helper="+credentialHelp)
+		environment = append(environment, tokenVariable+"="+workspace.manager.token, hostVariable+"="+workspace.manager.gitHost)
 	}
+	command := exec.CommandContext(ctx, "git", append(prefix, arguments...)...)
 	command.Dir = directory
-	command.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_CONFIG_NOSYSTEM=1", tokenVariable+"="+workspace.manager.token)
+	command.Env = environment
 	var output bytes.Buffer
 	command.Stdout, command.Stderr = &output, &output
 	if err := command.Run(); err != nil {
@@ -178,8 +208,13 @@ func (workspace *Workspace) CommitsAhead(ctx context.Context, repositoryDir stri
 	return strconv.Atoi(count)
 }
 
-// Push sends the branch to origin from the host.
-func (workspace *Workspace) Push(ctx context.Context, repositoryDir, branch string) error {
-	_, err := workspace.git(ctx, repositoryDir, true, "push", "origin", branch)
+// Push sends the branch to the repository's own URL from the host. It never reads the URL from the clone's
+// configuration, which the sandbox can edit.
+func (workspace *Workspace) Push(ctx context.Context, repository, repositoryDir, branch string) error {
+	if branch == "" || strings.HasPrefix(branch, "-") {
+		return fmt.Errorf("invalid branch %q", branch)
+	}
+	reference := "refs/heads/" + branch
+	_, err := workspace.git(ctx, repositoryDir, true, "push", workspace.manager.RepositoryURL(repository), reference+":"+reference)
 	return err
 }

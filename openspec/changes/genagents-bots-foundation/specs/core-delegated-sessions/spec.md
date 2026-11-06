@@ -5,7 +5,7 @@ Lets a signed-in user grant a module a bounded, revocable session that acts as t
 ## ADDED Requirements
 
 ### Requirement: Grant a delegated session
-A signed-in user SHALL be able to grant a delegated session to an enabled module, with a purpose label and a lifetime of at most 24 hours idle and 7 days absolute. Core SHALL return a refresh token for that session once, to the module calling on the user's behalf with the user's access token. The session SHALL carry exactly the user's own permissions at each refresh, so a role change applies at the next refresh.
+A person signed in on the web or a native app SHALL be able to grant a delegated session to an enabled module, with a purpose label and a lifetime of at most 24 hours idle and 7 days absolute. Core SHALL return a refresh token for that session once, to the module calling on the user's behalf with the user's access token. The session SHALL carry exactly the user's own permissions at each refresh, so a role change applies at the next refresh. A bot, OAuth (assistant), or delegated session SHALL NOT be able to grant one (`403 forbidden`), so a short-lived or limited token never becomes a renewable one. The module name is a label for the session list: the token is a normal bearer token and is not limited to that module's APIs.
 
 #### Scenario: Grant
 - **WHEN** an admin, through genagents, grants a delegated session with purpose "Admin chat"

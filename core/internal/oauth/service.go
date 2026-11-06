@@ -32,7 +32,7 @@ type OAuthService struct {
 	now        func() time.Time
 }
 
-// botTokenLimit is the per-bot rate limit of client-credentials token requests.
+// botTokenLimit is the rate limit of client-credentials token requests per client address and bot.
 func NewOAuthService(db *pgxpool.Pool, authService *auth.Service, sessionService *sessions.Service, botTokenLimit platform.RateLimit, settings OAuthServiceSettings, now func() time.Time) *OAuthService {
 	return &OAuthService{
 		db: db, auth: authService, sessions: sessionService, settings: settings, now: now,
@@ -187,9 +187,10 @@ func (service *OAuthService) findTokenClient(ctx context.Context, clientID strin
 var dummyBotSecretHash = users.HashBotSecret("unknown bot")
 
 // IssueBotToken answers the client_credentials grant. Unknown bot, deactivated bot, and wrong secret are the same
-// refusal; the rate limit is the only distinguishable answer and applies per bot token (rule 68).
-func (service *OAuthService) IssueBotToken(ctx context.Context, botToken, secret string) (auth.SignIn, error) {
-	if allowed, _ := service.botLimiter.Allow(botToken); !allowed {
+// refusal; the rate limit is the only distinguishable answer and applies per client address and bot token (rule 68).
+// The bot token is public (members list), so keying on it alone would let anyone lock a bot out of its own runs.
+func (service *OAuthService) IssueBotToken(ctx context.Context, clientAddress, botToken, secret string) (auth.SignIn, error) {
+	if allowed, _ := service.botLimiter.Allow(clientAddress + "|" + botToken); !allowed {
 		return auth.SignIn{}, platform.ErrRateLimited
 	}
 	credential, err := service.botSecrets.FindActiveByBotToken(ctx, service.db, botToken)
