@@ -170,7 +170,7 @@ func TestCompleteGithubConnectionRejectsInvalidStates(t *testing.T) {
 	app := newTestApp(t)
 	started := app.startGithubManifest(map[string]any{})
 	otherUser := app.core.MintAccessToken(t, "bruno-user-token", access.Permissions...)
-	tampered := withLastCharacterChanged(started.State)
+	tampered := withSignatureTampered(started.State)
 
 	for _, state := range []string{"", "not-a-state", tampered} {
 		expectValidationError(t, app.completeGithubConnection(githubsynctest.OrganizationAppCode, state), "state")
@@ -268,12 +268,15 @@ func TestGithubConnectionRequiresPermissions(t *testing.T) {
 	}
 }
 
-func withLastCharacterChanged(text string) string {
+// withSignatureTampered changes the second-to-last character, which carries all six bits of the signature. The last
+// character of a 32-byte base64url signature has two unused bits, so changing only it can decode to the same bytes.
+func withSignatureTampered(text string) string {
+	position := len(text) - 2
 	replacement := "A"
-	if strings.HasSuffix(text, "A") {
+	if text[position] == 'A' {
 		replacement = "B"
 	}
-	return text[:len(text)-1] + replacement
+	return text[:position] + replacement + text[position+1:]
 }
 
 func expectNoSecretIn(t *testing.T, text string) {
