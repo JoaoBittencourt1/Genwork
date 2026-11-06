@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/mcp/internal/core"
+	"github.com/JoaoBittencourt1/Genwork/mcp/internal/genagents"
+	"github.com/JoaoBittencourt1/Genwork/mcp/internal/genmonitor"
 	"github.com/JoaoBittencourt1/Genwork/mcp/internal/gentasks"
 	"github.com/JoaoBittencourt1/Genwork/mcp/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/mcp/internal/toolset"
@@ -49,5 +51,7 @@ func Toolsets(api platform.APIRequester) []toolset.Toolset {
 	return []toolset.Toolset{
 		core.NewToolset(api),
 		gentasks.NewToolset(api),
+		genmonitor.NewToolset(api),
+		genagents.NewToolset(api),
 	}
 }

@@ -1,3 +1,5 @@
+import type { MemberKind } from '@/shared/datasource/users'
+
 export const URGENCY_LEVELS = ['none', 'low', 'medium', 'high', 'urgent'] as const
 export type Urgency = (typeof URGENCY_LEVELS)[number]
 
@@ -37,6 +39,8 @@ export type Task = {
   title: string
   description: string | null
   assigneeToken: string | null
+  // assigneeKind is null while the task has no assignee.
+  assigneeKind: MemberKind | null
   urgency: Urgency
   labels: Label[]
   createdBy: string
@@ -133,6 +137,8 @@ export type BoardGithubSettings = {
   reviewRequestedColumnToken: string | null
   mergedColumnToken: string | null
   finalBranches: string[]
+  // repository is the "owner/name" repository bots work in for this board's tasks.
+  repository: string | null
 }
 
 // BoardGithubSettingsPatch follows the API's PATCH rules: an omitted key is unchanged, null clears a column; finalBranches is not nullable.

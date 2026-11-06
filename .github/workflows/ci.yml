@@ -21,7 +21,9 @@ jobs:
       core: ${{ steps.filter.outputs.core }}
       sdk: ${{ steps.filter.outputs.sdk }}
       gentasks: ${{ steps.filter.outputs.gentasks }}
+      genagents: ${{ steps.filter.outputs.genagents }}
       genmonitor: ${{ steps.filter.outputs.genmonitor }}
+      runner: ${{ steps.filter.outputs.runner }}
       cli: ${{ steps.filter.outputs.cli }}
       mcp: ${{ steps.filter.outputs.mcp }}
       web: ${{ steps.filter.outputs.web }}
@@ -48,8 +50,12 @@ jobs:
               - 'VERSION'
               - 'Makefile'
               - '.github/workflows/ci.yml'
+            genagents:
+              - 'modules/genagents/**'
             genmonitor:
               - 'modules/genmonitor/**'
+            runner:
+              - 'runner/**'
               - 'sdk/**'
               - 'VERSION'
               - 'Makefile'
@@ -150,6 +156,37 @@ jobs:
       - run: make test-gentasks
       - run: make build-gentasks
 
+  genagents:
+    name: Genagents · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.genagents == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: genwork
+          POSTGRES_PASSWORD: genwork
+          POSTGRES_DB: genwork_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genwork"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://genwork:genwork@localhost:5432/genwork_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: modules/genagents/go.mod
+          cache-dependency-path: modules/genagents/go.sum
+      - run: make lint-genagents
+      - run: make test-genagents
+      - run: make build-genagents
+
   genmonitor:
     name: Genmonitor · Lint · Test · Build
     needs: changes
@@ -164,6 +201,21 @@ jobs:
       - run: make lint-genmonitor
       - run: make test-genmonitor
       - run: make build-genmonitor
+
+  runner:
+    name: Runner · Lint · Test · Build
+    needs: changes
+    if: needs.changes.outputs.runner == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: runner/go.mod
+      - run: make lint-runner
+      - run: make test-runner
+      - run: make build-runner
+      - run: make build-sandbox
 
   cli:
     name: CLI · Lint · Test · Build

@@ -1,0 +1,37 @@
+{
+  "tasks": [
+    {
+      "archivedAt": null,
+      "assignedAt": "2026-11-05T12:00:00Z",
+      "assigneeKind": "bot",
+      "assigneeToken": "dev-bot-token",
+      "board": {
+        "name": "Genwork",
+        "taskPrefix": "GEN",
+        "token": "9iPESWzTAyAtaX9ZHCzqhA"
+      },
+      "column": {
+        "name": null,
+        "preset": "todo",
+        "token": "Y29sdW1uLXRva2Vu"
+      },
+      "columnToken": "Y29sdW1uLXRva2Vu",
+      "createdAt": "2026-11-05T12:00:00Z",
+      "createdBy": "ana-user-token",
+      "description": "Make it faster",
+      "labels": [
+        {
+          "color": "blue",
+          "name": "backend",
+          "token": "GO4D1fHorfTdkPMuLkHWMA"
+        }
+      ],
+      "number": 1,
+      "position": 0,
+      "title": "Speed up the API",
+      "token": "J5O77Z-yMDZ9Zz7CbG9LLg",
+      "updatedAt": "2026-11-05T12:00:00Z",
+      "urgency": "none"
+    }
+  ]
+}

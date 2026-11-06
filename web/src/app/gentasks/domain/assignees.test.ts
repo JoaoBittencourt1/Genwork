@@ -32,8 +32,8 @@ describe('assignTask', () => {
   })
 })
 
-const ana: DirectoryUser = { token: 'user-ana', name: 'Ana', email: 'ana@example.com', avatarColor: 'blue' }
-const carla: DirectoryUser = { token: 'user-carla', name: 'Carla', email: 'carla@example.com', avatarColor: 'light-green' }
+const ana: DirectoryUser = { token: 'user-ana', kind: 'human', name: 'Ana', email: 'ana@example.com', avatarColor: 'blue' }
+const carla: DirectoryUser = { token: 'user-carla', kind: 'human', name: 'Carla', email: 'carla@example.com', avatarColor: 'light-green' }
 
 describe('canAssignFromCard', () => {
   it('needs the permission to write tasks and the directory of users', () => {
@@ -161,9 +161,9 @@ describe('summarizeBoardProgress', () => {
 
   it('assigns distinct chart colors even when team members share the same avatarColor', () => {
     const sameAvatarUsers: DirectoryUser[] = [
-      { token: 'user-1', name: 'Alice', email: 'alice@example.com', avatarColor: 'blue' },
-      { token: 'user-2', name: 'Bob', email: 'bob@example.com', avatarColor: 'blue' },
-      { token: 'user-3', name: 'Carol', email: 'carol@example.com', avatarColor: 'blue' },
+      { token: 'user-1', kind: 'human', name: 'Alice', email: 'alice@example.com', avatarColor: 'blue' },
+      { token: 'user-2', kind: 'human', name: 'Bob', email: 'bob@example.com', avatarColor: 'blue' },
+      { token: 'user-3', kind: 'human', name: 'Carol', email: 'carol@example.com', avatarColor: 'blue' },
     ]
 
     const progress = summarizeBoardProgress(boardViewFixture(), sameAvatarUsers)

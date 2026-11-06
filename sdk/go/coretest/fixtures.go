@@ -13,6 +13,10 @@ var fixtures embed.FS
 var FixtureNames = []string{
 	"jwks.json",
 	"directory_user.json",
+	"directory_bot_user.json",
+	"bot_member_created.json",
+	"bot_access_token.json",
+	"delegated_session.json",
 	"user_not_found.json",
 	"capabilities.json",
 	"registered_module.json",

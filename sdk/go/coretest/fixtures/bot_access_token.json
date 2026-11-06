@@ -1,0 +1,6 @@
+{
+  "access_token": "eyJhbGciOiJFZERTQSIsImtpZCI6InRlc3QifQ.e30.c2ln",
+  "token_type": "Bearer",
+  "expires_in": 900,
+  "scope": "genwork"
+}

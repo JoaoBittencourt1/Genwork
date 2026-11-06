@@ -13,6 +13,7 @@ type BoardGithubSettingsResponse struct {
 	ReviewRequestedColumnToken *string  `json:"reviewRequestedColumnToken"`
 	MergedColumnToken          *string  `json:"mergedColumnToken"`
 	FinalBranches              []string `json:"finalBranches"`
+	Repository                 *string  `json:"repository"`
 }
 
 func NewBoardGithubSettingsResponse(settings BoardGithubSettings) BoardGithubSettingsResponse {
@@ -21,6 +22,7 @@ func NewBoardGithubSettingsResponse(settings BoardGithubSettings) BoardGithubSet
 		ReviewRequestedColumnToken: mappedColumnToken(settings.ReviewRequested),
 		MergedColumnToken:          mappedColumnToken(settings.Merged),
 		FinalBranches:              settings.FinalBranches,
+		Repository:                 settings.Repository,
 	}
 }
 

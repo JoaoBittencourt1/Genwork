@@ -245,7 +245,7 @@ func TestToolsetsCoverCoreAndEveryModule(t *testing.T) {
 	for _, set := range command.Toolsets(nil) {
 		modules = append(modules, set.ModuleID)
 	}
-	if !slices.Equal(modules, []string{"", "gentasks"}) {
+	if !slices.Equal(modules, []string{"", "gentasks", "genmonitor", "genagents"}) {
 		t.Fatalf("modules = %v", modules)
 	}
 }

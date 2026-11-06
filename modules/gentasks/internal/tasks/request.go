@@ -120,7 +120,7 @@ func (request UpdateTaskRequest) Validate() (TaskChanges, error) {
 }
 
 // ApplyTo returns the task with the changes made at the given time; only a new assignee restarts the assignment time.
-func (changes TaskChanges) ApplyTo(task Task, at time.Time) Task {
+func (changes TaskChanges) ApplyTo(task Task, at time.Time, assigneeKind AssigneeKind) Task {
 	if changes.Title != nil {
 		task.Title = *changes.Title
 	}
@@ -130,6 +130,7 @@ func (changes TaskChanges) ApplyTo(task Task, at time.Time) Task {
 	if changes.AssigneeToken != nil {
 		task.AssignedAt = assignmentTime(task, changes.AssigneeToken.Value, at)
 		task.AssigneeUserToken = changes.AssigneeToken.Value
+		task.AssigneeKind = assigneeKind
 	}
 	if changes.Urgency != nil {
 		task.Urgency = *changes.Urgency

@@ -8,6 +8,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/boardview"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/githubsync"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/labels"
+	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/taskcontext"
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/tasks"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -52,6 +53,7 @@ func New(dependencies Dependencies) (http.Handler, error) {
 	labels.NewLabelHandler(labels.NewLabelService(dependencies.DB, dependencies.Now)).Register(router)
 	taskService := tasks.NewTaskService(dependencies.DB, dependencies.UserDirectory, dependencies.Now)
 	tasks.NewTaskHandler(taskService).Register(router)
+	taskcontext.NewTaskContextHandler(taskcontext.NewTaskContextService(dependencies.DB), dependencies.Github.WebURL).Register(router)
 	githubsync.NewGithubConnectionHandler(githubConnections).Register(router)
 	githubsync.NewGithubWebhookHandler(githubConnections, githubsync.NewPullRequestSyncService(dependencies.DB, taskService, dependencies.Now)).Register(router)
 	githubsync.NewBoardGithubSettingsHandler(githubsync.NewBoardGithubSettingsService(dependencies.DB, dependencies.Now)).Register(router)

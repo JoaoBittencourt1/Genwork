@@ -92,6 +92,8 @@ Tool names start with the component that owns them. Tools that change data are a
 | --- | --- |
 | core | `get_me`, `get_capabilities`, `list_users`, `get_user`, `list_roles`, `list_invites`, `create_invite`, `resend_invite`, `revoke_invite`, `list_sessions`, `revoke_session` |
 | gentasks | `list_boards`, `get_board`, `create_board`, `update_board`, `delete_board`, `add_column`, `update_column`, `move_column`, `delete_column`, `list_labels`, `create_label`, `update_label`, `delete_label`, `list_tasks`, `list_my_assigned_tasks`, `get_task`, `create_task`, `update_task`, `move_task`, `archive_task`, `unarchive_task`, `delete_task` |
+| genmonitor | `get_host` |
+| genagents | `list_bots`, `list_runs`, `read_task_conversation`, `post_task_message`, `request_bot_review` |
 
 Installing and enabling modules stays with the installer CLI (rule 64). It is not exposed as tools.
 
@@ -109,5 +111,5 @@ Create `internal/<module>/` with a `NewToolset(api)` whose `ModuleID` matches th
 | `internal/auth/` | sign-in, refresh rotation, secure store, refresh lock |
 | `internal/platform/` | configuration and the HTTP client of the gateway |
 | `internal/toolset/` | tool definitions and the synchronizer that follows capabilities and permissions |
-| `internal/core/`, `internal/gentasks/` | the tools of each component |
+| `internal/core/`, `internal/gentasks/`, `internal/genmonitor/`, `internal/genagents/` | the tools of each component |
 | `tests/` | tests, mirroring `internal/` (rule 71); no test reaches the network (rule 25) |

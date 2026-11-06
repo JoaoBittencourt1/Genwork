@@ -1,6 +1,7 @@
 package githubsync
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"unicode"
@@ -16,13 +17,23 @@ const (
 	fieldReviewColumn   = "reviewRequestedColumnToken"
 	fieldMergedColumn   = "mergedColumnToken"
 	fieldFinalBranches  = "finalBranches"
+	fieldRepository     = "repository"
 )
+
+var repositoryPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
 
 type UpdateBoardGithubSettingsRequest struct {
 	OpenedColumnToken          httpapi.PatchField[string]   `json:"openedColumnToken"`
 	ReviewRequestedColumnToken httpapi.PatchField[string]   `json:"reviewRequestedColumnToken"`
 	MergedColumnToken          httpapi.PatchField[string]   `json:"mergedColumnToken"`
 	FinalBranches              httpapi.PatchField[[]string] `json:"finalBranches"`
+	Repository                 httpapi.PatchField[string]   `json:"repository"`
+}
+
+// RepositoryChange keeps rule 17's semantics: absent leaves the repository, a nil Name clears it.
+type RepositoryChange struct {
+	Present bool
+	Name    *string
 }
 
 // ColumnMappingChange keeps rule 17's semantics: absent leaves the mapping, a nil Token clears it ("do not move").
@@ -36,6 +47,7 @@ type BoardGithubSettingsChanges struct {
 	ReviewRequested ColumnMappingChange
 	Merged          ColumnMappingChange
 	FinalBranches   []string
+	Repository      RepositoryChange
 }
 
 func (request UpdateBoardGithubSettingsRequest) Validate() (BoardGithubSettingsChanges, error) {
@@ -43,6 +55,13 @@ func (request UpdateBoardGithubSettingsRequest) Validate() (BoardGithubSettingsC
 		Opened:          columnMappingChangeFrom(request.OpenedColumnToken),
 		ReviewRequested: columnMappingChangeFrom(request.ReviewRequestedColumnToken),
 		Merged:          columnMappingChangeFrom(request.MergedColumnToken),
+	}
+	if request.Repository.Present {
+		repository, valid := normalizeRepository(request.Repository)
+		if !valid {
+			return BoardGithubSettingsChanges{}, httpapi.NewValidationError(map[string]string{fieldRepository: "invalid"})
+		}
+		changes.Repository = repository
 	}
 	if request.FinalBranches.Present {
 		branches, valid := normalizeFinalBranches(request.FinalBranches.Value)
@@ -55,7 +74,7 @@ func (request UpdateBoardGithubSettingsRequest) Validate() (BoardGithubSettingsC
 }
 
 func (changes BoardGithubSettingsChanges) IsEmpty() bool {
-	return !changes.Opened.Present && !changes.ReviewRequested.Present && !changes.Merged.Present && changes.FinalBranches == nil
+	return !changes.Opened.Present && !changes.ReviewRequested.Present && !changes.Merged.Present && changes.FinalBranches == nil && !changes.Repository.Present
 }
 
 func columnMappingChangeFrom(field httpapi.PatchField[string]) ColumnMappingChange {
@@ -86,4 +105,12 @@ func normalizeFinalBranches(submitted []string) ([]string, bool) {
 
 func isValidBranchName(branch string) bool {
 	return branch != "" && utf8.RuneCountInString(branch) <= maxBranchNameLength && !strings.ContainsFunc(branch, unicode.IsSpace)
+}
+
+func normalizeRepository(field httpapi.PatchField[string]) (RepositoryChange, bool) {
+	if !field.HasValue() {
+		return RepositoryChange{Present: true}, true
+	}
+	name := strings.TrimSpace(field.Value)
+	return RepositoryChange{Present: true, Name: &name}, repositoryPattern.MatchString(name)
 }

@@ -15,6 +15,7 @@ type boardGithubSettingsBody struct {
 	ReviewRequestedColumnToken *string  `json:"reviewRequestedColumnToken"`
 	MergedColumnToken          *string  `json:"mergedColumnToken"`
 	FinalBranches              []string `json:"finalBranches"`
+	Repository                 *string  `json:"repository"`
 }
 
 func githubSettingsPath(boardToken string) string {

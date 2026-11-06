@@ -7,6 +7,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/core/internal/access"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/auth"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/capabilities"
+	"github.com/JoaoBittencourt1/Genwork/core/internal/delegatedsessions"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/discovery"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/invites"
 	"github.com/JoaoBittencourt1/Genwork/core/internal/mail"
@@ -28,6 +29,7 @@ type RateLimits struct {
 	PasswordReset      platform.RateLimit
 	ClientRegistration platform.RateLimit
 	OAuthToken         platform.RateLimit
+	BotToken           platform.RateLimit
 }
 
 var DefaultRateLimits = RateLimits{
@@ -37,6 +39,7 @@ var DefaultRateLimits = RateLimits{
 	PasswordReset:      platform.RateLimit{PerMinute: 5, Burst: 5},
 	ClientRegistration: platform.RateLimit{PerMinute: 10, Burst: 10},
 	OAuthToken:         platform.RateLimit{PerMinute: 60, Burst: 30},
+	BotToken:           platform.RateLimit{PerMinute: 60, Burst: 30},
 }
 
 const maxConcurrentPasswordHashes = 4
@@ -85,6 +88,8 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	moduleService := modules.NewModuleService(db, discovery.CoreAPIVersion, now)
 	memberService := members.NewMemberService(db, accessService, now)
 
+	botMemberService := members.NewBotMemberService(db, accessService, memberService, now)
+
 	limitBy := func(limit platform.RateLimit) auth.Middleware {
 		limiter := platform.NewRateLimiter(limit, now)
 		return func(next http.Handler) http.Handler {
@@ -104,13 +109,15 @@ func New(settings Settings, dependencies Dependencies) http.Handler {
 	users.NewHandler(db, userService, accessService).Register(router)
 	access.NewHandler(accessService).Register(router)
 	members.NewMemberHandler(memberService).Register(router)
+	members.NewBotMemberHandler(botMemberService).Register(router)
+	delegatedsessions.NewDelegatedSessionHandler(delegatedsessions.NewDelegatedSessionService(db, authService)).Register(router)
 	invites.NewHandler(inviteService, limitBy(settings.RateLimits.Invitations), now).Register(router)
 	passwordreset.NewHandler(passwordResetService, limitBy(settings.RateLimits.PasswordReset)).Register(router)
 	modules.NewModuleHandler(moduleService).Register(router)
 	capabilities.NewCapabilitiesHandler(moduleService, accessService, settings.Version, discovery.CoreAPIVersion).Register(router)
 	updates.NewUpdateHandler(updates.NewUpdateService(updates.NewHTTPUpdaterClient(settings.UpdaterURL, settings.UpdaterSecret))).Register(router)
-	oauthService := oauth.NewOAuthService(db, authService, sessionService, oauth.OAuthServiceSettings{PublicURL: settings.PublicURL}, now)
-	oauth.NewOAuthHandler(oauthService, settings.PublicURL, limitBy(settings.RateLimits.ClientRegistration), limitBy(settings.RateLimits.OAuthToken), now).
+	oauthService := oauth.NewOAuthService(db, authService, sessionService, settings.RateLimits.BotToken, oauth.OAuthServiceSettings{PublicURL: settings.PublicURL}, now)
+	oauth.NewOAuthHandler(oauthService, settings.PublicURL, limitBy(settings.RateLimits.ClientRegistration), limitBy(settings.RateLimits.OAuthToken), settings.TrustedProxies, now).
 		Register(router)
 	return router
 }

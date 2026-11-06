@@ -8,6 +8,8 @@ type Principal struct {
 	RoleID       int64
 	SessionID    int64
 	SessionToken string
+	// ClientType is the kind of session the request came in on ("web", "native", "oauth", "bot", "delegated").
+	ClientType string
 }
 
 type principalContextKey struct{}

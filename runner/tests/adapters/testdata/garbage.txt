@@ -1,0 +1,3 @@
+Segmentation fault (core dumped)
+
+not json at all

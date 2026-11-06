@@ -98,7 +98,11 @@ The first `genwork up`, `db`, `api`, or `web` creates `deploy/.env` (with a new 
 | Mailpit (captured e-mails) | http://localhost:8486 |
 | Postgres | localhost:5484 |
 
-Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, cli, mcp, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
+Lint, tests, and builds run through `make lint`, `make test`, and `make build`. `make test` also enforces at least 75% coverage per component (core, sdk, modules, runner, cli, mcp, web), and CI runs the same targets. Core tests need a database: `TEST_DATABASE_URL=postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable make test` with `genwork db` running.
+
+## AI bots
+
+The `genagents` module lets admins link AI accounts (Anthropic, OpenAI, Cursor, xAI), create bots, assign them tasks, ask them to review pull requests, and chat with an AI that acts as the admin. Bots run on a **runner**, a process on a machine you control, always inside a disposable sandbox container. Read [runner/README.md](runner/README.md) to install one.
 
 ## Integrations
 

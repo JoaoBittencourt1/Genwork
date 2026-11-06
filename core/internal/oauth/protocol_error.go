@@ -22,7 +22,8 @@ func newProtocolError(code, description string) *ProtocolError {
 
 var (
 	errInvalidGrant         = newProtocolError("invalid_grant", "the grant is invalid, expired, or was issued to another client")
-	errUnsupportedGrantType = newProtocolError("unsupported_grant_type", "only authorization_code and refresh_token are supported")
+	errUnsupportedGrantType = newProtocolError("unsupported_grant_type", "only authorization_code, refresh_token, and client_credentials are supported")
+	errInvalidBotClient     = &ProtocolError{Status: http.StatusUnauthorized, Code: "invalid_client", Description: "the client credentials are invalid"}
 	errUnknownClient        = newProtocolError("invalid_client", "unknown client_id")
 )
 

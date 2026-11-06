@@ -92,6 +92,9 @@ func (service *BoardGithubSettingsService) applyChanges(ctx context.Context, tx 
 	if changes.FinalBranches != nil {
 		settings.FinalBranches = changes.FinalBranches
 	}
+	if changes.Repository.Present {
+		settings.Repository = changes.Repository.Name
+	}
 	return settings, nil
 }
 

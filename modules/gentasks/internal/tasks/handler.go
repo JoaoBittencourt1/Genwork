@@ -18,6 +18,7 @@ type TaskResponse struct {
 	Title         string                 `json:"title"`
 	Description   *string                `json:"description"`
 	AssigneeToken *string                `json:"assigneeToken"`
+	AssigneeKind  *AssigneeKind          `json:"assigneeKind"`
 	Urgency       Urgency                `json:"urgency"`
 	Labels        []labels.LabelResponse `json:"labels"`
 	CreatedBy     string                 `json:"createdBy"`
@@ -32,6 +33,10 @@ type TaskListResponse struct {
 }
 
 func NewTaskResponse(task TaskWithLabels) TaskResponse {
+	var assigneeKind *AssigneeKind
+	if task.AssigneeUserToken != nil {
+		assigneeKind = &task.AssigneeKind
+	}
 	return TaskResponse{
 		Token:         task.Token,
 		Number:        task.Number,
@@ -40,6 +45,7 @@ func NewTaskResponse(task TaskWithLabels) TaskResponse {
 		Title:         task.Title,
 		Description:   task.Description,
 		AssigneeToken: task.AssigneeUserToken,
+		AssigneeKind:  assigneeKind,
 		Urgency:       task.Urgency,
 		Labels:        labels.NewLabelResponses(task.Labels),
 		CreatedBy:     task.CreatedBy,

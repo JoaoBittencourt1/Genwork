@@ -46,7 +46,8 @@ func (service *TaskService) CreateTask(ctx context.Context, caller Caller, board
 	if err != nil {
 		return TaskWithLabels{}, err
 	}
-	if err := service.verifyAssignee(ctx, caller, input.AssigneeToken); err != nil {
+	assigneeKind, err := service.verifyAssignee(ctx, caller, input.AssigneeToken)
+	if err != nil {
 		return TaskWithLabels{}, err
 	}
 	var created TaskWithLabels
@@ -73,7 +74,7 @@ func (service *TaskService) CreateTask(ctx context.Context, caller Caller, board
 		now := service.now()
 		task, err := service.tasks.Create(ctx, tx, NewTask{
 			BoardID: board.ID, Number: number, ColumnID: column.ID, Title: input.Title, Description: input.Description,
-			AssigneeUserToken: input.AssigneeToken, AssignedAt: assignmentTime(Task{}, input.AssigneeToken, now),
+			AssigneeUserToken: input.AssigneeToken, AssigneeKind: assigneeKind, AssignedAt: assignmentTime(Task{}, input.AssigneeToken, now),
 			Urgency: input.Urgency, Position: position, CreatedBy: caller.UserToken, At: now,
 		})
 		if err != nil {
@@ -133,11 +134,12 @@ func (service *TaskService) ListAssignedTasks(ctx context.Context, caller Caller
 }
 
 func (service *TaskService) UpdateTask(ctx context.Context, caller Caller, token string, changes TaskChanges) (TaskWithLabels, error) {
-	if err := service.verifyAssignee(ctx, caller, changes.NewAssigneeToken()); err != nil {
+	assigneeKind, err := service.verifyAssignee(ctx, caller, changes.NewAssigneeToken())
+	if err != nil {
 		return TaskWithLabels{}, err
 	}
 	var updated TaskWithLabels
-	err := service.withLockedTask(ctx, token, func(tx pgx.Tx, task Task) error {
+	err = service.withLockedTask(ctx, token, func(tx pgx.Tx, task Task) error {
 		if changes.ReplacesLabels {
 			boardLabels, err := service.findBoardLabels(ctx, tx, task.BoardID, changes.LabelTokens)
 			if err != nil {
@@ -148,7 +150,7 @@ func (service *TaskService) UpdateTask(ctx context.Context, caller Caller, token
 			}
 		}
 		now := service.now()
-		if err := service.tasks.UpdateDetails(ctx, tx, changes.ApplyTo(task, now), now); err != nil {
+		if err := service.tasks.UpdateDetails(ctx, tx, changes.ApplyTo(task, now, assigneeKind), now); err != nil {
 			return err
 		}
 		var err error
@@ -319,20 +321,21 @@ func (service *TaskService) findBoardLabels(ctx context.Context, tx pgx.Tx, boar
 	return found, nil
 }
 
-func (service *TaskService) verifyAssignee(ctx context.Context, caller Caller, assigneeToken *string) error {
+// verifyAssignee confirms the assignee in core's directory and returns whether it is a person or a bot member.
+func (service *TaskService) verifyAssignee(ctx context.Context, caller Caller, assigneeToken *string) (AssigneeKind, error) {
 	if assigneeToken == nil {
-		return nil
+		return AssigneeKindHuman, nil
 	}
-	_, err := service.userDirectory.FindUser(ctx, caller.AccessToken, *assigneeToken)
+	assignee, err := service.userDirectory.FindUser(ctx, caller.AccessToken, *assigneeToken)
 	switch {
 	case err == nil:
-		return nil
+		return ParseAssigneeKind(assignee.Kind), nil
 	case errors.Is(err, coreclient.ErrUserNotFound):
-		return httpapi.NewValidationError(map[string]string{"assigneeToken": "unknown"})
+		return "", httpapi.NewValidationError(map[string]string{"assigneeToken": "unknown"})
 	case errors.Is(err, coreclient.ErrDirectoryForbidden):
-		return httpapi.ErrForbidden
+		return "", httpapi.ErrForbidden
 	default:
-		return ErrCoreUnavailable
+		return "", ErrCoreUnavailable
 	}
 }
 

@@ -16,11 +16,11 @@ define check_go_coverage
 		'/^total:/ { sub("%", "", $$NF); printf "%s coverage: %.1f%% (minimum %d%%)\n", name, $$NF, min; if ($$NF + 0 < min) { print name " is below the minimum coverage"; exit 1 } }'
 endef
 
-.PHONY: lint lint-core lint-sdk lint-gentasks lint-genmonitor lint-cli lint-mcp lint-web lint-fix test test-core test-sdk test-gentasks test-genmonitor test-cli test-mcp test-web \
-	build build-core build-gentasks build-genmonitor build-cli build-mcp build-web install-cli install-mcp \
+.PHONY: lint lint-core lint-sdk lint-gentasks lint-genagents lint-genmonitor lint-runner lint-cli lint-mcp lint-web lint-fix test test-core test-sdk test-gentasks test-genagents test-genmonitor test-runner test-cli test-mcp test-web \
+	build build-core build-gentasks build-genagents build-genmonitor build-runner build-sandbox build-cli build-mcp build-web install-cli install-mcp \
 	check-release-tag release-images release-artifacts
 
-lint: lint-core lint-sdk lint-gentasks lint-genmonitor lint-cli lint-mcp lint-web
+lint: lint-core lint-sdk lint-gentasks lint-genagents lint-genmonitor lint-runner lint-runner lint-cli lint-mcp lint-web
 
 lint-core:
 	@unformatted="$$(cd core && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
@@ -34,9 +34,17 @@ lint-gentasks:
 	@unformatted="$$(cd modules/gentasks && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
 	cd modules/gentasks && go vet ./...
 
+lint-genagents:
+	@unformatted="$$(cd modules/genagents && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	cd modules/genagents && go vet ./...
+
 lint-genmonitor:
 	@unformatted="$$(cd modules/genmonitor && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
 	cd modules/genmonitor && go vet ./...
+
+lint-runner:
+	@unformatted="$$(cd runner && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
+	cd runner && go vet ./...
 
 lint-cli:
 	@unformatted="$$(cd cli && gofmt -l .)"; if [ -n "$$unformatted" ]; then echo "gofmt needed:"; echo "$$unformatted"; exit 1; fi
@@ -53,12 +61,14 @@ lint-fix:
 	cd core && gofmt -w .
 	cd sdk/go && gofmt -w .
 	cd modules/gentasks && gofmt -w .
+	cd modules/genagents && gofmt -w .
 	cd modules/genmonitor && gofmt -w .
+	cd runner && gofmt -w .
 	cd cli && gofmt -w .
 	cd mcp && gofmt -w .
 	cd web && npm run lint:fix
 
-test: test-core test-sdk test-gentasks test-genmonitor test-cli test-mcp test-web
+test: test-core test-sdk test-gentasks test-genagents test-genmonitor test-runner test-runner test-cli test-mcp test-web
 
 # Needs TEST_DATABASE_URL, e.g. postgres://genwork:change-me@localhost:5484/genwork?sslmode=disable with `genwork db` running.
 test-core:
@@ -74,9 +84,19 @@ test-gentasks:
 	cd modules/gentasks && go test -coverpkg=./... -coverprofile=coverage.out ./...
 	$(call check_go_coverage,modules/gentasks)
 
+# Needs TEST_DATABASE_URL, like test-core.
+test-genagents:
+	cd modules/genagents && go test -coverpkg=./... -coverprofile=coverage.out ./...
+	$(call check_go_coverage,modules/genagents)
+
 test-genmonitor:
 	cd modules/genmonitor && go test -coverpkg=./... -coverprofile=coverage.out ./...
 	$(call check_go_coverage,modules/genmonitor)
+
+# The runner's tests need git; they run no container engine (rule 25).
+test-runner:
+	cd runner && go test -coverpkg=./... -coverprofile=coverage.out ./...
+	$(call check_go_coverage,runner)
 
 test-cli:
 	cd cli && go test -coverpkg=./... -coverprofile=coverage.out ./...
@@ -89,7 +109,7 @@ test-mcp:
 test-web:
 	cd web && npm run test:coverage -- --coverage.thresholds.lines=$(MIN_COVERAGE) --coverage.thresholds.statements=$(MIN_COVERAGE)
 
-build: build-core build-gentasks build-genmonitor build-cli build-mcp build-web
+build: build-core build-gentasks build-genagents build-genmonitor build-runner build-sandbox build-runner build-sandbox build-cli build-mcp build-web
 
 build-core:
 	cd core && go build $(call version_ldflags,core/internal/command) -o bin/ ./cmd/...
@@ -97,8 +117,20 @@ build-core:
 build-gentasks:
 	cd modules/gentasks && go build $(call version_ldflags,modules/gentasks/internal/command) -o bin/ ./cmd/...
 
+build-genagents:
+	cd modules/genagents && go build $(call version_ldflags,modules/genagents/internal/command) -o bin/ ./cmd/...
+
 build-genmonitor:
 	cd modules/genmonitor && go build $(call version_ldflags,modules/genmonitor/internal/command) -o bin/ ./cmd/...
+
+build-runner:
+	cd runner && go build $(call version_ldflags,runner/internal/command) -o bin/genwork-runner ./cmd/genwork-runner
+
+# Builds the sandbox image for the local engine; the release publishes it (make release-images). A machine without
+# Docker cannot build it, and says so.
+build-sandbox:
+	@command -v docker >/dev/null || { echo "docker is required to build the sandbox image (runner/sandbox/Dockerfile)"; exit 1; }
+	docker build --build-arg VERSION=$(VERSION) -t genwork-sandbox:$(VERSION) -f runner/sandbox/Dockerfile runner/sandbox
 
 build-cli:
 	cd cli && go build $(call version_ldflags,cli/internal/commands) -o bin/genwork ./cmd/genwork
@@ -126,6 +158,7 @@ RELEASE_PLATFORMS ?= linux/amd64,linux/arm64
 # --push publishes; a local check of one platform uses RELEASE_PLATFORMS=linux/amd64 RELEASE_OUTPUT=--load.
 RELEASE_OUTPUT ?= --push
 CLI_RELEASE_TARGETS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+RUNNER_RELEASE_TARGETS := $(CLI_RELEASE_TARGETS)
 MCP_RELEASE_TARGETS := $(CLI_RELEASE_TARGETS) windows/amd64 windows/arm64
 
 # usage: $(call release_image,<image name>,<build context>,<Dockerfile>)
@@ -156,12 +189,14 @@ release-images:
 	$(call release_image,gateway,.,deploy/gateway/Dockerfile)
 	$(call release_image,mcp,.,mcp/Dockerfile)
 	$(call release_image,updater,.,deploy/updater/Dockerfile)
+	$(call release_image,sandbox,runner/sandbox,Dockerfile)
 
 # install.sh takes the release repository from GITHUB_SERVER_URL and GITHUB_REPOSITORY, which GitHub Actions sets.
 release-artifacts:
 	rm -rf $(RELEASE_DIST) && mkdir -p $(RELEASE_DIST)
 	$(call release_binaries,cli,genwork,cli/internal/commands,$(CLI_RELEASE_TARGETS))
 	$(call release_binaries,mcp,genwork-mcp,mcp/internal/command,$(MCP_RELEASE_TARGETS))
+	$(call release_binaries,runner,genwork-runner,runner/internal/command,$(RUNNER_RELEASE_TARGETS))
 	cd cli && go run ./cmd/genwork-release bundle $(CURDIR) $(RELEASE_DIST)
 	cd cli && go run ./cmd/genwork-release install-script $(CURDIR) $(RELEASE_DIST)
 	cd $(RELEASE_DIST) && shasum -a 256 *.tar.gz *.zip install.sh > checksums.txt

@@ -1,0 +1,26 @@
+id: genagents
+core: ">=1.1.0 <2.0.0"
+apiPrefix: /api/genagents/v1
+requires: []
+permissions:
+  - name: genagents.account.manage
+    defaultRoles: [admin]
+  - name: genagents.bot.read
+    defaultRoles: [admin, member]
+  - name: genagents.bot.manage
+    defaultRoles: [admin]
+  - name: genagents.skill.manage
+    defaultRoles: [admin]
+  - name: genagents.mcpserver.manage
+    defaultRoles: [admin]
+  - name: genagents.runner.manage
+    defaultRoles: [admin]
+  - name: genagents.run.read
+    defaultRoles: [admin, member]
+  - name: genagents.run.write
+    defaultRoles: [admin, member]
+  - name: genagents.adminchat.use
+    defaultRoles: [admin]
+events:
+  publishes: []
+  consumes: []

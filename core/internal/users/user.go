@@ -30,6 +30,13 @@ var AvatarColors = []AvatarColor{
 	AvatarColorRed, AvatarColorYellow, AvatarColorWhite, AvatarColorOrange,
 }
 
+type MemberKind string
+
+const (
+	MemberKindHuman MemberKind = "human"
+	MemberKindBot   MemberKind = "bot"
+)
+
 var (
 	ErrEmailAlreadyRegistered = platform.NewAPIError(http.StatusConflict, "email_already_registered")
 	ErrDirectoryUserNotFound  = platform.NewAPIError(http.StatusNotFound, "user_not_found")
@@ -38,6 +45,7 @@ var (
 type User struct {
 	ID               int64
 	Token            string
+	Kind             MemberKind
 	Email            string
 	Name             string
 	PasswordHash     string
@@ -51,6 +59,10 @@ type User struct {
 
 func (user User) IsLockedAt(now time.Time) bool {
 	return user.LockedUntil != nil && now.Before(*user.LockedUntil)
+}
+
+func (user User) IsBot() bool {
+	return user.Kind == MemberKindBot
 }
 
 func (user User) IsDeactivated() bool {

@@ -104,6 +104,12 @@ func TestCoreResponsesMatchSDKContractFixtures(t *testing.T) {
 	app := newTestApp(t)
 	ana := app.createUser("ana@example.com", "Ana", "member")
 	signIn := app.loginNative("ana@example.com")
+	app.createUser("root@example.com", "Root", "admin")
+	admin := app.loginNative("root@example.com")
+	bot := app.createBot(admin.AccessToken, "Dev Bot", "member")
+	createdBot := app.do(request{method: "POST", path: "/api/core/v1/bots", accessToken: admin.AccessToken, body: map[string]any{
+		"name": "Other Bot", "role": app.roleToken("member"),
+	}})
 	incompatible := gentasksManifest()
 	incompatible.Core = ">=2.0.0"
 
@@ -112,6 +118,10 @@ func TestCoreResponsesMatchSDKContractFixtures(t *testing.T) {
 		"incompatible_core_version.json": app.registerModule(incompatible),
 		"jwks.json":                      app.do(request{method: "GET", path: "/api/core/v1/auth/jwks"}),
 		"directory_user.json":            app.do(request{method: "GET", path: "/api/core/v1/users/" + ana.Token, accessToken: signIn.AccessToken}),
+		"directory_bot_user.json":        app.do(request{method: "GET", path: "/api/core/v1/users/" + bot.Token, accessToken: signIn.AccessToken}),
+		"bot_member_created.json":        createdBot,
+		"bot_access_token.json":          app.botToken(bot.Token, bot.ClientSecret),
+		"delegated_session.json":         app.grantDelegatedSession(admin.AccessToken, "gentasks", "Admin chat"),
 		"user_not_found.json":            app.do(request{method: "GET", path: "/api/core/v1/users/unknown", accessToken: signIn.AccessToken}),
 		"capabilities.json":              app.do(request{method: "GET", path: "/api/core/v1/capabilities", accessToken: signIn.AccessToken}),
 	}

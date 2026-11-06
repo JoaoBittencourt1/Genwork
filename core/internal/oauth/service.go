@@ -20,18 +20,24 @@ type OAuthServiceSettings struct {
 }
 
 type OAuthService struct {
-	db       *pgxpool.Pool
-	auth     *auth.Service
-	sessions *sessions.Service
-	clients  OAuthClientRepository
-	codes    AuthorizationCodeRepository
-	users    users.Repository
-	settings OAuthServiceSettings
-	now      func() time.Time
+	botLimiter *platform.RateLimiter
+	botSecrets users.BotCredentialRepository
+	db         *pgxpool.Pool
+	auth       *auth.Service
+	sessions   *sessions.Service
+	clients    OAuthClientRepository
+	codes      AuthorizationCodeRepository
+	users      users.Repository
+	settings   OAuthServiceSettings
+	now        func() time.Time
 }
 
-func NewOAuthService(db *pgxpool.Pool, authService *auth.Service, sessionService *sessions.Service, settings OAuthServiceSettings, now func() time.Time) *OAuthService {
-	return &OAuthService{db: db, auth: authService, sessions: sessionService, settings: settings, now: now}
+// botTokenLimit is the rate limit of client-credentials token requests per client address and bot.
+func NewOAuthService(db *pgxpool.Pool, authService *auth.Service, sessionService *sessions.Service, botTokenLimit platform.RateLimit, settings OAuthServiceSettings, now func() time.Time) *OAuthService {
+	return &OAuthService{
+		db: db, auth: authService, sessions: sessionService, settings: settings, now: now,
+		botLimiter: platform.NewRateLimiter(botTokenLimit, now),
+	}
 }
 
 func (service *OAuthService) MCPResource() string {
@@ -175,4 +181,38 @@ func (service *OAuthService) findTokenClient(ctx context.Context, clientID strin
 		return OAuthClient{}, errUnknownClient
 	}
 	return client, err
+}
+
+// dummyBotSecretHash keeps unknown and deactivated bots as slow to refuse as a wrong secret (rule 68).
+var dummyBotSecretHash = users.HashBotSecret("unknown bot")
+
+// IssueBotToken answers the client_credentials grant. Unknown bot, deactivated bot, and wrong secret are the same
+// refusal; the rate limit is the only distinguishable answer and applies per client address and bot token (rule 68).
+// The bot token is public (members list), so keying on it alone would let anyone lock a bot out of its own runs.
+func (service *OAuthService) IssueBotToken(ctx context.Context, clientAddress, botToken, secret string) (auth.SignIn, error) {
+	if allowed, _ := service.botLimiter.Allow(clientAddress + "|" + botToken); !allowed {
+		return auth.SignIn{}, platform.ErrRateLimited
+	}
+	credential, err := service.botSecrets.FindActiveByBotToken(ctx, service.db, botToken)
+	if errors.Is(err, users.ErrBotCredentialNotFound) {
+		credential = users.BotCredential{SecretHash: dummyBotSecretHash}
+		credential.Matches(secret)
+		return auth.SignIn{}, errInvalidBotClient
+	}
+	if err != nil {
+		return auth.SignIn{}, err
+	}
+	if !credential.Matches(secret) {
+		return auth.SignIn{}, errInvalidBotClient
+	}
+	bot, err := service.users.FindByID(ctx, service.db, credential.UserID)
+	if err != nil {
+		return auth.SignIn{}, err
+	}
+	var signIn auth.SignIn
+	err = pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
+		signIn, err = service.auth.StartBotSignIn(ctx, tx, bot.ID, bot.Name)
+		return err
+	})
+	return signIn, err
 }

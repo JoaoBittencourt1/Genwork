@@ -117,7 +117,9 @@ async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) {
     return undefined as T
   }
-  return (await response.json()) as T
+  // An accepted request, such as a message posted to a bot, answers 202 with no body.
+  const text = await response.text()
+  return (text === '' ? undefined : JSON.parse(text)) as T
 }
 
 async function readErrorCode(response: Response): Promise<string> {

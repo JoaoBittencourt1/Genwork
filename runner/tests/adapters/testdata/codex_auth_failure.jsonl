@@ -1,0 +1,3 @@
+{"type":"thread.started","thread_id":"codex-thread-2"}
+{"type":"error","message":"Incorrect API key provided: sk-bad"}
+{"type":"turn.failed","error":{"message":"Incorrect API key provided: sk-bad"}}

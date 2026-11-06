@@ -22,6 +22,7 @@ var (
 
 type DirectoryUser struct {
 	Token       string `json:"token"`
+	Kind        string `json:"kind"`
 	Name        string `json:"name"`
 	Email       string `json:"email"`
 	AvatarColor string `json:"avatarColor"`

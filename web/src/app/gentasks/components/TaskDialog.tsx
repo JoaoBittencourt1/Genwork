@@ -16,7 +16,7 @@ import {
 } from '@/shared/ui/dropdown-menu'
 import { FieldError } from '@/shared/ui/field'
 import { Input } from '@/shared/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/shared/ui/select'
 import { archiveTask, createTask, deleteTask, moveTask, updateTask } from '../datasource/tasksDatasource'
 import { resolveColumnTitle } from '../domain/columnName'
 import { toggleValue } from '../domain/filters'
@@ -37,6 +37,9 @@ import { taskIdentifier } from '../domain/taskPrefix'
 import { URGENCY_LEVELS, type BoardView, type Task, type TaskPullRequest, type Urgency } from '../domain/types'
 import { urgencyTranslationKey } from '../domain/urgency'
 import { AssigneeAvatar } from './AssigneeAvatar'
+import { useAssigneeGroups, useBotsGroupLabel } from './AssigneeOptions'
+import { BotConversationPanel } from './BotConversationPanel'
+import { BotReviewButton } from './BotReviewButton'
 import { ColumnStatusIcon } from './ColumnStatusIcon'
 import { LabelChip } from './LabelChip'
 import { PullRequestSummary } from './PullRequestSummary'
@@ -130,6 +133,7 @@ function TaskForm({ board, mode, users, abilities, onClose }: TaskDialogProps & 
             readOnly={readOnly}
             onChange={(description) => setDraft({ ...draft, description })}
           />
+          {mode.kind === 'edit' ? <BotConversationPanel taskToken={mode.task.token} users={users} /> : null}
         </div>
         <TaskProperties
           board={board}
@@ -138,6 +142,7 @@ function TaskForm({ board, mode, users, abilities, onClose }: TaskDialogProps & 
           readOnly={readOnly}
           assigneeError={assigneeError}
           pullRequests={mode.kind === 'edit' ? (findBoardTask(board, mode.task.token)?.pullRequests ?? []) : []}
+          taskToken={mode.kind === 'edit' ? mode.task.token : null}
           onChange={setDraft}
         />
       </div>
@@ -188,12 +193,15 @@ type TaskPropertiesProps = {
   readOnly: boolean
   assigneeError: string | undefined
   pullRequests: TaskPullRequest[]
+  taskToken: string | null
   onChange: (draft: TaskDraft) => void
 }
 
-function TaskProperties({ board, draft, users, readOnly, assigneeError, pullRequests, onChange }: TaskPropertiesProps) {
+function TaskProperties({ board, draft, users, readOnly, assigneeError, pullRequests, taskToken, onChange }: TaskPropertiesProps) {
   const { t } = useTranslation()
   const selectedLabels = board.labels.filter((label) => draft.labelTokens.includes(label.token))
+  const groups = useAssigneeGroups(users ?? [], draft.assigneeToken)
+  const botsLabel = useBotsGroupLabel()
 
   return (
     <aside className="flex flex-col gap-1 border-t bg-muted/30 p-4 md:border-t-0 md:border-l">
@@ -236,16 +244,31 @@ function TaskProperties({ board, draft, users, readOnly, assigneeError, pullRequ
               <AssigneeAvatar assignee={undefined} unassignedLabel={t('gentasks.task.unassigned')} />
               {t('gentasks.task.unassigned')}
             </SelectItem>
-            {(users ?? []).map((user) => (
+            {groups.people.map((user) => (
               <SelectItem key={user.token} value={user.token}>
                 <AssigneeAvatar assignee={user} unassignedLabel={t('gentasks.task.unassigned')} />
                 {user.name}
               </SelectItem>
             ))}
+            {groups.bots.length > 0 ? (
+              <>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>{botsLabel}</SelectLabel>
+                  {groups.bots.map((bot) => (
+                    <SelectItem key={bot.token} value={bot.token}>
+                      <AssigneeAvatar assignee={bot} unassignedLabel={t('gentasks.task.unassigned')} />
+                      {bot.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </>
+            ) : null}
           </SelectContent>
         </Select>
       </Property>
       {assigneeError ? <FieldError className="px-2">{assigneeError}</FieldError> : null}
+      {taskToken ? <BotReviewButton taskToken={taskToken} pullRequests={pullRequests} /> : null}
       <Property label={t('gentasks.task.labels')}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild disabled={readOnly || board.labels.length === 0}>

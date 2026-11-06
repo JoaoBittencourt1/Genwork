@@ -19,11 +19,12 @@ type OAuthHandler struct {
 	publicURL           string
 	registrationLimiter auth.Middleware
 	tokenLimiter        auth.Middleware
+	addresses           platform.ClientAddressResolver
 	now                 func() time.Time
 }
 
-func NewOAuthHandler(service *OAuthService, publicURL string, registrationLimiter, tokenLimiter auth.Middleware, now func() time.Time) *OAuthHandler {
-	return &OAuthHandler{service: service, publicURL: publicURL, registrationLimiter: registrationLimiter, tokenLimiter: tokenLimiter, now: now}
+func NewOAuthHandler(service *OAuthService, publicURL string, registrationLimiter, tokenLimiter auth.Middleware, addresses platform.ClientAddressResolver, now func() time.Time) *OAuthHandler {
+	return &OAuthHandler{service: service, publicURL: publicURL, registrationLimiter: registrationLimiter, tokenLimiter: tokenLimiter, addresses: addresses, now: now}
 }
 
 // Register declares each route's rule (rule 18): discovery, registration, and token are public because assistants call
@@ -97,9 +98,19 @@ func (handler *OAuthHandler) issueToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var signIn auth.SignIn
-	if request.GrantType == grantAuthorizationCode {
+	switch request.GrantType {
+	case grantAuthorizationCode:
 		signIn, err = handler.service.ExchangeCode(r.Context(), request)
-	} else {
+	case grantClientCredentials:
+		var found bool
+		request.ClientID, request.ClientSecret, found = r.BasicAuth()
+		if !found {
+			w.Header().Set("WWW-Authenticate", `Basic realm="genwork"`)
+			writeProtocolError(w, errInvalidBotClient)
+			return
+		}
+		signIn, err = handler.service.IssueBotToken(r.Context(), handler.addresses.Resolve(r).String(), request.ClientID, request.ClientSecret)
+	default:
 		signIn, err = handler.service.Refresh(r.Context(), request)
 	}
 	var protocolError *ProtocolError

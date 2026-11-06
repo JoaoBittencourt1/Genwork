@@ -15,6 +15,14 @@ x-gentasks-build: &gentasks-build
       VERSION: ${GENWORK_VERSION:?run compose through genwork}
   image: genwork-gentasks:dev
 
+x-genagents-build: &genagents-build
+  build:
+    context: ..
+    dockerfile: modules/genagents/Dockerfile
+    args:
+      VERSION: ${GENWORK_VERSION:?run compose through genwork}
+  image: genwork-genagents:dev
+
 x-genmonitor-build: &genmonitor-build
   build:
     context: ..
@@ -58,6 +66,10 @@ services:
   gentasks-migrate: *gentasks-build
 
   gentasks: *gentasks-build
+
+  genagents-migrate: *genagents-build
+
+  genagents: *genagents-build
 
   genmonitor-migrate: *genmonitor-build
 
