@@ -29,8 +29,8 @@ export function CopyableValue({ value, label, copyLabel, copiedMessage, multilin
   )
   if (multiline) {
     return (
-      <div className="flex flex-col gap-2">
-        <pre aria-label={label} className="overflow-x-auto rounded-md border bg-muted px-3 py-2 font-mono text-xs">
+      <div className="flex min-w-0 max-w-full flex-col gap-2">
+        <pre aria-label={label} className="max-w-full min-w-0 overflow-x-auto rounded-md border bg-muted px-3 py-2 font-mono text-xs wrap-anywhere whitespace-pre-wrap">
           {value}
         </pre>
         <div>{copyButton}</div>

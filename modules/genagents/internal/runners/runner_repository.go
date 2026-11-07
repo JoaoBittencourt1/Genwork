@@ -14,7 +14,7 @@ import (
 type RunnerRepository struct{}
 
 const runnerColumns = `id, token, name, secret_hash IS NOT NULL, last_heartbeat_at, container_engine, sandbox_image, custom_image, directory_mode,
-       reported_tools, has_github_credentials, max_concurrency, revoked_at, created_at`
+       reported_tools, has_github_credentials, max_concurrency, revoked_at, created_at, registration_expires_at`
 
 func (repository RunnerRepository) Create(ctx context.Context, db platform.DBTX, name string, registrationTokenHash []byte, at time.Time) (Runner, error) {
 	var id int64
@@ -108,6 +108,24 @@ func (RunnerRepository) Revoke(ctx context.Context, db platform.DBTX, id int64, 
 	return nil
 }
 
+// SoftDelete hides the runner and clears every bearer secret it still holds (rules 22 and 67). The WHERE clause repeats
+// CanBeRemoved so a runner that registered between the check and this statement is left in place.
+func (RunnerRepository) SoftDelete(ctx context.Context, db platform.DBTX, id int64, at time.Time) error {
+	tag, err := db.Exec(ctx, `
+		UPDATE runners
+		SET deleted_at = $2, updated_at = $2, secret_hash = NULL, registration_token_hash = NULL, registration_expires_at = NULL
+		WHERE id = $1 AND deleted_at IS NULL
+		  AND (revoked_at IS NOT NULL OR (secret_hash IS NULL AND registration_expires_at IS NOT NULL AND registration_expires_at <= $2))`,
+		id, at)
+	if err != nil {
+		return fmt.Errorf("delete runner: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrRunnerNotRemovable
+	}
+	return nil
+}
+
 func nullIfEmpty(value string) *string {
 	if value == "" {
 		return nil
@@ -130,7 +148,8 @@ func scanRunner(row pgx.Row) (Runner, error) {
 	var runner Runner
 	var tools []byte
 	err := row.Scan(&runner.ID, &runner.Token, &runner.Name, &runner.HasSecret, &runner.LastHeartbeatAt, &runner.ContainerEngine,
-		&runner.SandboxImage, &runner.CustomImage, &runner.DirectoryMode, &tools, &runner.HasGithubCredentials, &runner.MaxConcurrency, &runner.RevokedAt, &runner.CreatedAt)
+		&runner.SandboxImage, &runner.CustomImage, &runner.DirectoryMode, &tools, &runner.HasGithubCredentials, &runner.MaxConcurrency,
+		&runner.RevokedAt, &runner.CreatedAt, &runner.RegistrationExpiresAt)
 	if err != nil {
 		return runner, err
 	}

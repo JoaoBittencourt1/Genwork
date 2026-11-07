@@ -27,6 +27,7 @@ import {
   removeCustomModel,
   reopenChat,
   renameChat,
+  removeRunner,
   revokeRunner,
   rotateBotSecret,
   sendChatMessage,
@@ -148,19 +149,22 @@ describe('skills and MCP servers', () => {
 })
 
 describe('runners', () => {
-  it('lists, creates, and revokes runners', async () => {
+  it('lists, creates, revokes, and removes runners', async () => {
     const runner = runnerFixture()
     captureRequests('get', '*/api/genagents/v1/runners', () => HttpResponse.json({ runners: [runner] }))
-    const created = captureRequests('post', '*/api/genagents/v1/runners', () => HttpResponse.json({ ...runner, registrationToken: 'tok', registrationExpiresAt: '2026-11-05T13:00:00Z' }, { status: 201 }))
+    const created = captureRequests('post', '*/api/genagents/v1/runners', () => HttpResponse.json({ ...runner, registrationToken: 'registration-token', registrationExpiresAt: '2026-11-05T13:00:00Z' }, { status: 201 }))
     const revoked = captureRequests('delete', '*/api/genagents/v1/runners/:token', noContent)
+    const removed = captureRequests('post', '*/api/genagents/v1/runners/:token/removal', noContent)
     setAccessToken('token-1')
 
     await expect(listRunners()).resolves.toEqual([runner])
-    await expect(createRunner('build-box')).resolves.toMatchObject({ registrationToken: 'tok' })
+    await expect(createRunner('build-box')).resolves.toMatchObject({ registrationToken: 'registration-token' })
     await revokeRunner('runner-1')
+    await removeRunner('runner/1')
 
     expect(created[0]?.body).toEqual({ name: 'build-box' })
     expect(revoked[0]?.path).toBe('/api/genagents/v1/runners/runner-1')
+    expect(removed[0]?.path).toBe('/api/genagents/v1/runners/runner%2F1/removal')
   })
 })
 

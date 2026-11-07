@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import {
   errorTranslationKey,
+  errorTranslationValues,
   fallbackErrorTranslationKey,
   fallbackFieldErrorTranslationKey,
   fieldErrorTranslationKey,
@@ -9,7 +10,7 @@ import {
 export function useErrorMessage() {
   const { t } = useTranslation()
   return {
-    describeError: (error: unknown) => t(errorTranslationKey(error), { defaultValue: t(fallbackErrorTranslationKey) }),
+    describeError: (error: unknown) => t(errorTranslationKey(error), { defaultValue: t(fallbackErrorTranslationKey), ...errorTranslationValues(error) }),
     describeFieldError: (error: unknown, field: string) => {
       const key = fieldErrorTranslationKey(error, field)
       return key ? t(key, { defaultValue: t(fallbackFieldErrorTranslationKey) }) : undefined

@@ -124,6 +124,10 @@ export function revokeRunner(runnerToken: string): Promise<void> {
   return apiRequest<void>('DELETE', `${API}/runners/${segment(runnerToken)}`)
 }
 
+export function removeRunner(runnerToken: string): Promise<void> {
+  return apiRequest<void>('POST', `${API}/runners/${segment(runnerToken)}/removal`)
+}
+
 export async function listChats(): Promise<ChatSummary[]> {
   return (await apiRequest<{ chats: ChatSummary[] }>('GET', `${API}/admin-chats`)).chats
 }

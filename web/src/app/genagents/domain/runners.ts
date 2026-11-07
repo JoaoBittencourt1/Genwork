@@ -9,6 +9,14 @@ export function runnerStatus(runner: Runner): RunnerStatus {
   return runner.online ? 'online' : 'offline'
 }
 
+// runnerCanBeRemoved is true once the runner can never work again: it was revoked, or it never registered and the
+// one-hour registration token has expired. A live registration is cancelled with revoke, not removed.
+export function runnerCanBeRemoved(runner: Runner, now: Date): boolean {
+  if (runner.revoked) return true
+  if (runner.registered || runner.registrationExpiresAt == null) return false
+  return new Date(runner.registrationExpiresAt).getTime() <= now.getTime()
+}
+
 export type RunnerWarning = 'directoryMode' | 'noGithubCredentials' | 'customImage'
 
 // runnerWarnings lists what an admin should notice about a runner: unsafe directory mode, missing GitHub credentials

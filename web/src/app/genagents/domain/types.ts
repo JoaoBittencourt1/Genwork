@@ -127,6 +127,7 @@ export type Runner = {
   revoked: boolean
   registered: boolean
   lastHeartbeatAt: string | null
+  registrationExpiresAt: string | null
   containerEngine: string | null
   sandboxImage: string | null
   customImage: boolean

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '@/shared/datasource/httpClient'
-import { errorTranslationKey, fieldErrorTranslationKey, loadError } from './errors'
+import { errorTranslationKey, errorTranslationValues, fieldErrorTranslationKey, loadError } from './errors'
 
 describe('errorTranslationKey', () => {
   it('maps API error codes to translation keys', () => {
@@ -10,6 +10,12 @@ describe('errorTranslationKey', () => {
   it('falls back to the unknown error key for anything else', () => {
     expect(errorTranslationKey(new Error('boom'))).toBe('errors.unknown_error')
     expect(errorTranslationKey(undefined)).toBe('errors.unknown_error')
+  })
+
+  it('passes API error fields through for interpolation', () => {
+    expect(errorTranslationValues(new ApiError(409, 'runner_in_use', { accounts: 'Claude' }))).toEqual({ accounts: 'Claude' })
+    expect(errorTranslationValues(new Error('boom'))).toEqual({})
+    expect(errorTranslationValues(new ApiError(404, 'runner_not_found'))).toEqual({})
   })
 })
 

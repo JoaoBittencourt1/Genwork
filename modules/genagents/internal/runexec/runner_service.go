@@ -3,6 +3,7 @@ package runexec
 import (
 	"context"
 	"errors"
+	"net/http"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -65,6 +66,36 @@ func (service *RunnerService) RevokeRunner(ctx context.Context, token string) er
 		}
 		return nil
 	})
+}
+
+// RemoveRunner soft-deletes a runner that can no longer be used: already revoked, or never registered after its token expired.
+// A runner that still holds subscription accounts stays, so those accounts do not lose the machine they point at.
+func (service *RunnerService) RemoveRunner(ctx context.Context, token string) error {
+	return pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
+		runner, err := service.runners.FindByToken(ctx, tx, token)
+		if err != nil {
+			return err
+		}
+		if !runner.CanBeRemoved(service.now()) {
+			return runners.ErrRunnerNotRemovable
+		}
+		bound, err := service.accounts.ListSubscriptionByRunner(ctx, tx, runner.ID)
+		if err != nil {
+			return err
+		}
+		if len(bound) > 0 {
+			names := make([]string, 0, len(bound))
+			for _, account := range bound {
+				names = append(names, account.Name)
+			}
+			return newRunnerInUseError(names)
+		}
+		return service.runners.SoftDelete(ctx, tx, runner.ID, service.now())
+	})
+}
+
+func newRunnerInUseError(accountNames []string) *httpapi.APIError {
+	return &httpapi.APIError{Status: http.StatusConflict, Code: "runner_in_use", Fields: map[string]string{"accounts": strings.Join(accountNames, ", ")}}
 }
 
 // ExchangeRegistration trades a one-time registration token for the runner's long-lived secret.
