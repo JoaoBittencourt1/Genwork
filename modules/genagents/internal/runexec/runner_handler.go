@@ -10,19 +10,20 @@ import (
 )
 
 type RunnerResponse struct {
-	Token                string            `json:"token"`
-	Name                 string            `json:"name"`
-	Online               bool              `json:"online"`
-	Revoked              bool              `json:"revoked"`
-	Registered           bool              `json:"registered"`
-	LastHeartbeatAt      *time.Time        `json:"lastHeartbeatAt"`
-	ContainerEngine      *string           `json:"containerEngine"`
-	SandboxImage         *string           `json:"sandboxImage"`
-	CustomImage          bool              `json:"customImage"`
-	DirectoryMode        bool              `json:"directoryMode"`
-	HasGithubCredentials bool              `json:"hasGithubCredentials"`
-	MaxConcurrency       int               `json:"maxConcurrency"`
-	Tools                map[string]string `json:"tools"`
+	Token                 string            `json:"token"`
+	Name                  string            `json:"name"`
+	Online                bool              `json:"online"`
+	Revoked               bool              `json:"revoked"`
+	Registered            bool              `json:"registered"`
+	LastHeartbeatAt       *time.Time        `json:"lastHeartbeatAt"`
+	RegistrationExpiresAt *time.Time        `json:"registrationExpiresAt"`
+	ContainerEngine       *string           `json:"containerEngine"`
+	SandboxImage          *string           `json:"sandboxImage"`
+	CustomImage           bool              `json:"customImage"`
+	DirectoryMode         bool              `json:"directoryMode"`
+	HasGithubCredentials  bool              `json:"hasGithubCredentials"`
+	MaxConcurrency        int               `json:"maxConcurrency"`
+	Tools                 map[string]string `json:"tools"`
 }
 
 type RunnerListResponse struct {
@@ -31,8 +32,7 @@ type RunnerListResponse struct {
 
 type CreatedRunnerResponse struct {
 	RunnerResponse
-	RegistrationToken string    `json:"registrationToken"`
-	ExpiresAt         time.Time `json:"registrationExpiresAt"`
+	RegistrationToken string `json:"registrationToken"`
 }
 
 func NewRunnerResponse(runner runners.Runner, now time.Time) RunnerResponse {
@@ -42,7 +42,8 @@ func NewRunnerResponse(runner runners.Runner, now time.Time) RunnerResponse {
 	}
 	return RunnerResponse{
 		Token: runner.Token, Name: runner.Name, Online: runner.IsOnline(now), Revoked: runner.IsRevoked(), Registered: runner.HasSecret,
-		LastHeartbeatAt: runner.LastHeartbeatAt, ContainerEngine: runner.ContainerEngine, SandboxImage: runner.SandboxImage,
+		LastHeartbeatAt: runner.LastHeartbeatAt, RegistrationExpiresAt: runner.RegistrationExpiresAt,
+		ContainerEngine: runner.ContainerEngine, SandboxImage: runner.SandboxImage,
 		CustomImage: runner.CustomImage, DirectoryMode: runner.DirectoryMode, HasGithubCredentials: runner.HasGithubCredentials,
 		MaxConcurrency: runner.MaxConcurrency, Tools: tools,
 	}
@@ -66,6 +67,7 @@ func (handler *RunnerHandler) Register(router *httpapi.Router) {
 	router.HandleFunc("GET /api/genagents/v1/runners", manage, handler.listRunners)
 	router.HandleFunc("POST /api/genagents/v1/runners", manage, handler.createRunner)
 	router.HandleFunc("DELETE /api/genagents/v1/runners/{token}", manage, handler.revokeRunner)
+	router.HandleFunc("POST /api/genagents/v1/runners/{token}/removal", manage, handler.removeRunner)
 }
 
 func (handler *RunnerHandler) listRunners(w http.ResponseWriter, r *http.Request) {
@@ -95,12 +97,19 @@ func (handler *RunnerHandler) createRunner(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Cache-Control", "no-store")
 	httpapi.WriteJSON(w, http.StatusCreated, CreatedRunnerResponse{
 		RunnerResponse: NewRunnerResponse(runner, handler.now()), RegistrationToken: registrationToken,
-		ExpiresAt: handler.now().Add(runners.RegistrationLifetime),
 	})
 }
 
 func (handler *RunnerHandler) revokeRunner(w http.ResponseWriter, r *http.Request) {
 	if err := handler.service.RevokeRunner(r.Context(), r.PathValue("token")); err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (handler *RunnerHandler) removeRunner(w http.ResponseWriter, r *http.Request) {
+	if err := handler.service.RemoveRunner(r.Context(), r.PathValue("token")); err != nil {
 		httpapi.WriteError(w, r, err)
 		return
 	}

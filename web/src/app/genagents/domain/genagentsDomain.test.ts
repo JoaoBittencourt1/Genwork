@@ -14,7 +14,7 @@ import {
   modesFor,
   supportsMode,
 } from './providers'
-import { runnerRegisterCommand, runnersWithTool, runnerStatus, runnerWarnings } from './runners'
+import { runnerCanBeRemoved, runnerRegisterCommand, runnersWithTool, runnerStatus, runnerWarnings } from './runners'
 import { addSkillFile, isValidSkillFilePath, isValidSkillName, MAX_SKILL_FILES, parseSkillMarkdown } from './skills'
 import type { ProviderCatalogEntry } from './types'
 
@@ -149,11 +149,24 @@ describe('runner status', () => {
     expect(runnerWarnings(runnerFixture({ registered: false, hasGithubCredentials: false }))).toEqual([])
   })
 
-  it('builds the register command and finds runners with a CLI', () => {
-    expect(runnerRegisterCommand('https://genwork.example.com', 'tok')).toBe('genwork-runner register --instance https://genwork.example.com --token tok')
+  it('builds one copyable register command and finds runners with a CLI', () => {
+    const command = runnerRegisterCommand('https://genwork.example.com', 'registration-token')
+    expect(command).toBe('genwork-runner register --instance https://genwork.example.com --token registration-token')
+    expect(command.split('\n')).toEqual([command])
     const runners = [runnerFixture({ token: 'a' }), runnerFixture({ token: 'b', tools: {} }), runnerFixture({ token: 'c', revoked: true })]
 
     expect(runnersWithTool(runners, 'claude').map((runner) => runner.token)).toEqual(['a'])
+  })
+
+  it('allows removal of revoked runners and of registrations that have expired', () => {
+    const now = new Date('2026-11-05T13:00:00Z')
+    expect(runnerCanBeRemoved(runnerFixture({ revoked: true, registered: true }), now)).toBe(true)
+    expect(runnerCanBeRemoved(runnerFixture({ revoked: true, registered: false, online: false }), now)).toBe(true)
+    expect(runnerCanBeRemoved(runnerFixture(), now)).toBe(false)
+    expect(runnerCanBeRemoved(runnerFixture({ online: false }), now)).toBe(false)
+    expect(runnerCanBeRemoved(runnerFixture({ registered: false, online: false, registrationExpiresAt: '2026-11-05T14:00:00Z' }), now)).toBe(false)
+    expect(runnerCanBeRemoved(runnerFixture({ registered: false, online: false, registrationExpiresAt: '2026-11-05T13:00:00Z' }), now)).toBe(true)
+    expect(runnerCanBeRemoved(runnerFixture({ registered: false, online: false, registrationExpiresAt: null }), now)).toBe(false)
   })
 })
 

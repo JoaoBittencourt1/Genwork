@@ -71,6 +71,7 @@ export function runnerFixture(overrides: Partial<Runner> = {}): Runner {
     revoked: false,
     registered: true,
     lastHeartbeatAt: '2026-11-05T12:00:00Z',
+    registrationExpiresAt: null,
     containerEngine: 'Docker 27',
     sandboxImage: 'ghcr.io/acme/genwork-sandbox:2.0.0',
     customImage: false,

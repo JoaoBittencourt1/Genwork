@@ -276,6 +276,8 @@
     "mcp_server_not_found": "Servidor MCP não encontrado.",
     "runner_name_taken": "Outro runner já tem este nome.",
     "runner_not_found": "Runner não encontrado.",
+    "runner_not_removable": "Este runner ainda pode ser usado. Revogue-o ou espere o registro não usado expirar.",
+    "runner_in_use": "Contas de assinatura ainda estão ligadas a este runner: {{accounts}}. Remova-as primeiro.",
     "chat_not_found": "Chat não encontrado.",
     "conversation_not_found": "Conversa não encontrada.",
     "run_not_active": "Não há execução ativa para parar.",
@@ -837,6 +839,8 @@
       "revoke": "Revogar",
       "revokeTitle": "Revogar runner?",
       "revokeDescription": "“{{name}}” deixa de ser aceito na hora e as execuções dele falham.",
+      "deleteTitle": "Excluir runner?",
+      "deleteDescription": "“{{name}}” sai da lista. Isso não pode ser desfeito.",
       "registerTitle": "Registrar o runner",
       "registerDescription": "Rode este comando na máquina do runner em até uma hora. O token vale uma vez e não é mostrado de novo.",
       "registerCommand": "Comando de registro"

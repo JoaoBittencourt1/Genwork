@@ -8,6 +8,11 @@ export function errorTranslationKey(error: unknown): string {
   return `errors.${code}`
 }
 
+export function errorTranslationValues(error: unknown): Record<string, string> {
+  if (!(error instanceof ApiError) || error.fields == null) return {}
+  return error.fields
+}
+
 export function fieldErrorTranslationKey(error: unknown, field: string): string | undefined {
   if (!(error instanceof ApiError)) return undefined
   const reason = error.fields?.[field]

@@ -18,30 +18,45 @@ const (
 var (
 	ErrRunnerNotFound           = httpapi.NewAPIError(http.StatusNotFound, "runner_not_found")
 	ErrRunnerNameTaken          = httpapi.NewAPIError(http.StatusConflict, "runner_name_taken")
+	ErrRunnerNotRemovable       = httpapi.NewAPIError(http.StatusConflict, "runner_not_removable")
 	ErrInvalidRegistrationToken = httpapi.NewAPIError(http.StatusUnauthorized, "invalid_registration_token")
 	ErrInvalidRunnerSecret      = httpapi.NewAPIError(http.StatusUnauthorized, "invalid_runner_secret")
 )
 
-// Runner is a machine the admin controls that executes runs. It is revoked, never hard-deleted while runs reference it.
+// Runner is a machine the admin controls that executes runs. Removal is a soft delete (rule 22): runs keep their
+// reference to the row, and the name can be used again.
 type Runner struct {
-	ID                   int64
-	Token                string
-	Name                 string
-	HasSecret            bool
-	LastHeartbeatAt      *time.Time
-	ContainerEngine      *string
-	SandboxImage         *string
-	CustomImage          bool
-	DirectoryMode        bool
-	ReportedTools        map[string]string
-	HasGithubCredentials bool
-	MaxConcurrency       int
-	RevokedAt            *time.Time
-	CreatedAt            time.Time
+	ID                    int64
+	Token                 string
+	Name                  string
+	HasSecret             bool
+	LastHeartbeatAt       *time.Time
+	ContainerEngine       *string
+	SandboxImage          *string
+	CustomImage           bool
+	DirectoryMode         bool
+	ReportedTools         map[string]string
+	HasGithubCredentials  bool
+	MaxConcurrency        int
+	RevokedAt             *time.Time
+	CreatedAt             time.Time
+	RegistrationExpiresAt *time.Time
 }
 
 func (runner Runner) IsRevoked() bool {
 	return runner.RevokedAt != nil
+}
+
+// CanBeRemoved reports whether an admin may drop the runner from the list. A revoked runner is already rejected.
+// One that never registered can be removed once its one-hour token has expired; until then, revoke is how it is cancelled.
+func (runner Runner) CanBeRemoved(now time.Time) bool {
+	if runner.IsRevoked() {
+		return true
+	}
+	if runner.HasSecret || runner.RegistrationExpiresAt == nil {
+		return false
+	}
+	return !runner.RegistrationExpiresAt.After(now)
 }
 
 // IsOnline derives presence from the last heartbeat, so no stored status can disagree with it.

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/access"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runners"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 )
 
@@ -19,6 +20,7 @@ func TestRunnerAdminNeedsThePermission(t *testing.T) {
 		{method: "GET", path: "/api/genagents/v1/runners"},
 		{method: "POST", path: "/api/genagents/v1/runners", body: map[string]any{}},
 		{method: "DELETE", path: "/api/genagents/v1/runners/x"},
+		{method: "POST", path: "/api/genagents/v1/runners/x/removal"},
 	} {
 		call.accessToken = member
 		expectError(t, app.do(call), http.StatusForbidden, "forbidden")
@@ -195,6 +197,97 @@ func TestRevokingARunnerRejectsItAndFailsItsRuns(t *testing.T) {
 		t.Errorf("run state = %s (%s)", app.runState(run.Token), app.runFailureReason(run.Token))
 	}
 	expectError(t, app.do(request{method: "DELETE", path: "/api/genagents/v1/runners/" + runner.Token}), http.StatusNotFound, "runner_not_found")
+}
+
+func TestRemovingARevokedRunnerDropsItAndKeepsItsRuns(t *testing.T) {
+	app := newTestApp(t)
+	runner := app.registerRunner("build-box", heartbeatOptions{tools: []string{"claude"}, github: true})
+	neverRegistered, _ := app.createRunnerViaAPI("claude")
+	bot := app.createBotOn(app.claudeAccount().Token, nil)
+	run := app.queueRun(bot.Token, runs.RunKindTask, "task-1")
+	claimed, _ := app.claim(runner, 1)
+	if claimed == nil || claimed.RunToken != run.Token {
+		t.Fatalf("claimed = %+v", claimed)
+	}
+	expectStatus(t, app.do(request{method: "DELETE", path: "/api/genagents/v1/runners/" + runner.Token}), http.StatusNoContent)
+	expectStatus(t, app.do(request{method: "DELETE", path: "/api/genagents/v1/runners/" + neverRegistered.Token}), http.StatusNoContent)
+
+	expectStatus(t, app.removeRunner(runner.Token), http.StatusNoContent)
+	expectStatus(t, app.removeRunner(neverRegistered.Token), http.StatusNoContent)
+
+	if names := app.runnerNames(); len(names) != 0 {
+		t.Fatalf("runners = %v", names)
+	}
+	if app.runState(run.Token) != "failed" || app.runFailureReason(run.Token) != "runner_revoked" {
+		t.Errorf("run state = %s (%s)", app.runState(run.Token), app.runFailureReason(run.Token))
+	}
+	var deletedAt *time.Time
+	var secretHash []byte
+	if err := app.db.QueryRow(context.Background(), `SELECT deleted_at, secret_hash FROM runners WHERE token = $1`, runner.Token).Scan(&deletedAt, &secretHash); err != nil {
+		t.Fatalf("read removed runner: %v", err)
+	}
+	if deletedAt == nil || secretHash != nil {
+		t.Errorf("deleted_at = %v, secret still stored = %t", deletedAt, secretHash != nil)
+	}
+	expectError(t, app.removeRunner(runner.Token), http.StatusNotFound, "runner_not_found")
+	expectError(t, app.runnerDo(runner.Secret, "POST", "/api/genagents/v1/runner/heartbeat", map[string]any{}), http.StatusUnauthorized, "invalid_runner_secret")
+	if _, registrationToken := app.createRunnerViaAPI("build-box"); registrationToken == "" {
+		t.Fatal("the removed runner's name stayed taken")
+	}
+}
+
+func TestRemovingAnExpiredUnregisteredRunner(t *testing.T) {
+	app := newTestApp(t)
+	created, registrationToken := app.createRunnerViaAPI("spare-box")
+	listed := app.runnerByToken(created.Token)
+	if listed.RegistrationExpiresAt == nil || !listed.RegistrationExpiresAt.Equal(app.clock.Now().Add(runners.RegistrationLifetime)) {
+		t.Fatalf("registration expiry = %v", listed.RegistrationExpiresAt)
+	}
+	expectError(t, app.removeRunner(created.Token), http.StatusConflict, "runner_not_removable")
+
+	app.clock.Advance(runners.RegistrationLifetime + time.Minute)
+
+	expectStatus(t, app.removeRunner(created.Token), http.StatusNoContent)
+	if names := app.runnerNames(); len(names) != 0 {
+		t.Fatalf("runners = %v", names)
+	}
+	expectError(t, app.do(request{method: "POST", path: "/api/genagents/v1/runner/register", anonymous: true, body: map[string]any{"registrationToken": registrationToken}}), http.StatusUnauthorized, "invalid_registration_token")
+	var registrationHash []byte
+	if err := app.db.QueryRow(context.Background(), `SELECT registration_token_hash FROM runners WHERE token = $1`, created.Token).Scan(&registrationHash); err != nil {
+		t.Fatalf("read registration hash: %v", err)
+	}
+	if registrationHash != nil {
+		t.Error("the registration token hash outlived the runner")
+	}
+}
+
+func TestARunnerThatCanStillBeUsedCannotBeRemoved(t *testing.T) {
+	app := newTestApp(t)
+	live := app.registerRunner("build-box", heartbeatOptions{})
+	pending, _ := app.createRunnerViaAPI("spare-box")
+
+	for _, token := range []string{live.Token, pending.Token} {
+		expectError(t, app.removeRunner(token), http.StatusConflict, "runner_not_removable")
+	}
+	if names := app.runnerNames(); len(names) != 2 {
+		t.Fatalf("runners = %v", names)
+	}
+}
+
+func TestRemovingARunnerThatHoldsAccountsIsRefused(t *testing.T) {
+	app := newTestApp(t)
+	runner := app.registerRunner("build-box", heartbeatOptions{tools: []string{"claude"}})
+	app.createAccount(map[string]any{"name": "Claude", "provider": "anthropic", "mode": "subscription", "runnerToken": runner.Token})
+	expectStatus(t, app.do(request{method: "DELETE", path: "/api/genagents/v1/runners/" + runner.Token}), http.StatusNoContent)
+
+	body := expectError(t, app.removeRunner(runner.Token), http.StatusConflict, "runner_in_use")
+
+	if body.Error.Fields["accounts"] != "Claude" {
+		t.Errorf("accounts = %q", body.Error.Fields["accounts"])
+	}
+	if names := app.runnerNames(); len(names) != 1 || names[0] != "build-box" {
+		t.Fatalf("runners = %v", names)
+	}
 }
 
 func TestRunnerCannotTouchRunsOfAnotherRunner(t *testing.T) {

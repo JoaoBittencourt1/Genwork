@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 )
@@ -35,17 +36,52 @@ func (app *testApp) createRunnerViaAPI(name string) (runnerBody, string) {
 }
 
 type runnerBody struct {
-	Token                string            `json:"token"`
-	Name                 string            `json:"name"`
-	Online               bool              `json:"online"`
-	Revoked              bool              `json:"revoked"`
-	Registered           bool              `json:"registered"`
-	DirectoryMode        bool              `json:"directoryMode"`
-	HasGithubCredentials bool              `json:"hasGithubCredentials"`
-	CustomImage          bool              `json:"customImage"`
-	ContainerEngine      *string           `json:"containerEngine"`
-	SandboxImage         *string           `json:"sandboxImage"`
-	Tools                map[string]string `json:"tools"`
+	Token                 string            `json:"token"`
+	Name                  string            `json:"name"`
+	Online                bool              `json:"online"`
+	Revoked               bool              `json:"revoked"`
+	Registered            bool              `json:"registered"`
+	DirectoryMode         bool              `json:"directoryMode"`
+	HasGithubCredentials  bool              `json:"hasGithubCredentials"`
+	CustomImage           bool              `json:"customImage"`
+	ContainerEngine       *string           `json:"containerEngine"`
+	SandboxImage          *string           `json:"sandboxImage"`
+	Tools                 map[string]string `json:"tools"`
+	RegistrationExpiresAt *time.Time        `json:"registrationExpiresAt"`
+}
+
+func (app *testApp) removeRunner(token string) response {
+	app.t.Helper()
+	return app.do(request{method: "POST", path: "/api/genagents/v1/runners/" + token + "/removal"})
+}
+
+func (app *testApp) runnerNames() []string {
+	app.t.Helper()
+	names := make([]string, 0)
+	for _, runner := range app.listRunnerBodies() {
+		names = append(names, runner.Name)
+	}
+	return names
+}
+
+func (app *testApp) runnerByToken(token string) runnerBody {
+	app.t.Helper()
+	for _, runner := range app.listRunnerBodies() {
+		if runner.Token == token {
+			return runner
+		}
+	}
+	app.t.Fatalf("runner %s not listed", token)
+	return runnerBody{}
+}
+
+func (app *testApp) listRunnerBodies() []runnerBody {
+	app.t.Helper()
+	var body struct {
+		Runners []runnerBody `json:"runners"`
+	}
+	app.do(request{method: "GET", path: "/api/genagents/v1/runners"}).decode(app.t, &body)
+	return body.Runners
 }
 
 func (app *testApp) runnerDo(secret, method, path string, body any) response {
