@@ -193,3 +193,41 @@ func TestNoEngineIsReportedWithBothOptions(t *testing.T) {
 		t.Errorf("error = %v", err)
 	}
 }
+
+func TestSandboxLimitsAreTrimmedToASmallEngine(t *testing.T) {
+	engine := enginetest.NewFakeEngine(t)
+	engine.EngineCPUs, engine.EngineMemory = 1, 2<<30
+	launcher := sandbox.NewContainerSandbox(engine.Socket())
+
+	if _, err := launcher.Run(context.Background(), specFor(t, false), &bytes.Buffer{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+	session, err := launcher.StartInteractive(context.Background(), signInSpec(t))
+	if err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	defer session.Close()
+
+	for _, container := range engine.Containers() {
+		config := hostConfigOf(t, container.Request)
+		if labels, _ := container.Request["Labels"].(map[string]any); labels["genwork.run"] != nil && config["Memory"] != float64(2<<30) {
+			t.Errorf("the run's memory was not trimmed: %v", config["Memory"])
+		}
+		if config["NanoCpus"] != float64(1e9) || config["Memory"].(float64) > float64(2<<30) {
+			t.Errorf("limits were not trimmed: cpus = %v, memory = %v", config["NanoCpus"], config["Memory"])
+		}
+	}
+}
+
+func TestSandboxLimitsStayWhenTheEngineDoesNotSayItsCapacity(t *testing.T) {
+	engine := enginetest.NewFakeEngine(t)
+	launcher := sandbox.NewContainerSandbox(engine.Socket())
+
+	if _, err := launcher.Run(context.Background(), specFor(t, false), &bytes.Buffer{}); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+
+	if config := hostConfigOf(t, engine.Containers()[0].Request); config["NanoCpus"] != float64(2e9) {
+		t.Errorf("cpus = %v", config["NanoCpus"])
+	}
+}
