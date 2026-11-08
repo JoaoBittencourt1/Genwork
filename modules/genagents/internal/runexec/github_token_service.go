@@ -3,6 +3,7 @@ package runexec
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -62,8 +63,10 @@ func (service *GithubTokenService) IssueToken(ctx context.Context, runner runner
 	var refusal *gentasksclient.RepositoryTokenRefusal
 	switch {
 	case errors.As(err, &refusal):
+		slog.Warn("gentasks issued no GitHub token", "run", runToken, "reason", refusal.Reason)
 		return GithubToken{}, NewGithubTokenUnavailableError(refusal.Reason)
 	case err != nil:
+		slog.Warn("gentasks issued no GitHub token", "run", runToken, "reason", "gentasks_unavailable", "err", err)
 		return GithubToken{}, NewGithubTokenUnavailableError("gentasks_unavailable")
 	}
 	return GithubToken{Token: issued.Token, ExpiresAt: issued.ExpiresAt}, nil

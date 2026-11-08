@@ -3,6 +3,7 @@ package api_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/api"
@@ -137,7 +138,10 @@ func TestGithubTokenIsDecodedOrRefusedWithTheCode(t *testing.T) {
 	_, err = client.GithubToken(context.Background(), "run-2")
 
 	var statusErr *api.StatusError
-	if !errors.As(err, &statusErr) || statusErr.Code != "github_token_unavailable" {
-		t.Errorf("err = %v", err)
+	if !errors.As(err, &statusErr) || statusErr.Code != "github_token_unavailable" || statusErr.Reason != "github_not_connected" {
+		t.Fatalf("err = %v", err)
+	}
+	if !strings.Contains(err.Error(), "github_not_connected") {
+		t.Errorf("the logged error hides the reason: %v", err)
 	}
 }
