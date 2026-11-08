@@ -95,7 +95,12 @@ func runUpdater(command *cobra.Command, dependencies Dependencies) error {
 			slog.Error("replace the updater container", "err", err)
 		}
 	})
-	return serveUpdater(command.Context(), config.address, updates.NewUpdaterHandler(service, config.secret))
+	cleanup := updates.NewImageCleanupService(newDockerImageStore(dependencies.Runner, output), workspace.StackEnvValue("GENWORK_IMAGE_REGISTRY"),
+		workspace.Version, func() bool {
+			status, err := service.Status()
+			return err == nil && status.State == updates.StateUpdating
+		})
+	return serveUpdater(command.Context(), config.address, updates.NewUpdaterHandler(service, cleanup, config.secret))
 }
 
 func serveUpdater(ctx context.Context, address string, handler http.Handler) error {

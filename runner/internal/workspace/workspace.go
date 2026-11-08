@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -243,4 +244,52 @@ func (workspace *Workspace) Push(ctx context.Context, repository, repositoryDir,
 	reference := "refs/heads/" + branch
 	_, err := workspace.git(ctx, repositoryDir, true, "push", workspace.manager.RepositoryURL(repository), reference+":"+reference)
 	return err
+}
+
+// RemoveIdle deletes the workspaces nothing wrote to for longer than idle, such as ones a crash left behind, and returns
+// the bytes freed. A run's workspace changes as it works, so an active run's is never idle that long.
+func (manager *Manager) RemoveIdle(idle time.Duration, now time.Time) (int64, error) {
+	entries, err := os.ReadDir(manager.root)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, fmt.Errorf("list workspaces: %w", err)
+	}
+	var freed int64
+	for _, entry := range entries {
+		path := filepath.Join(manager.root, entry.Name())
+		size, lastChange := directoryUsage(path)
+		if now.Sub(lastChange) < idle {
+			continue
+		}
+		if err := os.RemoveAll(path); err != nil {
+			return freed, err
+		}
+		freed += size
+	}
+	return freed, nil
+}
+
+// directoryUsage adds up the files under a directory and finds when any of them last changed.
+func directoryUsage(root string) (int64, time.Time) {
+	var size int64
+	var lastChange time.Time
+	_ = filepath.WalkDir(root, func(_ string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return nil
+		}
+		if !entry.IsDir() {
+			size += info.Size()
+		}
+		if info.ModTime().After(lastChange) {
+			lastChange = info.ModTime()
+		}
+		return nil
+	})
+	return size, lastChange
 }

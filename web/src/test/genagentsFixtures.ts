@@ -109,6 +109,9 @@ export function runnerFixture(overrides: Partial<Runner> = {}): Runner {
     hasGithubCredentials: true,
     maxConcurrency: 2,
     tools: { claude: '2.1.0' },
+    cleanupPending: false,
+    lastCleanupAt: null,
+    lastCleanupFreedBytes: null,
     ...overrides,
   }
 }

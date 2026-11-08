@@ -169,3 +169,12 @@ func scanSignIn(row pgx.Row) (AccountSignIn, error) {
 		&signIn.CodeCiphertext, &signIn.Failure, &signIn.ExpiresAt, &signIn.CreatedAt, &signIn.UpdatedAt)
 	return signIn, err
 }
+
+// DeleteEndedBefore removes sign-ins that ended before the cutoff; the accounts keep their status.
+func (AccountSignInRepository) DeleteEndedBefore(ctx context.Context, db platform.DBTX, cutoff time.Time) (int, error) {
+	tag, err := db.Exec(ctx, `DELETE FROM account_sign_ins WHERE state NOT IN `+activeSignInStates+` AND updated_at < $1`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("delete ended sign-ins: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}

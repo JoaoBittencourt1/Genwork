@@ -1,6 +1,6 @@
 import { BotIcon, WrenchIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { entryMessageKey, entryParams, entryText, type ConversationEntry } from '@/shared/domain/conversation'
+import { entryMessageKey, entryParams, entryReviewLinks, entryText, type ConversationEntry } from '@/shared/domain/conversation'
 import { cn } from '@/shared/lib/utils'
 
 type ConversationEntriesProps = {
@@ -42,6 +42,11 @@ function ConversationEntryBody({ entry, authorName }: { entry: ConversationEntry
             {t(entry.type === 'result' ? 'conversation.result' : 'conversation.assistant')}
           </span>
           <p className="whitespace-pre-wrap">{entryText(entry) || t('conversation.noText')}</p>
+          {entryReviewLinks(entry).map((url) => (
+            <a key={url} className="text-xs underline" href={url} target="_blank" rel="noreferrer">
+              {url}
+            </a>
+          ))}
           {typeof entry.payload.pullRequestUrl === 'string' ? (
             <a className="text-xs underline" href={entry.payload.pullRequestUrl} target="_blank" rel="noreferrer">
               {entry.payload.pullRequestUrl}

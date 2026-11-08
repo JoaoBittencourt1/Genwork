@@ -27,15 +27,18 @@ func (request StartUpdateRequest) Validate() error {
 // UpdaterHandler is the updater's internal API. Only core holds the secret; the gateway has no route here (rule 84).
 type UpdaterHandler struct {
 	service *UpdaterService
+	cleanup *ImageCleanupService
 	secret  []byte
 	mux     *http.ServeMux
 }
 
-func NewUpdaterHandler(service *UpdaterService, secret string) *UpdaterHandler {
-	handler := &UpdaterHandler{service: service, secret: []byte(secret), mux: http.NewServeMux()}
+func NewUpdaterHandler(service *UpdaterService, cleanup *ImageCleanupService, secret string) *UpdaterHandler {
+	handler := &UpdaterHandler{service: service, cleanup: cleanup, secret: []byte(secret), mux: http.NewServeMux()}
 	handler.mux.HandleFunc("GET /v1/status", handler.findStatus)
 	handler.mux.HandleFunc("POST /v1/check", handler.checkForUpdates)
 	handler.mux.HandleFunc("POST /v1/updates", handler.startUpdate)
+	handler.mux.HandleFunc("GET /v1/cleanup", handler.previewCleanup)
+	handler.mux.HandleFunc("POST /v1/cleanup", handler.removeOutdatedImages)
 	return handler
 }
 
@@ -87,6 +90,24 @@ func (handler *UpdaterHandler) startUpdate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	httpapi.WriteJSON(w, http.StatusAccepted, status)
+}
+
+func (handler *UpdaterHandler) previewCleanup(w http.ResponseWriter, r *http.Request) {
+	preview, err := handler.cleanup.Preview(r.Context())
+	if err != nil {
+		writeUpdaterError(w, r, err)
+		return
+	}
+	httpapi.WriteJSON(w, http.StatusOK, preview)
+}
+
+func (handler *UpdaterHandler) removeOutdatedImages(w http.ResponseWriter, r *http.Request) {
+	report, err := handler.cleanup.Remove(r.Context())
+	if err != nil {
+		writeUpdaterError(w, r, err)
+		return
+	}
+	httpapi.WriteJSON(w, http.StatusOK, report)
 }
 
 func writeUpdaterError(w http.ResponseWriter, r *http.Request, err error) {

@@ -1,7 +1,8 @@
 import { ArrowDownIcon, ArrowUpIcon, NetworkIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
-import { formatBytes, formatBytesPerSecond, type NetworkThroughput } from '../domain/hostSnapshot'
+import { formatBytes, formatBytesPerSecond } from '@/shared/domain/byteUnits'
+import type { NetworkThroughput } from '../domain/hostSnapshot'
 
 export function NetworkCard({ network }: { network: NetworkThroughput }) {
   const { t, i18n } = useTranslation()

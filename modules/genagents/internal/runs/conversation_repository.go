@@ -117,3 +117,11 @@ func scanConversation(row pgx.Row) (Conversation, error) {
 		&conversation.CreatedAt, &conversation.UpdatedAt)
 	return conversation, err
 }
+
+// Delete removes a conversation that has no run left, for a person clearing it.
+func (ConversationRepository) Delete(ctx context.Context, db platform.DBTX, id int64) error {
+	if _, err := db.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, id); err != nil {
+		return fmt.Errorf("delete conversation: %w", err)
+	}
+	return nil
+}

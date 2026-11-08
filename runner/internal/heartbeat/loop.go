@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/api"
@@ -26,12 +27,18 @@ type Settings struct {
 	MaxConcurrency       int
 	ProfilesDir          string
 	Interval             time.Duration
+	// Cleanup frees space when an admin asks and returns the bytes freed; nil when the runner cannot clean up.
+	Cleanup func(ctx context.Context) (int64, error)
 }
 
 type Loop struct {
 	sender   Sender
 	launcher sandbox.Launcher
 	settings Settings
+	mutex    sync.Mutex
+	cleaning bool
+	// freed is a finished cleanup's result, reported with the next heartbeat.
+	freed *int64
 }
 
 func NewLoop(sender Sender, launcher sandbox.Launcher, settings Settings) *Loop {
@@ -47,14 +54,58 @@ func (loop *Loop) Beat(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	report := loop.finishedCleanup()
 	answer, err := loop.sender.SendHeartbeat(ctx, api.Heartbeat{
 		ContainerEngine: info.Engine, SandboxImage: loop.settings.Image, CustomImage: loop.settings.CustomImage, DirectoryMode: info.DirectoryMode,
-		Tools: info.Tools, HasGithubCredentials: loop.settings.HasGithubCredentials, MaxConcurrency: loop.settings.MaxConcurrency,
+		Tools: info.Tools, HasGithubCredentials: loop.settings.HasGithubCredentials, MaxConcurrency: loop.settings.MaxConcurrency, Cleanup: report,
 	})
 	if err != nil {
 		return err
 	}
+	loop.reported(report)
+	if answer.CleanupRequested {
+		loop.startCleanup(ctx)
+	}
 	return loop.removeStaleProfiles(answer.Accounts)
+}
+
+func (loop *Loop) finishedCleanup() *api.CleanupReport {
+	loop.mutex.Lock()
+	defer loop.mutex.Unlock()
+	if loop.freed == nil {
+		return nil
+	}
+	return &api.CleanupReport{FreedBytes: *loop.freed}
+}
+
+// reported forgets a cleanup result once genagents received it.
+func (loop *Loop) reported(report *api.CleanupReport) {
+	if report == nil {
+		return
+	}
+	loop.mutex.Lock()
+	defer loop.mutex.Unlock()
+	loop.freed = nil
+}
+
+// startCleanup runs one cleanup at a time, outside the heartbeat, since removing images can take a while.
+func (loop *Loop) startCleanup(ctx context.Context) {
+	loop.mutex.Lock()
+	if loop.settings.Cleanup == nil || loop.cleaning || loop.freed != nil {
+		loop.mutex.Unlock()
+		return
+	}
+	loop.cleaning = true
+	loop.mutex.Unlock()
+	go func() {
+		freed, err := loop.settings.Cleanup(ctx)
+		if err != nil {
+			slog.Warn("free up space", "err", err)
+		}
+		loop.mutex.Lock()
+		defer loop.mutex.Unlock()
+		loop.cleaning, loop.freed = false, &freed
+	}()
 }
 
 func (loop *Loop) removeStaleProfiles(assigned []api.AccountAssignment) error {

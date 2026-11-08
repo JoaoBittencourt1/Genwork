@@ -63,6 +63,12 @@ type Heartbeat struct {
 	Tools                map[string]string `json:"tools"`
 	HasGithubCredentials bool              `json:"hasGithubCredentials"`
 	MaxConcurrency       int               `json:"maxConcurrency"`
+	// Cleanup reports a finished requested cleanup, on the one heartbeat after it.
+	Cleanup *CleanupReport `json:"cleanup,omitempty"`
+}
+
+type CleanupReport struct {
+	FreedBytes int64 `json:"freedBytes"`
 }
 
 type AccountAssignment struct {
@@ -72,6 +78,8 @@ type AccountAssignment struct {
 
 type HeartbeatAnswer struct {
 	Accounts []AccountAssignment `json:"accounts"`
+	// CleanupRequested asks the runner to free space.
+	CleanupRequested bool `json:"cleanupRequested"`
 }
 
 type ClaimedAccount struct {

@@ -2,7 +2,7 @@ import { HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { setAccessToken } from '@/shared/datasource/httpClient'
 import { captureRequests, errorResponse } from '@/test/server'
-import { listBotOptions, postTaskMessage, readTaskConversation, requestBotReview, stopTaskRun } from './botConversationDatasource'
+import { clearTaskConversation, listBotOptions, postTaskMessage, readTaskConversation, requestBotReview, stopTaskRun } from './botConversationDatasource'
 
 describe('botConversationDatasource', () => {
   it('lists the bots a task can be assigned to or reviewed by', async () => {
@@ -19,6 +19,7 @@ describe('botConversationDatasource', () => {
     const read = captureRequests('get', '*/api/genagents/v1/tasks/:token/conversation', () => HttpResponse.json(page))
     const posted = captureRequests('post', '*/api/genagents/v1/tasks/:token/conversation/messages', () => new HttpResponse(null, { status: 202 }))
     const stopped = captureRequests('post', '*/api/genagents/v1/tasks/:token/conversation/stop', () => new HttpResponse(null, { status: 204 }))
+    const cleared = captureRequests('delete', '*/api/genagents/v1/tasks/:token/conversation', () => new HttpResponse(null, { status: 204 }))
     const reviewed = captureRequests('post', '*/api/genagents/v1/tasks/:token/bot-reviews', () => HttpResponse.json({ runToken: 'run-1', state: 'queued' }, { status: 202 }))
     setAccessToken('token-1')
 
@@ -33,6 +34,8 @@ describe('botConversationDatasource', () => {
     expect(posted[0]?.body).toEqual({ text: 'use the repository' })
     expect(stopped[0]?.path).toBe('/api/genagents/v1/tasks/task-1/conversation/stop')
     expect(reviewed[0]?.path).toBe('/api/genagents/v1/tasks/task-1/bot-reviews')
+    await clearTaskConversation('task/1')
+    expect(cleared[0]?.path).toBe('/api/genagents/v1/tasks/task%2F1/conversation')
     expect(reviewed[0]?.body).toEqual({})
     expect(reviewed[1]?.body).toEqual({ botToken: 'bot-9' })
   })

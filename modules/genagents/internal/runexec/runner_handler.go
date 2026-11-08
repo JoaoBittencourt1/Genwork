@@ -24,6 +24,9 @@ type RunnerResponse struct {
 	HasGithubCredentials  bool              `json:"hasGithubCredentials"`
 	MaxConcurrency        int               `json:"maxConcurrency"`
 	Tools                 map[string]string `json:"tools"`
+	CleanupPending        bool              `json:"cleanupPending"`
+	LastCleanupAt         *time.Time        `json:"lastCleanupAt"`
+	LastCleanupFreedBytes *int64            `json:"lastCleanupFreedBytes"`
 }
 
 type RunnerListResponse struct {
@@ -46,6 +49,7 @@ func NewRunnerResponse(runner runners.Runner, now time.Time) RunnerResponse {
 		ContainerEngine: runner.ContainerEngine, SandboxImage: runner.SandboxImage,
 		CustomImage: runner.CustomImage, DirectoryMode: runner.DirectoryMode, HasGithubCredentials: runner.HasGithubCredentials,
 		MaxConcurrency: runner.MaxConcurrency, Tools: tools,
+		CleanupPending: runner.CleanupPending(), LastCleanupAt: runner.LastCleanupAt, LastCleanupFreedBytes: runner.LastCleanupFreedBytes,
 	}
 }
 

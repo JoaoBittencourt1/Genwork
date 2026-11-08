@@ -6,6 +6,7 @@ import { captureRequests, errorResponse } from '@/test/server'
 import {
   addCustomModel,
   cancelAccountSignIn,
+  cleanRunners,
   createAccount,
   createBot,
   createMcpServer,
@@ -263,5 +264,15 @@ describe('MCP server OAuth', () => {
     setAccessToken('token-1')
 
     await expect(startMcpOAuth('server-1')).rejects.toMatchObject({ code: 'oauth_client_id_required' })
+  })
+})
+
+describe('runners cleanup', () => {
+  it('asks genagents to free space', async () => {
+    const cleaned = captureRequests('post', '*/api/genagents/v1/runners/cleanup', () => HttpResponse.json({ removedSignIns: 2, removedAuthorizations: 1, runnersAsked: 3 }))
+    setAccessToken('token-1')
+
+    await expect(cleanRunners()).resolves.toEqual({ removedSignIns: 2, removedAuthorizations: 1, runnersAsked: 3 })
+    expect(cleaned).toHaveLength(1)
   })
 })

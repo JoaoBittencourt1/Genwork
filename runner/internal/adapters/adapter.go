@@ -167,3 +167,12 @@ var authFailurePattern = regexp.MustCompile(`(?i)(invalid (x-)?api[ -]?key|authe
 func LooksLikeAuthFailure(message string) bool {
 	return authFailurePattern.MatchString(message)
 }
+
+// terminalEscapePattern matches the control sequences a CLI running in a terminal prints: colors, cursor moves (such as
+// the "show cursor" it prints on exit), and hyperlinks.
+var terminalEscapePattern = regexp.MustCompile(`\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b[()][A-Za-z0-9]|\x1b[=>78DEHMc]`)
+
+// StripTerminalEscapes removes terminal control sequences, leaving the text a person would read.
+func StripTerminalEscapes(text string) string {
+	return terminalEscapePattern.ReplaceAllString(text, "")
+}

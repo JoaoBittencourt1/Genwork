@@ -30,3 +30,8 @@ export function stopTaskRun(taskToken: string): Promise<void> {
 export function requestBotReview(taskToken: string, botToken?: string): Promise<{ runToken: string; state: string }> {
   return apiRequest<{ runToken: string; state: string }>('POST', `${GENAGENTS_API}/tasks/${encodeURIComponent(taskToken)}/bot-reviews`, { body: botToken ? { botToken } : {} })
 }
+
+// clearTaskConversation deletes the task's bot conversation, stopping the bot if it is working.
+export function clearTaskConversation(taskToken: string): Promise<void> {
+  return apiRequest<void>('DELETE', `${GENAGENTS_API}/tasks/${encodeURIComponent(taskToken)}/conversation`)
+}

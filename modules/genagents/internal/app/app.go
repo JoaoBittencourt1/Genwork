@@ -14,6 +14,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runexec"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/runs"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/skills"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/storagecleanup"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/taskruns"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/httpapi"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -68,6 +69,7 @@ func New(dependencies Dependencies) (http.Handler, error) {
 
 	runnerService := runexec.NewRunnerService(db, lifecycle, now)
 	runexec.NewRunnerHandler(runnerService, now).Register(router)
+	storagecleanup.NewStorageCleanupHandler(storagecleanup.NewStorageCleanupService(db, now)).Register(router)
 	accounts.NewAccountSignInHandler(accounts.NewAccountSignInService(db, secretCipher, now), runnerService).Register(router)
 	genworkTokens := runexec.NewGenworkTokenService(db, dependencies.Core, secretCipher, botService, lifecycle, now)
 	runnerAPI := runexec.NewRunnerAPIHandler(db, runnerService,

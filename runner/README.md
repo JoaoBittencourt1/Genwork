@@ -62,6 +62,10 @@ From a terminal on the runner, the same sign-in also works interactively:
 genwork-runner account login <account token>
 ```
 
+## Disk space
+
+Each release brings a new `genwork-sandbox` image. When it starts, the runner removes the sandbox images of other versions, keeping any a container still uses. **AI → Runners → Free up space** asks every runner to do it again on its next heartbeat and to remove workspaces nobody touched for a day. The Runners page then shows how much each runner freed. Custom images (`GENWORK_SANDBOX_IMAGE`) are never removed.
+
 ## Custom sandbox images
 
 Build on `genwork-sandbox` and label the CLIs you provide (`genwork.tool.<cli>=<version>`). The runner reads the tools and versions from the image labels and reports them.

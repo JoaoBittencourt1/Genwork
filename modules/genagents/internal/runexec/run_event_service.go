@@ -67,6 +67,10 @@ func (service *RunEventService) Ingest(ctx context.Context, runner runners.Runne
 		if err != nil {
 			return err
 		}
+		if !run.IsActive() {
+			result.State = run.State
+			return nil
+		}
 		for _, event := range events {
 			if !event.Type.IsRunnerEntry() || event.Sequence < 1 || !json.Valid(event.Payload) {
 				return httpapi.NewValidationError(map[string]string{"events": "invalid"})

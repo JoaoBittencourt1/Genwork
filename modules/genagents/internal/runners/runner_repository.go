@@ -14,7 +14,8 @@ import (
 type RunnerRepository struct{}
 
 const runnerColumns = `id, token, name, secret_hash IS NOT NULL, last_heartbeat_at, container_engine, sandbox_image, custom_image, directory_mode,
-       reported_tools, has_github_credentials, max_concurrency, revoked_at, created_at, registration_expires_at`
+       reported_tools, has_github_credentials, max_concurrency, revoked_at, created_at, registration_expires_at, cleanup_requested_at,
+       last_cleanup_at, last_cleanup_freed_bytes`
 
 func (repository RunnerRepository) Create(ctx context.Context, db platform.DBTX, name string, registrationTokenHash []byte, at time.Time) (Runner, error) {
 	var id int64
@@ -84,14 +85,25 @@ func (RunnerRepository) RecordHeartbeat(ctx context.Context, db platform.DBTX, i
 	}
 	_, err = db.Exec(ctx, `
 		UPDATE runners SET last_heartbeat_at = $2, container_engine = $3, sandbox_image = $4, custom_image = $9, directory_mode = $5, reported_tools = $6,
-		                   has_github_credentials = $7, max_concurrency = $8, updated_at = $2
+		                   has_github_credentials = $7, max_concurrency = $8, updated_at = $2,
+		                   last_cleanup_at = CASE WHEN $10::bigint IS NULL THEN last_cleanup_at ELSE $2 END,
+		                   last_cleanup_freed_bytes = COALESCE($10, last_cleanup_freed_bytes)
 		WHERE id = $1`,
 		id, heartbeat.At, nullIfEmpty(heartbeat.ContainerEngine), nullIfEmpty(heartbeat.SandboxImage), heartbeat.DirectoryMode, tools,
-		heartbeat.HasGithubCredentials, heartbeat.MaxConcurrency, heartbeat.CustomImage)
+		heartbeat.HasGithubCredentials, heartbeat.MaxConcurrency, heartbeat.CustomImage, heartbeat.CleanupFreedBytes)
 	if err != nil {
 		return fmt.Errorf("record heartbeat: %w", err)
 	}
 	return nil
+}
+
+// RequestCleanup asks every runner still in use to free space on its next heartbeat, and returns how many were asked.
+func (RunnerRepository) RequestCleanup(ctx context.Context, db platform.DBTX, at time.Time) (int, error) {
+	tag, err := db.Exec(ctx, `UPDATE runners SET cleanup_requested_at = $1, updated_at = $1 WHERE revoked_at IS NULL AND deleted_at IS NULL`, at)
+	if err != nil {
+		return 0, fmt.Errorf("request runner cleanup: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
 }
 
 // Revoke rejects the secret from now on: authentication looks the runner up by the secret hash of a non-revoked runner.
@@ -149,7 +161,7 @@ func scanRunner(row pgx.Row) (Runner, error) {
 	var tools []byte
 	err := row.Scan(&runner.ID, &runner.Token, &runner.Name, &runner.HasSecret, &runner.LastHeartbeatAt, &runner.ContainerEngine,
 		&runner.SandboxImage, &runner.CustomImage, &runner.DirectoryMode, &tools, &runner.HasGithubCredentials, &runner.MaxConcurrency,
-		&runner.RevokedAt, &runner.CreatedAt, &runner.RegistrationExpiresAt)
+		&runner.RevokedAt, &runner.CreatedAt, &runner.RegistrationExpiresAt, &runner.CleanupRequestedAt, &runner.LastCleanupAt, &runner.LastCleanupFreedBytes)
 	if err != nil {
 		return runner, err
 	}

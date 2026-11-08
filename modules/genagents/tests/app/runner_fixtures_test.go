@@ -48,6 +48,9 @@ type runnerBody struct {
 	SandboxImage          *string           `json:"sandboxImage"`
 	Tools                 map[string]string `json:"tools"`
 	RegistrationExpiresAt *time.Time        `json:"registrationExpiresAt"`
+	CleanupPending        bool              `json:"cleanupPending"`
+	LastCleanupAt         *time.Time        `json:"lastCleanupAt"`
+	LastCleanupFreedBytes *int64            `json:"lastCleanupFreedBytes"`
 }
 
 func (app *testApp) removeRunner(token string) response {

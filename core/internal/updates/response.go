@@ -42,3 +42,35 @@ func newUpdateStatusResponse(status UpdaterStatus) UpdateStatusResponse {
 	}
 	return response
 }
+
+type OutdatedImageResponse struct {
+	Reference string `json:"reference"`
+	Size      int64  `json:"size"`
+}
+
+type CleanupPreviewResponse struct {
+	Images     []OutdatedImageResponse `json:"images"`
+	TotalBytes int64                   `json:"totalBytes"`
+}
+
+type CleanupReportResponse struct {
+	Removed    []OutdatedImageResponse `json:"removed"`
+	Skipped    []OutdatedImageResponse `json:"skipped"`
+	FreedBytes int64                   `json:"freedBytes"`
+}
+
+func newOutdatedImageResponses(images []OutdatedImage) []OutdatedImageResponse {
+	responses := make([]OutdatedImageResponse, 0, len(images))
+	for _, image := range images {
+		responses = append(responses, OutdatedImageResponse{Reference: image.Reference, Size: image.Size})
+	}
+	return responses
+}
+
+func newCleanupPreviewResponse(preview CleanupPreview) CleanupPreviewResponse {
+	return CleanupPreviewResponse{Images: newOutdatedImageResponses(preview.Images), TotalBytes: preview.TotalBytes}
+}
+
+func newCleanupReportResponse(report CleanupReport) CleanupReportResponse {
+	return CleanupReportResponse{Removed: newOutdatedImageResponses(report.Removed), Skipped: newOutdatedImageResponses(report.Skipped), FreedBytes: report.FreedBytes}
+}

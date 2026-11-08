@@ -167,7 +167,13 @@ export type Runner = {
   hasGithubCredentials: boolean
   maxConcurrency: number
   tools: Record<string, string>
+  cleanupPending: boolean
+  lastCleanupAt: string | null
+  lastCleanupFreedBytes: number | null
 }
+
+// RunnersCleanup is what freeing space removed in genagents and how many runners were asked to clean up.
+export type RunnersCleanup = { removedSignIns: number; removedAuthorizations: number; runnersAsked: number }
 
 export type CreatedRunner = Runner & { registrationToken: string; registrationExpiresAt: string }
 

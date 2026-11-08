@@ -142,3 +142,38 @@ func TestClosingADirectorySessionKillsTheProcess(t *testing.T) {
 		t.Fatal("the process outlived its session")
 	}
 }
+
+func TestOutdatedSandboxImagesAreRemovedButNotTheCurrentOrOthers(t *testing.T) {
+	engine := enginetest.NewFakeEngine(t)
+	engine.StoredImages = []enginetest.StoredImage{
+		{ID: "a", RepoTags: []string{"ghcr.io/acme/genwork-sandbox:2.3.0"}, Size: 1000},
+		{ID: "b", RepoTags: []string{"ghcr.io/acme/genwork-sandbox:2.2.2"}, Size: 900},
+		{ID: "c", RepoTags: []string{"ghcr.io/acme/genwork-sandbox:2.2.1"}, Size: 800},
+		{ID: "d", RepoTags: []string{"ghcr.io/acme/genwork-sandbox:dev"}, Size: 700},
+		{ID: "e", RepoTags: []string{"ghcr.io/acme/genwork-core:2.2.2"}, Size: 600},
+		{ID: "f", RepoTags: []string{"registry.local:5000/team/genwork-sandbox:2.2.0"}, Size: 500},
+	}
+	engine.InUseImages = map[string]bool{"ghcr.io/acme/genwork-sandbox:2.2.1": true}
+	launcher := sandbox.NewContainerSandbox(engine.Socket())
+
+	freed, err := launcher.RemoveOutdatedImages(context.Background(), "ghcr.io/acme/genwork-sandbox:2.3.0")
+
+	if err != nil || freed != 900 {
+		t.Fatalf("freed = %d, err = %v", freed, err)
+	}
+	if len(engine.RemovedImages) != 1 || engine.RemovedImages[0] != "ghcr.io/acme/genwork-sandbox:2.2.2" {
+		t.Errorf("removed = %v", engine.RemovedImages)
+	}
+}
+
+func TestImageReferencesSplitAfterTheRegistryPort(t *testing.T) {
+	for reference, want := range map[string][2]string{
+		"ghcr.io/acme/genwork-sandbox:2.3.0":           {"ghcr.io/acme/genwork-sandbox", "2.3.0"},
+		"registry.local:5000/team/genwork-sandbox:1.0": {"registry.local:5000/team/genwork-sandbox", "1.0"},
+		"registry.local:5000/team/genwork-sandbox":     {"registry.local:5000/team/genwork-sandbox", ""},
+	} {
+		if repository, tag := sandbox.SplitImageReference(reference); repository != want[0] || tag != want[1] {
+			t.Errorf("%s → %s, %s", reference, repository, tag)
+		}
+	}
+}

@@ -3,6 +3,7 @@ import {
   conversationRefreshInterval,
   entryMessageKey,
   entryParams,
+  entryReviewLinks,
   entryText,
   isRunActive,
   isValidMessage,
@@ -92,5 +93,13 @@ describe('entry text', () => {
   it('reads the text of a message', () => {
     expect(entryText(entry(1, { text: 'hi' }))).toBe('hi')
     expect(entryText(entry(2))).toBe('')
+  })
+
+  it('shows a result summary and the reviews it posted', () => {
+    const result = entry(3, { summary: '4 findings', reviews: [{ url: 'https://github.com/acme/api/pull/12#pullrequestreview-1' }, { url: 7 }, null] })
+
+    expect(entryText(result)).toBe('4 findings')
+    expect(entryReviewLinks(result)).toEqual(['https://github.com/acme/api/pull/12#pullrequestreview-1'])
+    expect(entryReviewLinks(entry(4))).toEqual([])
   })
 })

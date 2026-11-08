@@ -14,7 +14,7 @@ import {
   modesFor,
   supportsMode,
 } from './providers'
-import { runnerCanBeRemoved, runnerRegisterCommand, runnersWithTool, runnerStatus, runnerWarnings } from './runners'
+import { runnerCanBeRemoved, runnerCleanupState, runnerRegisterCommand, runnersWithTool, runnerStatus, runnerWarnings } from './runners'
 import { addSkillFile, isValidSkillFilePath, isValidSkillName, MAX_SKILL_FILES, parseSkillMarkdown } from './skills'
 import type { ProviderCatalogEntry } from './types'
 
@@ -199,5 +199,18 @@ describe('skills', () => {
     expect(parseSkillMarkdown('no front matter')).toBeNull()
     expect(parseSkillMarkdown('---\nname: x\n---\nbody')).toBeNull()
     expect(parseSkillMarkdown('---\nname: x\ndescription: y\nbody')).toBeNull()
+  })
+})
+
+describe('runner cleanup', () => {
+  it('shows a pending request, then what the last cleanup freed', () => {
+    expect(runnerCleanupState(runnerFixture())).toEqual({ kind: 'none' })
+    expect(runnerCleanupState(runnerFixture({ cleanupPending: true, lastCleanupAt: '2026-11-07T10:00:00Z' }))).toEqual({ kind: 'pending' })
+    expect(runnerCleanupState(runnerFixture({ lastCleanupAt: '2026-11-08T10:00:00Z', lastCleanupFreedBytes: 2048 }))).toEqual({
+      kind: 'done',
+      at: '2026-11-08T10:00:00Z',
+      freedBytes: 2048,
+    })
+    expect(runnerCleanupState(runnerFixture({ lastCleanupAt: '2026-11-08T10:00:00Z', lastCleanupFreedBytes: null }))).toMatchObject({ freedBytes: 0 })
   })
 })

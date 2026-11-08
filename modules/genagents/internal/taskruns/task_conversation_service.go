@@ -179,3 +179,42 @@ func (service *TaskConversationService) StopRuns(ctx context.Context, caller Cal
 		return nil
 	})
 }
+
+// ClearConversation starts a task's bot conversation over: it cancels the active run and deletes every entry and run,
+// physically, because the person asked for the history to go (a documented rule 22 exception). A cancelled run still
+// held by a runner stays, without entries, until that runner sees the cancellation; a later run starts a new conversation.
+func (service *TaskConversationService) ClearConversation(ctx context.Context, caller Caller, taskToken string) error {
+	if _, err := service.gentasks.FindTaskContext(ctx, caller.AccessToken, taskToken); err != nil {
+		return err
+	}
+	conversation, err := service.conversations.FindByTaskToken(ctx, service.db, taskToken)
+	if errors.Is(err, runs.ErrConversationNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
+		active, err := service.runs.ListActiveForConversation(ctx, tx, conversation.ID)
+		if err != nil {
+			return err
+		}
+		held := make([]int64, 0, len(active))
+		for _, run := range active {
+			if err := service.lifecycle.Cancel(ctx, tx, run, runs.CauseUser, map[string]any{"by": caller.UserToken}); err != nil {
+				return err
+			}
+			if run.RunnerID != nil {
+				held = append(held, run.ID)
+			}
+		}
+		if err := service.entries.DeleteByConversation(ctx, tx, conversation.ID); err != nil {
+			return err
+		}
+		remaining, err := service.runs.DeleteByConversationExcept(ctx, tx, conversation.ID, held)
+		if err != nil || remaining > 0 {
+			return err
+		}
+		return service.conversations.Delete(ctx, tx, conversation.ID)
+	})
+}

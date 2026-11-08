@@ -37,3 +37,12 @@ export function runnerRegisterCommand(instanceUrl: string, registrationToken: st
 export function runnersWithTool(runners: Runner[], cli: string): Runner[] {
   return runners.filter((runner) => !runner.revoked && runner.registered && cli in runner.tools)
 }
+
+export type RunnerCleanupState = { kind: 'none' } | { kind: 'pending' } | { kind: 'done'; at: string; freedBytes: number }
+
+// runnerCleanupState says whether the runner still has to free space an admin asked for, or what its last cleanup freed.
+export function runnerCleanupState(runner: Runner): RunnerCleanupState {
+  if (runner.cleanupPending) return { kind: 'pending' }
+  if (runner.lastCleanupAt !== null) return { kind: 'done', at: runner.lastCleanupAt, freedBytes: runner.lastCleanupFreedBytes ?? 0 }
+  return { kind: 'none' }
+}

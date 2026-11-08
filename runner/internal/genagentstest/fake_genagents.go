@@ -47,6 +47,8 @@ type FakeGenagents struct {
 	// SignIns is what the sign-in poll returns; SignInReports records what the runner reported, in order.
 	SignIns       []map[string]any
 	SignInReports []SignInReport
+	// cleanupRequested is what heartbeats answer until a heartbeat reports a finished cleanup, as genagents does.
+	cleanupRequested bool
 	// GithubTokens maps a run token to the GitHub token the platform issues for it; a run without one gets 409.
 	GithubTokens map[string]string
 }
@@ -199,7 +201,10 @@ func (fake *FakeGenagents) heartbeat(w http.ResponseWriter, r *http.Request) {
 	if accounts == nil {
 		accounts = []map[string]string{}
 	}
-	write(w, http.StatusOK, map[string]any{"accounts": accounts})
+	if body["cleanup"] != nil {
+		fake.cleanupRequested = false
+	}
+	write(w, http.StatusOK, map[string]any{"accounts": accounts, "cleanupRequested": fake.cleanupRequested})
 }
 
 func (fake *FakeGenagents) claim(w http.ResponseWriter, r *http.Request) {
@@ -356,4 +361,18 @@ func (fake *FakeGenagents) githubToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, http.StatusOK, map[string]any{"token": token, "expiresAt": time.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
+}
+
+// RequestCleanup makes heartbeats ask the runner to free space.
+func (fake *FakeGenagents) RequestCleanup() {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.cleanupRequested = true
+}
+
+// HeartbeatsSnapshot returns the heartbeats so far.
+func (fake *FakeGenagents) HeartbeatsSnapshot() []map[string]any {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	return append([]map[string]any(nil), fake.Heartbeats...)
 }
