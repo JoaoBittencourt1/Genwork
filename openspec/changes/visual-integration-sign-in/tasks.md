@@ -10,4 +10,4 @@
 - [x] 1.8 web: sign-in button and panel, MCP connect, i18n en and pt-BR
 - [x] 1.9 README updates, VERSION 2.2.0
 - [x] 1.10 Run `make lint`, `make test`, `make build`
-- [ ] 1.11 Open PR
+- [x] 1.11 Open PR
