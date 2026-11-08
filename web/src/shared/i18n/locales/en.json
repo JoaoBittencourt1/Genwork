@@ -664,6 +664,7 @@
       "run_succeeded": "Finished.",
       "run_cancelled": "Cancelled ({{causeText}}).",
       "run_failed": "Failed: {{reasonText}}",
+      "run_failed_with_message": "Failed: {{reasonText}}. {{message}}",
       "only_dev_bots_work_tasks": "{{bot}} is not a dev bot, so it does not work on {{taskKey}}."
     },
     "cause": {

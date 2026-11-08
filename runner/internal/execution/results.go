@@ -141,3 +141,43 @@ func RenderReview(reviews []PullRequestReview) string {
 	}
 	return text.String()
 }
+
+// SplitFindingsByDiff separates the findings GitHub accepts as inline comments, on a line in the pull request's diff,
+// from the others. Without the diff (nil), every finding is tried inline.
+func SplitFindingsByDiff(findings []Finding, commentable map[string]map[int]bool) (inline, outside []Finding) {
+	for _, finding := range findings {
+		if commentable == nil || commentable[finding.Path][finding.Line] {
+			inline = append(inline, finding)
+		} else {
+			outside = append(outside, finding)
+		}
+	}
+	return inline, outside
+}
+
+func findingText(finding Finding) string {
+	return fmt.Sprintf("**%s**: %s", strings.ToUpper(finding.Severity), finding.Message)
+}
+
+// ReviewComments turns findings into inline review comments.
+func ReviewComments(findings []Finding) []ReviewComment {
+	comments := make([]ReviewComment, 0, len(findings))
+	for _, finding := range findings {
+		comments = append(comments, ReviewComment{Path: finding.Path, Line: finding.Line, Body: findingText(finding)})
+	}
+	return comments
+}
+
+// ReviewBody is the review's summary followed by the findings that cannot be inline comments, each with its location.
+func ReviewBody(summary string, outside []Finding) string {
+	if len(outside) == 0 {
+		return summary
+	}
+	var body strings.Builder
+	body.WriteString(summary)
+	body.WriteString("\n\n")
+	for _, finding := range outside {
+		fmt.Fprintf(&body, "- `%s:%d` %s\n", finding.Path, finding.Line, findingText(finding))
+	}
+	return strings.TrimRight(body.String(), "\n")
+}

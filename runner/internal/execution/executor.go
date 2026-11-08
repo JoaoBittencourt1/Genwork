@@ -46,6 +46,8 @@ type GithubPoster interface {
 	DefaultBranch(ctx context.Context, repository string) (string, error)
 	CreatePullRequest(ctx context.Context, repository, head, base, title, description string) (PullRequestCreated, error)
 	CreateReview(ctx context.Context, repository string, number int, summary string, comments []ReviewComment) (string, error)
+	// CommentableLines maps each changed file of a pull request to the new-version lines a review comment may target.
+	CommentableLines(ctx context.Context, repository string, number int) (map[string]map[int]bool, error)
 	// WithToken is the same poster authenticating with a run's own token.
 	WithToken(token string) GithubPoster
 }
@@ -104,6 +106,8 @@ type execution struct {
 	adapter   adapters.Adapter
 	workspace *workspace.Workspace
 	poster    *poster
+	// reviewRetried says the model was already asked once to resend an unreadable review.
+	reviewRetried bool
 	// github posts with the run's token from the platform, or the runner's own when the platform issued none.
 	github          GithubPoster
 	githubExpiresAt time.Time
