@@ -67,9 +67,15 @@ func Serve(ctx context.Context, getenv config.Getenv, options ServeOptions) erro
 			ProfileDir: settings.ProfileDir, PollInterval: options.PollInterval,
 		})
 	loop := claims.NewLoop(client, executor, settings.MaxConcurrency)
+	cleanup := newStorageCleanup(launcher, workspaces, settings)
+	go func() {
+		if freed, err := cleanup.removeOutdatedImages(ctx); err != nil || freed > 0 {
+			slog.Info("removed outdated sandbox images", "freedBytes", freed, "err", err)
+		}
+	}()
 	beat := heartbeat.NewLoop(client, launcher, heartbeat.Settings{
 		Image: settings.SandboxImage, CustomImage: settings.CustomImage, HasGithubCredentials: settings.HasGithubCredentials(),
-		MaxConcurrency: settings.MaxConcurrency, ProfilesDir: settings.ProfilesDir(), Interval: options.HeartbeatInterval,
+		MaxConcurrency: settings.MaxConcurrency, ProfilesDir: settings.ProfilesDir(), Interval: options.HeartbeatInterval, Cleanup: cleanup.run,
 	})
 	loops := []func(context.Context) error{beat.Run, loop.Run}
 	if interactive, ok := launcher.(sandbox.InteractiveLauncher); ok {

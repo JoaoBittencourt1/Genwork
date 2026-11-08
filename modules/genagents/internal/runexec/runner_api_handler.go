@@ -101,6 +101,12 @@ type HeartbeatRequest struct {
 	Tools                map[string]string `json:"tools"`
 	HasGithubCredentials bool              `json:"hasGithubCredentials"`
 	MaxConcurrency       int               `json:"maxConcurrency"`
+	// Cleanup is set on the one heartbeat after the runner finished a requested cleanup.
+	Cleanup *CleanupReportRequest `json:"cleanup"`
+}
+
+type CleanupReportRequest struct {
+	FreedBytes int64 `json:"freedBytes"`
 }
 
 type AccountAssignmentResponse struct {
@@ -110,6 +116,8 @@ type AccountAssignmentResponse struct {
 
 type HeartbeatResponse struct {
 	Accounts []AccountAssignmentResponse `json:"accounts"`
+	// CleanupRequested asks the runner to free space: an admin asked and the runner has not reported doing it since.
+	CleanupRequested bool `json:"cleanupRequested"`
 }
 
 func (handler *RunnerAPIHandler) heartbeat(w http.ResponseWriter, r *http.Request, runner runners.Runner) {
@@ -118,16 +126,20 @@ func (handler *RunnerAPIHandler) heartbeat(w http.ResponseWriter, r *http.Reques
 		httpapi.WriteError(w, r, err)
 		return
 	}
-	assignments, err := handler.runners.RecordHeartbeat(r.Context(), runner, runners.Heartbeat{
+	heartbeat := runners.Heartbeat{
 		ContainerEngine: request.ContainerEngine, SandboxImage: request.SandboxImage, CustomImage: request.CustomImage,
 		DirectoryMode: request.DirectoryMode, Tools: request.Tools, HasGithubCredentials: request.HasGithubCredentials, MaxConcurrency: request.MaxConcurrency,
-	})
+	}
+	if request.Cleanup != nil {
+		heartbeat.CleanupFreedBytes = &request.Cleanup.FreedBytes
+	}
+	answer, err := handler.runners.RecordHeartbeat(r.Context(), runner, heartbeat)
 	if err != nil {
 		httpapi.WriteError(w, r, err)
 		return
 	}
-	response := HeartbeatResponse{Accounts: make([]AccountAssignmentResponse, 0, len(assignments))}
-	for _, assignment := range assignments {
+	response := HeartbeatResponse{Accounts: make([]AccountAssignmentResponse, 0, len(answer.Assignments)), CleanupRequested: answer.CleanupRequested}
+	for _, assignment := range answer.Assignments {
 		response.Accounts = append(response.Accounts, AccountAssignmentResponse{Token: assignment.Token, Provider: string(assignment.Provider)})
 	}
 	httpapi.WriteJSON(w, http.StatusOK, response)

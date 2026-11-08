@@ -523,7 +523,10 @@
           "noOpenPullRequest": "Link an open or draft pull request first.",
           "noReviewerBot": "No reviewer bot is enabled."
         }
-      }
+      },
+      "clear": "Clear conversation",
+      "clearTitle": "Clear the bot conversation?",
+      "clearDescription": "Every message, tool call, and result of this task's bot is deleted for good. A bot that is working is stopped."
     }
   },
   "genmonitor": {
@@ -600,6 +603,17 @@
         "description": "Genwork will be unavailable for a few minutes. A backup of the database is taken first, and a failed update returns to the current version.",
         "action": "Update to v{{version}}"
       }
+    },
+    "cleanup": {
+      "title": "Free up space",
+      "reclaimable": "Earlier Genwork versions left {{count}} images on the server, {{size}} in total.",
+      "nothingToFree": "No image of an earlier Genwork version is left on the server.",
+      "action": "Free up space",
+      "confirmTitle": "Remove the images of earlier versions?",
+      "confirmDescription": "The server keeps only the images of the installed version. An image a container still uses is kept.",
+      "removed": "{{size}} freed.",
+      "removedWithSkipped": "{{size}} freed. {{skipped}} images are still in use and were kept.",
+      "nothingRemoved": "Nothing was left to remove."
     }
   },
   "assistants": {
@@ -898,7 +912,13 @@
       "deleteDescription": "“{{name}}” will be removed from the list. This cannot be undone.",
       "registerTitle": "Register the runner",
       "registerDescription": "Run this command on the runner's machine within one hour. The token works once and is not shown again.",
-      "registerCommand": "Register command"
+      "registerCommand": "Register command",
+      "cleanup": {
+        "action": "Free up space",
+        "asked": "Expired sign-ins and authorizations were removed, and {{count}} runners will free space on their next heartbeat.",
+        "pending": "Freeing space…",
+        "done": "Freed {{size}} on {{time}}"
+      }
     },
     "adminChat": {
       "title": "Admin chat",

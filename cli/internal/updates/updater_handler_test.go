@@ -25,7 +25,8 @@ func newUpdaterFixture(t *testing.T) *updaterFixture {
 	t.Helper()
 	fixture := &updaterFixture{runnerFixture: newRunnerFixture(t)}
 	service := NewUpdaterService(fixture.runner, func(context.Context, UpdateStatus) { fixture.replaced.Add(1) })
-	fixture.server = httptest.NewServer(NewUpdaterHandler(service, updaterSecret))
+	cleanup := NewImageCleanupService(&fakeImageStore{}, "ghcr.io/acme", func() (string, error) { return "2.3.0", nil }, func() bool { return false })
+	fixture.server = httptest.NewServer(NewUpdaterHandler(service, cleanup, updaterSecret))
 	t.Cleanup(fixture.server.Close)
 	return fixture
 }

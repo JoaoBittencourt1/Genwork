@@ -37,5 +37,13 @@ export function useTaskConversation(taskToken: string, enabled: boolean) {
     refetchInterval: conversationRefreshInterval({ activeRun, hidden }),
   })
 
-  return { entries, activeRun, query }
+  // reset forgets what was shown, for a conversation that was just cleared, and reads it again from the start.
+  const reset = () => {
+    lastSequence.current = 0
+    setEntries([])
+    setActiveRun(null)
+    void query.refetch()
+  }
+
+  return { entries, activeRun, query, reset }
 }

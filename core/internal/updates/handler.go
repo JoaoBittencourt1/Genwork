@@ -15,12 +15,33 @@ func NewUpdateHandler(service *UpdateService) *UpdateHandler {
 	return &UpdateHandler{service: service}
 }
 
-// Register guards every route with core.system.update, so the updater never hears from anyone else (rule 18).
+// Register guards every route with core.system.update, so the updater never hears from anyone else (rule 18): updates and
+// the removal of earlier versions' images.
 func (handler *UpdateHandler) Register(router *platform.Router) {
 	policy := platform.RequirePermission(access.PermissionSystemUpdate)
 	router.HandleFunc("GET /api/core/v1/system/update", policy, handler.findStatus)
 	router.HandleFunc("POST /api/core/v1/system/update/check", policy, handler.checkForUpdates)
 	router.HandleFunc("POST /api/core/v1/system/update", policy, handler.startUpdate)
+	router.HandleFunc("GET /api/core/v1/system/cleanup", policy, handler.previewCleanup)
+	router.HandleFunc("POST /api/core/v1/system/cleanup", policy, handler.removeOutdatedImages)
+}
+
+func (handler *UpdateHandler) previewCleanup(w http.ResponseWriter, r *http.Request) {
+	preview, err := handler.service.PreviewCleanup(r.Context())
+	if err != nil {
+		platform.WriteError(w, r, err)
+		return
+	}
+	platform.WriteJSON(w, http.StatusOK, newCleanupPreviewResponse(preview))
+}
+
+func (handler *UpdateHandler) removeOutdatedImages(w http.ResponseWriter, r *http.Request) {
+	report, err := handler.service.RemoveOutdatedImages(r.Context())
+	if err != nil {
+		platform.WriteError(w, r, err)
+		return
+	}
+	platform.WriteJSON(w, http.StatusOK, newCleanupReportResponse(report))
 }
 
 func (handler *UpdateHandler) findStatus(w http.ResponseWriter, r *http.Request) {

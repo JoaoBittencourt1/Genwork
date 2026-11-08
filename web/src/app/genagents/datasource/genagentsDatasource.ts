@@ -18,6 +18,7 @@ import type {
   NewSkill,
   ProviderCatalogEntry,
   Runner,
+  RunnersCleanup,
   Skill,
   SkillPatch,
   StartMcpOAuth,
@@ -141,6 +142,11 @@ export async function listRunners(): Promise<Runner[]> {
 
 export function createRunner(name: string): Promise<CreatedRunner> {
   return apiRequest<CreatedRunner>('POST', `${API}/runners`, { body: { name } })
+}
+
+// cleanRunners removes genagents' expired sign-ins and authorizations and asks every runner to free space.
+export function cleanRunners(): Promise<RunnersCleanup> {
+  return apiRequest<RunnersCleanup>('POST', `${API}/runners/cleanup`)
 }
 
 export function revokeRunner(runnerToken: string): Promise<void> {

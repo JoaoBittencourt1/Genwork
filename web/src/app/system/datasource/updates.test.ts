@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { setAccessToken } from '@/shared/datasource/httpClient'
 import { availableUpdateFixture, updateStatusFixture, updatingFixture } from '@/test/systemFixtures'
 import { captureRequests, errorResponse } from '@/test/server'
-import { checkForUpdates, findUpdateStatus, startUpdate } from './updates'
+import { checkForUpdates, findCleanupPreview, findUpdateStatus, removeOutdatedImages, startUpdate } from './updates'
 
 describe('updates datasource', () => {
   it('reads the update status', async () => {
@@ -41,5 +41,22 @@ describe('updates datasource', () => {
 
     await expect(startUpdate('0.5.2')).rejects.toMatchObject({ status, code })
     await expect(checkForUpdates()).rejects.toMatchObject({ status, code })
+  })
+
+  it('previews and runs the server cleanup', async () => {
+    const preview = { images: [{ reference: 'ghcr.io/acme/genwork-core:2.2.3', size: 100 }], totalBytes: 100 }
+    const report = { removed: preview.images, skipped: [], freedBytes: 100 }
+    captureRequests('get', '*/api/core/v1/system/cleanup', () => HttpResponse.json(preview))
+    const removals = captureRequests('post', '*/api/core/v1/system/cleanup', () => HttpResponse.json(report))
+
+    await expect(findCleanupPreview()).resolves.toEqual(preview)
+    await expect(removeOutdatedImages()).resolves.toEqual(report)
+    expect(removals).toHaveLength(1)
+  })
+
+  it('surfaces a cleanup refused during an update', async () => {
+    captureRequests('post', '*/api/core/v1/system/cleanup', () => errorResponse(409, 'update_in_progress'))
+
+    await expect(removeOutdatedImages()).rejects.toMatchObject({ code: 'update_in_progress' })
   })
 })

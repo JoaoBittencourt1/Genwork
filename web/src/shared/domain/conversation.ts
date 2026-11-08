@@ -88,6 +88,15 @@ export function entryParams(entry: ConversationEntry): Record<string, unknown> {
   return typeof entry.payload.reason === 'string' ? { ...base, reason: entry.payload.reason } : base
 }
 
+// entryText is a message's text; a result the runner reported carries a summary instead.
 export function entryText(entry: ConversationEntry): string {
-  return typeof entry.payload.text === 'string' ? entry.payload.text : ''
+  if (typeof entry.payload.text === 'string' && entry.payload.text !== '') return entry.payload.text
+  return typeof entry.payload.summary === 'string' ? entry.payload.summary : ''
+}
+
+// entryReviewLinks are the GitHub reviews a review run posted, in its result.
+export function entryReviewLinks(entry: ConversationEntry): string[] {
+  const reviews = entry.payload.reviews
+  if (!Array.isArray(reviews)) return []
+  return reviews.flatMap((review) => (review && typeof review === 'object' && typeof (review as { url?: unknown }).url === 'string' ? [(review as { url: string }).url] : []))
 }

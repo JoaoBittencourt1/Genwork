@@ -235,3 +235,18 @@ func (RunRepository) ListRecent(ctx context.Context, db platform.DBTX, activeOnl
 	}
 	return listed, nil
 }
+
+// DeleteByConversationExcept removes a conversation's runs but the kept ones, and returns how many runs it still has.
+func (RunRepository) DeleteByConversationExcept(ctx context.Context, db platform.DBTX, conversationID int64, keptIDs []int64) (int, error) {
+	if keptIDs == nil {
+		keptIDs = []int64{}
+	}
+	if _, err := db.Exec(ctx, `DELETE FROM runs WHERE conversation_id = $1 AND NOT (id = ANY($2))`, conversationID, keptIDs); err != nil {
+		return 0, fmt.Errorf("delete conversation runs: %w", err)
+	}
+	var remaining int
+	if err := db.QueryRow(ctx, `SELECT count(*) FROM runs WHERE conversation_id = $1`, conversationID).Scan(&remaining); err != nil {
+		return 0, fmt.Errorf("count conversation runs: %w", err)
+	}
+	return remaining, nil
+}

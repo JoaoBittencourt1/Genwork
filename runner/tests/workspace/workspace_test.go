@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/gitremotetest"
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/workspace"
@@ -290,5 +291,36 @@ func TestLocalCommandsDoNotReceiveTheToken(t *testing.T) {
 
 	if data, err := os.ReadFile(leak); err == nil && strings.Contains(string(data), token) {
 		t.Error("a local command ran the repository's fsmonitor with the token")
+	}
+}
+
+func TestOnlyIdleWorkspacesAreRemoved(t *testing.T) {
+	root := t.TempDir()
+	manager := workspace.NewManager(root, "", "")
+	idle, _ := manager.Create("idle-run")
+	busy, _ := manager.Create("busy-run")
+	if err := os.WriteFile(filepath.Join(idle.Dir, "big.bin"), make([]byte, 4096), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(busy.Dir, "work.txt"), []byte("in progress"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	old := time.Now().Add(-48 * time.Hour)
+	for _, path := range []string{filepath.Join(idle.Dir, "big.bin"), idle.Dir} {
+		if err := os.Chtimes(path, old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	freed, err := manager.RemoveIdle(24*time.Hour, time.Now())
+
+	if err != nil || freed != 4096 {
+		t.Fatalf("freed = %d, err = %v", freed, err)
+	}
+	if _, err := os.Stat(idle.Dir); !os.IsNotExist(err) {
+		t.Error("the idle workspace survived")
+	}
+	if _, err := os.Stat(busy.Dir); err != nil {
+		t.Errorf("the busy workspace was removed: %v", err)
 	}
 }

@@ -14,8 +14,7 @@ import (
 const scannerTailBytes = 2000
 
 var (
-	terminalEscapePattern = regexp.MustCompile(`\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-9;?<>=]*[ -/]*[@-~]|\x1b[()][A-Za-z0-9]|\x1b[=>78DEHMc]`)
-	httpsURLPattern       = regexp.MustCompile(`https://[^\s"'<>\x00-\x1f\x7f]+`)
+	httpsURLPattern = regexp.MustCompile(`https://[^\s"'<>\x00-\x1f\x7f]+`)
 )
 
 // Prompt is what a person needs from the CLI: the page to open and, for a device flow, the code to enter there.
@@ -64,7 +63,7 @@ func (scanner *PromptScanner) Flush() {
 }
 
 func (scanner *PromptScanner) examine(line string) {
-	readable := StripTerminalEscapes(line)
+	readable := adapters.StripTerminalEscapes(line)
 	if strings.TrimSpace(readable) == "" {
 		return
 	}
@@ -92,10 +91,5 @@ func (scanner *PromptScanner) Prompt() Prompt {
 func (scanner *PromptScanner) Tail(secrets ...string) string {
 	scanner.mutex.Lock()
 	defer scanner.mutex.Unlock()
-	return strings.TrimSpace(adapters.Redact(scanner.tail+StripTerminalEscapes(scanner.pending), secrets...))
-}
-
-// StripTerminalEscapes removes colors, cursor moves, and hyperlink sequences, leaving the text a person would read.
-func StripTerminalEscapes(text string) string {
-	return terminalEscapePattern.ReplaceAllString(text, "")
+	return strings.TrimSpace(adapters.Redact(scanner.tail+adapters.StripTerminalEscapes(scanner.pending), secrets...))
 }

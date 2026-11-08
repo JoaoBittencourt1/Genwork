@@ -55,3 +55,15 @@ func translateUpdaterError(err error) error {
 		return ErrUpdaterUnavailable
 	}
 }
+
+// PreviewCleanup lists the images of earlier versions the server still holds.
+func (service *UpdateService) PreviewCleanup(ctx context.Context) (CleanupPreview, error) {
+	preview, err := service.updater.PreviewCleanup(ctx)
+	return preview, translateUpdaterError(err)
+}
+
+// RemoveOutdatedImages asks the updater, the only container with the Docker socket, to remove them (rule 84).
+func (service *UpdateService) RemoveOutdatedImages(ctx context.Context) (CleanupReport, error) {
+	report, err := service.updater.RemoveOutdatedImages(ctx)
+	return report, translateUpdaterError(err)
+}

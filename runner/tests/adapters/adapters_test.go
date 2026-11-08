@@ -370,3 +370,16 @@ func TestCodexDeviceCodePatternMatchesItsOneTimeCode(t *testing.T) {
 		t.Errorf("code = %q", got)
 	}
 }
+
+func TestTerminalControlSequencesNeverBecomeBotMessages(t *testing.T) {
+	for _, provider := range []string{"anthropic", "openai"} {
+		adapter, _ := adapters.For(provider)
+		parser := adapter.NewParser(nil)
+
+		events := append(parser.Feed([]byte("\x1b[?25h")), parser.Feed([]byte("\x1b[1mDone\x1b[0m"))...)
+
+		if len(events) != 1 || events[0].Payload["text"] != "Done" {
+			t.Errorf("%s events = %+v", provider, events)
+		}
+	}
+}

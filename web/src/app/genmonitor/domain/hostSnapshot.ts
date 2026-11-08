@@ -26,8 +26,6 @@ export const HIGH_USAGE_PERCENT = 90
 // Until a snapshot arrives there is no server pace to follow; this is how long to wait before asking again.
 export const RETRY_INTERVAL_MS = 5000
 
-const BYTE_UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte', 'petabyte'] as const
-const BYTES_PER_UNIT = 1024
 
 export function refreshIntervalMs(snapshot: HostSnapshot | undefined): number {
   return snapshot ? snapshot.sampleIntervalSeconds * 1000 : RETRY_INTERVAL_MS
@@ -46,24 +44,6 @@ export function usageLevel(percent: number): UsageLevel {
 
 export function formatPercent(percent: number, locale: string): string {
   return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 1 }).format(percent / 100)
-}
-
-export function formatBytes(bytes: number, locale: string): string {
-  return formatInByteUnits(bytes, locale, '')
-}
-
-export function formatBytesPerSecond(bytesPerSecond: number, locale: string): string {
-  return formatInByteUnits(bytesPerSecond, locale, '-per-second')
-}
-
-function formatInByteUnits(bytes: number, locale: string, unitSuffix: string): string {
-  const exponent = bytes < BYTES_PER_UNIT ? 0 : Math.min(BYTE_UNITS.length - 1, Math.floor(Math.log(bytes) / Math.log(BYTES_PER_UNIT)))
-  return new Intl.NumberFormat(locale, {
-    style: 'unit',
-    unit: `${BYTE_UNITS[exponent]}${unitSuffix}`,
-    unitDisplay: 'short',
-    maximumFractionDigits: exponent === 0 ? 0 : 1,
-  }).format(bytes / BYTES_PER_UNIT ** exponent)
 }
 
 export type UptimePart = { unit: 'days' | 'hours' | 'minutes'; count: number }

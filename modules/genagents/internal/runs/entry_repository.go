@@ -103,3 +103,11 @@ func scanEntry(row pgx.Row) (Entry, error) {
 		&entry.Payload, &entry.DeliveredAt, &entry.CreatedAt)
 	return entry, err
 }
+
+// DeleteByConversation removes every entry of a conversation, for a person clearing it (a documented rule 22 exception).
+func (EntryRepository) DeleteByConversation(ctx context.Context, db platform.DBTX, conversationID int64) error {
+	if _, err := db.Exec(ctx, `DELETE FROM conversation_entries WHERE conversation_id = $1`, conversationID); err != nil {
+		return fmt.Errorf("delete conversation entries: %w", err)
+	}
+	return nil
+}

@@ -164,3 +164,13 @@ func scanConnection(row pgx.Row) (OAuthConnection, error) {
 	connection.Setup.ClientID, connection.Setup.TokenEndpointAuthMethod = stringValue(clientID), stringValue(authMethod)
 	return connection, err
 }
+
+// DeleteFinishedAuthorizationsBefore removes round trips that were used or expired before the cutoff.
+func (McpServerOAuthRepository) DeleteFinishedAuthorizationsBefore(ctx context.Context, db platform.DBTX, cutoff time.Time) (int, error) {
+	tag, err := db.Exec(ctx, `
+		DELETE FROM mcp_server_oauth_authorizations WHERE COALESCE(consumed_at, expires_at) < $1`, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("delete finished oauth authorizations: %w", err)
+	}
+	return int(tag.RowsAffected()), nil
+}

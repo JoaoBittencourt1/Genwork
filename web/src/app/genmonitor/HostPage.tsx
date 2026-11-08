@@ -10,7 +10,8 @@ import { NetworkCard } from './components/NetworkCard'
 import { SystemCard } from './components/SystemCard'
 import { UsageCard } from './components/UsageCard'
 import { useHostSnapshot } from './components/useHostSnapshot'
-import { formatBytes, usedPercent } from './domain/hostSnapshot'
+import { formatBytes } from '@/shared/domain/byteUnits'
+import { usedPercent } from './domain/hostSnapshot'
 import { GENMONITOR_PERMISSIONS } from './domain/permissions'
 
 export function HostPage() {

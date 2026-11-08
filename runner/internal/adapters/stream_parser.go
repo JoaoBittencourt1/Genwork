@@ -35,7 +35,7 @@ type streamLine struct {
 }
 
 func (parser *streamParser) Feed(line []byte) []Event {
-	trimmed := strings.TrimSpace(string(line))
+	trimmed := strings.TrimSpace(StripTerminalEscapes(string(line)))
 	if trimmed == "" {
 		return nil
 	}

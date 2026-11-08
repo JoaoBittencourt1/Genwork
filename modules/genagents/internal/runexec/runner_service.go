@@ -122,30 +122,41 @@ type AccountAssignment struct {
 	Provider accounts.Provider
 }
 
-// RecordHeartbeat stores what the runner reports and answers which subscription accounts it should hold profiles for, so
-// it can delete the profile of an account that was removed.
-func (service *RunnerService) RecordHeartbeat(ctx context.Context, runner runners.Runner, heartbeat runners.Heartbeat) ([]AccountAssignment, error) {
+// HeartbeatAnswer tells the runner which subscription accounts it holds profiles for, so it can delete the profile of an
+// account that was removed, and whether an admin asked it to free space.
+type HeartbeatAnswer struct {
+	Assignments      []AccountAssignment
+	CleanupRequested bool
+}
+
+// RecordHeartbeat stores what the runner reports, including a finished cleanup, and answers what it should do.
+func (service *RunnerService) RecordHeartbeat(ctx context.Context, runner runners.Runner, heartbeat runners.Heartbeat) (HeartbeatAnswer, error) {
 	if err := validateHeartbeat(heartbeat); err != nil {
-		return nil, err
+		return HeartbeatAnswer{}, err
 	}
 	heartbeat.At = service.now()
 	if err := service.runners.RecordHeartbeat(ctx, service.db, runner.ID, heartbeat); err != nil {
-		return nil, err
+		return HeartbeatAnswer{}, err
+	}
+	recorded, err := service.runners.FindByID(ctx, service.db, runner.ID)
+	if err != nil {
+		return HeartbeatAnswer{}, err
 	}
 	bound, err := service.accounts.ListSubscriptionByRunner(ctx, service.db, runner.ID)
 	if err != nil {
-		return nil, err
+		return HeartbeatAnswer{}, err
 	}
-	assignments := make([]AccountAssignment, 0, len(bound))
+	answer := HeartbeatAnswer{Assignments: make([]AccountAssignment, 0, len(bound)), CleanupRequested: recorded.CleanupPending()}
 	for _, account := range bound {
-		assignments = append(assignments, AccountAssignment{Token: account.Token, Provider: account.Provider})
+		answer.Assignments = append(answer.Assignments, AccountAssignment{Token: account.Token, Provider: account.Provider})
 	}
-	return assignments, nil
+	return answer, nil
 }
 
 func validateHeartbeat(heartbeat runners.Heartbeat) error {
 	invalid := heartbeat.MaxConcurrency < 1 || heartbeat.MaxConcurrency > 64 || len(heartbeat.Tools) > 20 ||
-		len(heartbeat.ContainerEngine) > 100 || len(heartbeat.SandboxImage) > 300
+		len(heartbeat.ContainerEngine) > 100 || len(heartbeat.SandboxImage) > 300 ||
+		(heartbeat.CleanupFreedBytes != nil && *heartbeat.CleanupFreedBytes < 0)
 	for name, version := range heartbeat.Tools {
 		invalid = invalid || name == "" || len(name) > 50 || len(version) > 100
 	}

@@ -41,6 +41,14 @@ type Runner struct {
 	RevokedAt             *time.Time
 	CreatedAt             time.Time
 	RegistrationExpiresAt *time.Time
+	CleanupRequestedAt    *time.Time
+	LastCleanupAt         *time.Time
+	LastCleanupFreedBytes *int64
+}
+
+// CleanupPending says an admin asked the runner to free space and it has not reported doing it since.
+func (runner Runner) CleanupPending() bool {
+	return runner.CleanupRequestedAt != nil && (runner.LastCleanupAt == nil || runner.LastCleanupAt.Before(*runner.CleanupRequestedAt))
 }
 
 func (runner Runner) IsRevoked() bool {
@@ -82,5 +90,7 @@ type Heartbeat struct {
 	Tools                map[string]string
 	HasGithubCredentials bool
 	MaxConcurrency       int
-	At                   time.Time
+	// CleanupFreedBytes is set on the one heartbeat after the runner finished a requested cleanup.
+	CleanupFreedBytes *int64
+	At                time.Time
 }

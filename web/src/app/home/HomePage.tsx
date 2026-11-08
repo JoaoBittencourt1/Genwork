@@ -7,6 +7,7 @@ import { HomeBoardsSection } from '@/app/gentasks/components/HomeBoardsSection'
 import { useAssignedTasks } from '@/app/gentasks/components/useAssignedTasks'
 import { useBoardList } from '@/app/gentasks/components/useBoardList'
 import { useGentasksAbilities } from '@/app/gentasks/components/useGentasksAbilities'
+import { CleanupCard } from '@/app/system/components/CleanupCard'
 import { UpdateCard } from '@/app/system/components/UpdateCard'
 import { useCapabilities } from '@/shared/components/CapabilitiesContext'
 import { PageContent } from '@/shared/components/PageContent'
@@ -49,6 +50,7 @@ export function HomePage() {
           <p className="text-muted-foreground">{t('home.description', { email: state.me.email, role: state.me.role.name })}</p>
         </section>
         {can(PERMISSIONS.systemUpdate) ? <UpdateCard /> : null}
+        {can(PERMISSIONS.systemUpdate) ? <CleanupCard /> : null}
         {checklist.totalCount > 0 ? <OnboardingChecklist checklist={checklist} /> : null}
         {showsGentasks ? (
           <div className="grid gap-6 md:grid-cols-2">

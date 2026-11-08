@@ -79,6 +79,7 @@ func (handler *TaskRunHandler) Register(router *httpapi.Router) {
 	router.HandleFunc("GET /api/genagents/v1/tasks/{taskToken}/conversation", read, handler.readConversation)
 	router.HandleFunc("POST /api/genagents/v1/tasks/{taskToken}/conversation/messages", write, handler.postMessage)
 	router.HandleFunc("POST /api/genagents/v1/tasks/{taskToken}/conversation/stop", write, handler.stopRuns)
+	router.HandleFunc("DELETE /api/genagents/v1/tasks/{taskToken}/conversation", write, handler.clearConversation)
 }
 
 func callerFrom(r *http.Request) Caller {
@@ -184,4 +185,12 @@ func (handler *TaskRunHandler) listRuns(w http.ResponseWriter, r *http.Request) 
 		})
 	}
 	httpapi.WriteJSON(w, http.StatusOK, response)
+}
+
+func (handler *TaskRunHandler) clearConversation(w http.ResponseWriter, r *http.Request) {
+	if err := handler.conversations.ClearConversation(r.Context(), callerFrom(r), r.PathValue("taskToken")); err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

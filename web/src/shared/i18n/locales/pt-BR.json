@@ -523,7 +523,10 @@
           "noOpenPullRequest": "Vincule antes um pull request aberto ou em rascunho.",
           "noReviewerBot": "Nenhum bot revisor está habilitado."
         }
-      }
+      },
+      "clear": "Limpar conversa",
+      "clearTitle": "Limpar a conversa do bot?",
+      "clearDescription": "Todas as mensagens, ações e resultados do bot nesta tarefa são apagados de vez. Se o bot estiver trabalhando, ele é parado."
     }
   },
   "genmonitor": {
@@ -600,6 +603,17 @@
         "description": "O Genwork fica indisponível por alguns minutos. Antes, é feito um backup do banco de dados, e uma atualização que falhar volta para a versão atual.",
         "action": "Atualizar para v{{version}}"
       }
+    },
+    "cleanup": {
+      "title": "Liberar espaço",
+      "reclaimable": "Versões anteriores do Genwork deixaram {{count}} imagens no servidor, {{size}} no total.",
+      "nothingToFree": "Não sobrou nenhuma imagem de versão anterior do Genwork no servidor.",
+      "action": "Liberar espaço",
+      "confirmTitle": "Remover as imagens das versões anteriores?",
+      "confirmDescription": "O servidor fica só com as imagens da versão instalada. Uma imagem que algum container ainda usa é mantida.",
+      "removed": "{{size}} liberados.",
+      "removedWithSkipped": "{{size}} liberados. {{skipped}} imagens ainda estão em uso e foram mantidas.",
+      "nothingRemoved": "Não havia nada para remover."
     }
   },
   "assistants": {
@@ -898,7 +912,13 @@
       "deleteDescription": "“{{name}}” sai da lista. Isso não pode ser desfeito.",
       "registerTitle": "Registrar o runner",
       "registerDescription": "Rode este comando na máquina do runner em até uma hora. O token vale uma vez e não é mostrado de novo.",
-      "registerCommand": "Comando de registro"
+      "registerCommand": "Comando de registro",
+      "cleanup": {
+        "action": "Liberar espaço",
+        "asked": "Logins e autorizações vencidos foram removidos, e {{count}} runners vão liberar espaço no próximo heartbeat.",
+        "pending": "Liberando espaço…",
+        "done": "Liberou {{size}} em {{time}}"
+      }
     },
     "adminChat": {
       "title": "Chat de admin",

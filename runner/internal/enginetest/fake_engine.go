@@ -14,6 +14,13 @@ import (
 	"testing"
 )
 
+// StoredImage is an image the stub lists.
+type StoredImage struct {
+	ID       string   `json:"Id"`
+	RepoTags []string `json:"RepoTags"`
+	Size     int64    `json:"Size"`
+}
+
 // Container is what the stub remembers of one created container.
 type Container struct {
 	ID      string
@@ -47,6 +54,10 @@ type FakeEngine struct {
 	TerminalOutput string
 	TerminalReply  string
 	TerminalInput  string
+	// StoredImages is what /images/json lists; InUseImages are tags a container uses, which removal refuses.
+	StoredImages  []StoredImage
+	InUseImages   map[string]bool
+	RemovedImages []string
 	// EngineCPUs and EngineMemory are what /info reports; zero CPUs makes /info answer 404, as an engine that does not say.
 	EngineCPUs   int
 	EngineMemory int64
@@ -119,6 +130,13 @@ func (engine *FakeEngine) serve(w http.ResponseWriter, r *http.Request) {
 		write(w, http.StatusOK, map[string]any{"NCPU": engine.EngineCPUs, "MemTotal": engine.EngineMemory})
 	case r.Method == "GET" && path == "/version":
 		write(w, http.StatusOK, map[string]any{"Platform": map[string]any{"Name": "Docker Engine - Community"}, "Version": "27.0.1"})
+	case r.Method == "GET" && path == "/images/json":
+		engine.mutex.Lock()
+		listed := append([]StoredImage{}, engine.StoredImages...)
+		engine.mutex.Unlock()
+		write(w, http.StatusOK, listed)
+	case r.Method == "DELETE" && strings.HasPrefix(path, "/images/"):
+		engine.removeImage(w, strings.TrimPrefix(path, "/images/"))
 	case r.Method == "GET" && strings.HasPrefix(path, "/images/") && strings.HasSuffix(path, "/json"):
 		engine.serveImage(w)
 	case r.Method == "POST" && path == "/images/create":
@@ -293,4 +311,15 @@ func (engine *FakeEngine) Typed() string {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	return engine.TerminalInput
+}
+
+func (engine *FakeEngine) removeImage(w http.ResponseWriter, reference string) {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
+	if engine.InUseImages[reference] {
+		write(w, http.StatusConflict, map[string]any{"message": "image is being used by running container"})
+		return
+	}
+	engine.RemovedImages = append(engine.RemovedImages, reference)
+	write(w, http.StatusOK, []map[string]string{{"Untagged": reference}})
 }
