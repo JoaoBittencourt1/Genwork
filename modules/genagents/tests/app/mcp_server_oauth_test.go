@@ -305,3 +305,81 @@ func TestDisconnectingRemovesTheTokensFromRuns(t *testing.T) {
 	}
 	expectError(t, app.do(request{method: "DELETE", path: "/api/genagents/v1/mcp-servers/" + server.Token + "/oauth"}), http.StatusNotFound, "oauth_not_connected")
 }
+
+func TestChangingTheServerURLDropsItsOAuthTokens(t *testing.T) {
+	app := newTestApp(t)
+	fake := mcpserverstest.NewFakeAuthorizationServer(t)
+	server := app.createOAuthServer(fake)
+	app.connectOAuth(fake, server.Token)
+	pending := app.authorizationOf(server.Token, nil)
+
+	resp := app.do(request{method: "PATCH", path: "/api/genagents/v1/mcp-servers/" + server.Token, body: map[string]any{"url": "https://other-provider.example/mcp"}})
+
+	expectStatus(t, resp, http.StatusOK)
+	if got := app.oauthServer(server.Token); got.OAuth != nil {
+		t.Errorf("the connection survived the URL change: %+v", got.OAuth)
+	}
+	if got := app.claimedAuthorization(server.Token); got != "" {
+		t.Errorf("the old provider's token went to the new URL: %q", got)
+	}
+	callback := app.oauthCallback(url.Values{"state": {pending.Get("state")}, "code": {fake.Approve(pending.Get("code_challenge"))}})
+	if !strings.Contains(callback.header("Location"), "reason=invalid_state") {
+		t.Errorf("an authorization started before the change completed: %q", callback.header("Location"))
+	}
+}
+
+func TestATokenIssuedForAnotherURLIsNeverAttached(t *testing.T) {
+	app := newTestApp(t)
+	fake := mcpserverstest.NewFakeAuthorizationServer(t)
+	server := app.createOAuthServer(fake)
+	app.connectOAuth(fake, server.Token)
+	if _, err := app.db.Exec(context.Background(), `UPDATE mcp_servers SET config = jsonb_set(config, '{url}', '"https://elsewhere.example/mcp"') WHERE token = $1`, server.Token); err != nil {
+		t.Fatal(err)
+	}
+
+	if got := app.claimedAuthorization(server.Token); got != "" {
+		t.Errorf("header = %q", got)
+	}
+	if got := app.oauthServer(server.Token); got.OAuth == nil || got.OAuth.Status != "error" || *got.OAuth.LastError != "server_url_changed" {
+		t.Errorf("server = %+v", got.OAuth)
+	}
+}
+
+func TestAnUnfinishedReconnectionKeepsTheActiveClientAndTokens(t *testing.T) {
+	app := newTestApp(t)
+	fake := mcpserverstest.NewFakeAuthorizationServer(t)
+	server := app.createOAuthServer(fake)
+	app.connectOAuth(fake, server.Token)
+	app.authorizationOf(server.Token, map[string]any{"clientId": mcpserverstest.ManualClientID, "clientSecret": mcpserverstest.ManualClientSecret})
+	app.clock.Advance(56 * time.Minute)
+
+	if got := app.claimedAuthorization(server.Token); got != "Bearer mcp-access-2" {
+		t.Errorf("header after refresh = %q", got)
+	}
+	tokens := fake.Tokens()
+	if last := tokens[len(tokens)-1]; last["grant_type"] != "refresh_token" || last["client_id"] != mcpserverstest.RegisteredClientID {
+		t.Errorf("the refresh did not use the active client: %v", last)
+	}
+	if got := app.oauthServer(server.Token); got.OAuth.Status != "connected" || *got.OAuth.ClientID != mcpserverstest.RegisteredClientID {
+		t.Errorf("server = %+v", got.OAuth)
+	}
+}
+
+func TestAReconnectionReplacesClientAndTokensOnlyWhenItSucceeds(t *testing.T) {
+	app := newTestApp(t)
+	fake := mcpserverstest.NewFakeAuthorizationServer(t)
+	server := app.createOAuthServer(fake)
+	app.connectOAuth(fake, server.Token)
+	denied := app.authorizationOf(server.Token, nil)
+	app.oauthCallback(url.Values{"state": {denied.Get("state")}, "error": {"access_denied"}})
+	if got := app.oauthServer(server.Token); got.OAuth.Status != "connected" {
+		t.Fatalf("an abandoned reconnection broke the connection: %+v", got.OAuth)
+	}
+
+	manual := app.authorizationOf(server.Token, map[string]any{"clientId": mcpserverstest.ManualClientID, "clientSecret": mcpserverstest.ManualClientSecret})
+	expectStatus(t, app.oauthCallback(url.Values{"state": {manual.Get("state")}, "code": {fake.Approve(manual.Get("code_challenge"))}}), http.StatusSeeOther)
+
+	if got := app.oauthServer(server.Token); got.OAuth.Status != "connected" || *got.OAuth.ClientID != mcpserverstest.ManualClientID {
+		t.Errorf("server = %+v", got.OAuth)
+	}
+}

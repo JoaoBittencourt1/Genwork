@@ -124,6 +124,10 @@ func (run Run) IsActive() bool {
 	return run.State.IsActive()
 }
 
+// MaxRunRepositories is the most repositories one run may work in: gentasks issues a GitHub token for at most this many
+// at once (its repository-tokens contract), so a run beyond it could never get credentials from the platform.
+const MaxRunRepositories = 10
+
 // Repositories lists the GitHub repositories a run works in, each once: the task's repository, or the reviewed pull
 // requests' repositories.
 func (spec RunSpec) Repositories() []string {

@@ -42,6 +42,7 @@ requested ──runner starts CLI──▶ awaiting_user ──person pastes cod
 - genagents `POST /runner/runs/{token}/github-token` issues the bot's Genwork token, calls gentasks with it, and answers `{token, expiresAt}`, or 409 `github_token_unavailable` with a `reason`.
 - The runner asks for it at set-up and on every token refresh. It uses the token for git on the host and for the REST calls, and falls back to its own `GH_TOKEN`. If neither exists, the run fails with `github_credentials_missing`.
 - Eligibility no longer requires `HasGithubCredentials`: any runner can now get credentials.
+- A run may use at most 10 repositories, gentasks' limit for one token. A review whose pull requests span more is refused when it is requested (`too_many_review_repositories`), not on the runner.
 
 ### 3. MCP OAuth follows the MCP authorization spec
 
@@ -51,8 +52,9 @@ requested ──runner starts CLI──▶ awaiting_user ──person pastes cod
   3. Then `/.well-known/oauth-authorization-server`, falling back to `openid-configuration`.
   4. If the admin entered no client id, it registers dynamically (RFC 7591) with redirect `GENWORK_PUBLIC_URL/api/genagents/v1/mcp-servers/oauth/callback`.
 
-  It creates an authorization with a random state (stored hashed) and a PKCE verifier (encrypted), both expiring after 10 minutes, and returns the authorization URL with `resource` (RFC 8707).
-- `GET /mcp-servers/oauth/callback` is public, because it is a browser redirect. It is authorized by the single-use state. It exchanges the code, stores the tokens encrypted, and redirects to `/ai/mcp-servers?mcpOAuth=connected|failed`.
+  It creates an authorization with a random state (stored hashed), a PKCE verifier (encrypted), and the client it was started with (token endpoint, resource, client id and encrypted secret, and the server URL), all expiring after 10 minutes. It returns the authorization URL with `resource` (RFC 8707). The active connection is not touched, so an abandoned reconnection never breaks a working one.
+- `GET /mcp-servers/oauth/callback` is public, because it is a browser redirect. It is authorized by the single-use state. It exchanges the code with the authorization's own client and then, in one statement, makes that client and its tokens the active connection. It redirects to `/ai/mcp-servers?mcpOAuth=connected|failed`.
+- Tokens are bound to the server URL they were issued for. Changing a server's URL deletes its connection and ends its pending authorizations. A callback for a URL that changed meanwhile is refused. Claim resolution never attaches a token to a different URL and marks such a connection `error` (`server_url_changed`).
 - Claim resolution refreshes an access token that expires within 5 minutes and adds `Authorization: Bearer …` to the server's headers for the run. A refresh failure marks the connection `error`, and the run starts without the header. Long runs keep the token they started with (a follow-up may renew it with the Genwork token).
 - Responses show only `{status, connectedAt, expiresAt, lastError, clientId}`, never a token or secret.
 - Disconnecting deletes the connection row physically, a documented exception to rule 22: the row holds only credentials (rule 67), and keeping it soft-deleted would keep tokens at rest for nothing. Sign-in attempts and authorizations are never deleted; they end in a final state.

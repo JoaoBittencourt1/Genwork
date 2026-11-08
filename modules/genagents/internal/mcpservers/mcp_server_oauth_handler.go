@@ -20,7 +20,7 @@ type OAuthConnectionResponse struct {
 
 func NewOAuthConnectionResponse(connection OAuthConnection) OAuthConnectionResponse {
 	return OAuthConnectionResponse{
-		Status: connection.Status, ClientID: connection.ClientID, ConnectedAt: connection.ConnectedAt, ExpiresAt: connection.ExpiresAt, LastError: connection.LastError,
+		Status: connection.Status, ClientID: optionalString(connection.Setup.ClientID), ConnectedAt: connection.ConnectedAt, ExpiresAt: connection.ExpiresAt, LastError: connection.LastError,
 	}
 }
 
@@ -103,4 +103,11 @@ func (handler *McpServerOAuthHandler) completeAuthorization(w http.ResponseWrite
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")
 	http.Redirect(w, r, handler.service.ResultPageURL(outcome), http.StatusSeeOther)
+}
+
+func optionalString(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }

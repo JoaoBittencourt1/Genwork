@@ -291,7 +291,8 @@
     "oauth_discovery_failed": "The server's OAuth configuration could not be found. Check its URL.",
     "oauth_client_id_required": "This server does not register clients automatically. Enter a client id registered with it.",
     "oauth_not_connected": "This server is not connected through OAuth.",
-    "oauth_state_invalid": "This authorization link is invalid or expired. Connect again."
+    "oauth_state_invalid": "This authorization link is invalid or expired. Connect again.",
+    "too_many_review_repositories": "This review spans more than {{max}} repositories, the most one bot run can work in. Review the pull requests in smaller groups."
   },
   "common": {
     "cancel": "Cancel",
@@ -854,7 +855,6 @@
         "clientSecret": "Client secret (optional)",
         "states": {
           "disconnected": "Not connected",
-          "pending": "Connecting",
           "connected": "Connected",
           "error": "Connection error"
         },

@@ -111,7 +111,7 @@ export type SkillPatch = Partial<NewSkill>
 
 export type McpEntry = { name: string; secret: boolean; hasValue: boolean; value: string | null }
 
-export const MCP_OAUTH_STATUSES = ['pending', 'connected', 'error'] as const
+export const MCP_OAUTH_STATUSES = ['connected', 'error'] as const
 export type McpOAuthStatus = (typeof MCP_OAUTH_STATUSES)[number]
 
 // McpOAuthConnection never carries a token or the client secret.

@@ -11,7 +11,7 @@ describe('MCP server OAuth', () => {
     expect(mcpOAuthState(mcpServerFixture({ oauth: { ...connection, status: 'connected' } }))).toBe('connected')
     expect(mcpOAuthState(mcpServerFixture({ oauth: { ...connection, status: 'error' } }))).toBe('error')
     expect(canDisconnectMcpOAuth(mcpServerFixture())).toBe(false)
-    expect(canDisconnectMcpOAuth(mcpServerFixture({ oauth: { ...connection, status: 'pending' } }))).toBe(true)
+    expect(canDisconnectMcpOAuth(mcpServerFixture({ oauth: { ...connection, status: 'error' } }))).toBe(true)
   })
 
   it('reads the callback outcome from the page URL', () => {

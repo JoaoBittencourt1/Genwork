@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var ErrNoOpenPullRequests = httpapi.NewAPIError(http.StatusConflict, "no_open_pull_requests")
+var (
+	ErrNoOpenPullRequests = httpapi.NewAPIError(http.StatusConflict, "no_open_pull_requests")
+	// ErrTooManyReviewRepositories refuses a review whose pull requests span more repositories than one run may use.
+	ErrTooManyReviewRepositories = &httpapi.APIError{
+		Status: http.StatusConflict, Code: "too_many_review_repositories", Fields: map[string]string{"max": strconv.Itoa(runs.MaxRunRepositories)},
+	}
+)
 
 // GentasksClient is what task runs need from gentasks (rule 9).
 type GentasksClient interface {
@@ -160,6 +167,19 @@ func (service *TaskRunService) RequestReview(ctx context.Context, caller Caller,
 	if len(reviewable) == 0 {
 		return runs.Run{}, ErrNoOpenPullRequests
 	}
+	refs := make([]runs.PullRequestRef, 0, len(reviewable))
+	for _, pullRequest := range reviewable {
+		ref := runs.PullRequestRef{Repository: pullRequest.Repository, Number: pullRequest.Number, URL: pullRequest.URL}
+		if pullRequest.Title != nil {
+			ref.Title = *pullRequest.Title
+		}
+		refs = append(refs, ref)
+	}
+	spec := runs.RunSpec{TaskKey: task.Key, TaskTitle: task.Title, PullRequests: refs}
+	if len(spec.Repositories()) > runs.MaxRunRepositories {
+		return runs.Run{}, ErrTooManyReviewRepositories
+	}
+	spec.Prompt = service.prompts.ComposeReviewPrompt(task, reviewable)
 	var created runs.Run
 	err = pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
 		reviewer, err := service.chooseReviewer(ctx, tx, botToken)
@@ -170,17 +190,9 @@ func (service *TaskRunService) RequestReview(ctx context.Context, caller Caller,
 		if err != nil {
 			return err
 		}
-		refs := make([]runs.PullRequestRef, 0, len(reviewable))
-		for _, pullRequest := range reviewable {
-			ref := runs.PullRequestRef{Repository: pullRequest.Repository, Number: pullRequest.Number, URL: pullRequest.URL}
-			if pullRequest.Title != nil {
-				ref.Title = *pullRequest.Title
-			}
-			refs = append(refs, ref)
-		}
 		created, err = service.runs.Create(ctx, tx, runs.NewRun{
 			ConversationID: conversation.ID, BotID: reviewer.ID, Kind: runs.RunKindReview, RequesterUserToken: caller.UserToken,
-			Spec: runs.RunSpec{Prompt: service.prompts.ComposeReviewPrompt(task, reviewable), TaskKey: task.Key, TaskTitle: task.Title, PullRequests: refs}, At: service.now(),
+			Spec: spec, At: service.now(),
 		})
 		if err != nil {
 			return err

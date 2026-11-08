@@ -1,7 +1,7 @@
 import type { McpServer } from './types'
 
 // McpOAuthState is what the MCP server row shows about its OAuth connection.
-export type McpOAuthState = 'unavailable' | 'disconnected' | 'pending' | 'connected' | 'error'
+export type McpOAuthState = 'unavailable' | 'disconnected' | 'connected' | 'error'
 
 export function mcpOAuthState(server: McpServer): McpOAuthState {
   if (server.transport !== 'http') return 'unavailable'

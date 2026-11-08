@@ -73,7 +73,8 @@ func (service *McpServerOAuthService) ResultPageURL(outcome OAuthCallbackOutcome
 }
 
 // StartAuthorization discovers the server's authorization server, registers a client when none was given, and returns
-// the URL the person's browser opens.
+// the URL the person's browser opens. The client is kept with the pending authorization: the active connection, if any,
+// stays as it is until the new code exchange succeeds.
 func (service *McpServerOAuthService) StartAuthorization(ctx context.Context, serverToken string, input StartOAuthInput) (string, error) {
 	server, err := service.servers.FindByToken(ctx, service.db, serverToken)
 	if err != nil {
@@ -97,23 +98,14 @@ func (service *McpServerOAuthService) StartAuthorization(ctx context.Context, se
 		scope = strings.Join(discovery.ScopesSupported, " ")
 	}
 	verifier, state := platform.NewBearerSecret(), platform.NewBearerSecret()
-	authorizationToken := platform.NewPublicToken()
-	err = pgx.BeginFunc(ctx, service.db, func(tx pgx.Tx) error {
-		setup, err := service.clientSetup(server.Token, discovery, client, scope)
-		if err != nil {
-			return err
-		}
-		now := service.now()
-		if err := service.oauth.SaveClientSetup(ctx, tx, server.ID, setup, now); err != nil {
-			return err
-		}
-		verifierCiphertext, err := service.cipher.Encrypt(verifier, oauthVerifierColumn+"|"+authorizationToken)
-		if err != nil {
-			return err
-		}
-		return service.oauth.CreateAuthorization(ctx, tx, authorizationToken, server.ID, platform.HashBearerSecret(state), verifierCiphertext, now.Add(OAuthAuthorizationTTL), now)
-	})
-	if err != nil {
+	authorization := OAuthAuthorization{Token: platform.NewPublicToken(), ServerID: server.ID, ExpiresAt: service.now().Add(OAuthAuthorizationTTL)}
+	if authorization.Setup, err = service.clientSetup(server, discovery, client); err != nil {
+		return "", err
+	}
+	if authorization.CodeVerifierCiphertext, err = service.cipher.Encrypt(verifier, oauthVerifierColumn+"|"+authorization.Token); err != nil {
+		return "", err
+	}
+	if err := service.oauth.CreateAuthorization(ctx, service.db, authorization, platform.HashBearerSecret(state), service.now()); err != nil {
 		return "", err
 	}
 	return buildAuthorizationURL(discovery, client.ClientID, service.RedirectURI(), state, verifier, scope), nil
@@ -127,13 +119,13 @@ func wrapDiscoveryError(err error) error {
 	return ErrOAuthDiscoveryFailed
 }
 
-func (service *McpServerOAuthService) clientSetup(serverToken string, discovery OAuthDiscovery, client OAuthClientRegistration, scope string) (OAuthClientSetup, error) {
+func (service *McpServerOAuthService) clientSetup(server StoredMcpServer, discovery OAuthDiscovery, client OAuthClientRegistration) (OAuthClientSetup, error) {
 	setup := OAuthClientSetup{
-		Issuer: discovery.Metadata.Issuer, AuthorizationEndpoint: discovery.Metadata.AuthorizationEndpoint, TokenEndpoint: discovery.Metadata.TokenEndpoint,
-		Resource: discovery.Resource, Scope: scope, ClientID: client.ClientID, TokenEndpointAuthMethod: client.TokenEndpointAuthMethod,
+		ServerURL: server.Config.URL, TokenEndpoint: discovery.Metadata.TokenEndpoint, Resource: discovery.Resource, ClientID: client.ClientID,
+		TokenEndpointAuthMethod: client.TokenEndpointAuthMethod,
 	}
 	if client.ClientSecret != "" {
-		ciphertext, err := service.cipher.Encrypt(client.ClientSecret, oauthClientSecretColumn+"|"+serverToken)
+		ciphertext, err := service.cipher.Encrypt(client.ClientSecret, oauthClientSecretColumn+"|"+server.Token)
 		if err != nil {
 			return OAuthClientSetup{}, err
 		}
@@ -170,48 +162,55 @@ func (service *McpServerOAuthService) CompleteAuthorization(ctx context.Context,
 		return OAuthCallbackOutcome{Reason: "invalid_state"}
 	}
 	if providerError != "" || code == "" {
-		service.markError(ctx, authorization.ServerID, "authorization_denied")
+		service.recordFailure(ctx, authorization.ServerID, "authorization_denied")
 		return OAuthCallbackOutcome{Reason: "authorization_denied"}
 	}
 	if err := service.exchangeCode(ctx, authorization, code); err != nil {
 		slog.Warn("mcp oauth token exchange", "server", authorization.ServerID, "err", err)
-		service.markError(ctx, authorization.ServerID, "token_exchange_failed")
+		service.recordFailure(ctx, authorization.ServerID, "token_exchange_failed")
 		return OAuthCallbackOutcome{Reason: "token_exchange_failed"}
 	}
 	return OAuthCallbackOutcome{Connected: true}
 }
 
+var errServerURLChanged = errors.New("the server's URL changed during the authorization")
+
+// exchangeCode trades the code with the authorization's own client and only then makes that client and its tokens the
+// active connection, refusing when the server's URL changed meanwhile.
 func (service *McpServerOAuthService) exchangeCode(ctx context.Context, authorization OAuthAuthorization, code string) error {
-	connection, err := service.oauth.FindByServer(ctx, service.db, authorization.ServerID)
-	if err != nil {
-		return err
-	}
 	server, err := service.servers.FindByID(ctx, service.db, authorization.ServerID)
 	if err != nil {
 		return err
+	}
+	if server.Config.URL != authorization.Setup.ServerURL {
+		return errServerURLChanged
 	}
 	verifier, err := service.cipher.Decrypt(authorization.CodeVerifierCiphertext, oauthVerifierColumn+"|"+authorization.Token)
 	if err != nil {
 		return err
 	}
-	client, err := service.clientOf(server.Token, connection)
+	client, err := service.clientOf(server.Token, authorization.Setup)
 	if err != nil {
 		return err
 	}
 	tokens, err := service.provider.RequestToken(ctx, TokenRequest{
-		Endpoint: stringValue(connection.TokenEndpoint), Client: client, Resource: stringValue(connection.Resource),
+		Endpoint: authorization.Setup.TokenEndpoint, Client: client, Resource: authorization.Setup.Resource,
 		Grant: url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {service.RedirectURI()}, "code_verifier": {verifier}},
 	})
 	if err != nil {
 		return err
 	}
-	return service.storeTokens(ctx, service.db, server, tokens)
+	update, err := service.encryptTokens(server, tokens)
+	if err != nil {
+		return err
+	}
+	return service.oauth.Connect(ctx, service.db, server.ID, authorization.Setup, update)
 }
 
-func (service *McpServerOAuthService) clientOf(serverToken string, connection OAuthConnection) (OAuthClientRegistration, error) {
-	client := OAuthClientRegistration{ClientID: stringValue(connection.ClientID), TokenEndpointAuthMethod: stringValue(connection.TokenEndpointAuthMethod)}
-	if len(connection.ClientSecretCiphertext) > 0 {
-		secret, err := service.cipher.Decrypt(connection.ClientSecretCiphertext, oauthClientSecretColumn+"|"+serverToken)
+func (service *McpServerOAuthService) clientOf(serverToken string, setup OAuthClientSetup) (OAuthClientRegistration, error) {
+	client := OAuthClientRegistration{ClientID: setup.ClientID, TokenEndpointAuthMethod: setup.TokenEndpointAuthMethod}
+	if len(setup.ClientSecretCiphertext) > 0 {
+		secret, err := service.cipher.Decrypt(setup.ClientSecretCiphertext, oauthClientSecretColumn+"|"+serverToken)
 		if err != nil {
 			return OAuthClientRegistration{}, err
 		}
@@ -220,28 +219,28 @@ func (service *McpServerOAuthService) clientOf(serverToken string, connection OA
 	return client, nil
 }
 
-func (service *McpServerOAuthService) storeTokens(ctx context.Context, db platform.DBTX, server StoredMcpServer, tokens OAuthTokenSet) error {
+func (service *McpServerOAuthService) encryptTokens(server StoredMcpServer, tokens OAuthTokenSet) (OAuthTokenUpdate, error) {
 	now := service.now()
 	update := OAuthTokenUpdate{At: now}
 	var err error
 	if update.AccessTokenCiphertext, err = service.cipher.Encrypt(tokens.AccessToken, oauthAccessTokenColumn+"|"+server.Token); err != nil {
-		return err
+		return OAuthTokenUpdate{}, err
 	}
 	if tokens.RefreshToken != "" {
 		if update.RefreshTokenCiphertext, err = service.cipher.Encrypt(tokens.RefreshToken, oauthRefreshTokenColumn+"|"+server.Token); err != nil {
-			return err
+			return OAuthTokenUpdate{}, err
 		}
 	}
 	if tokens.ExpiresIn > 0 {
 		expiresAt := now.Add(time.Duration(tokens.ExpiresIn) * time.Second)
 		update.ExpiresAt = &expiresAt
 	}
-	return service.oauth.StoreTokens(ctx, db, server.ID, update)
+	return update, nil
 }
 
-func (service *McpServerOAuthService) markError(ctx context.Context, serverID int64, message string) {
-	if err := service.oauth.MarkError(context.WithoutCancel(ctx), service.db, serverID, message, service.now()); err != nil {
-		slog.Warn("mark mcp oauth error", "server", serverID, "err", err)
+func (service *McpServerOAuthService) recordFailure(ctx context.Context, serverID int64, message string) {
+	if err := service.oauth.RecordFailedAttempt(context.WithoutCancel(ctx), service.db, serverID, message, service.now()); err != nil {
+		slog.Warn("record mcp oauth failure", "server", serverID, "err", err)
 	}
 }
 
@@ -251,8 +250,24 @@ func (service *McpServerOAuthService) Disconnect(ctx context.Context, serverToke
 		if err != nil {
 			return err
 		}
-		return service.oauth.Delete(ctx, tx, server.ID)
+		deleted, err := service.oauth.Delete(ctx, tx, server.ID)
+		if err != nil {
+			return err
+		}
+		if !deleted {
+			return ErrOAuthNotConnected
+		}
+		return nil
 	})
+}
+
+// ForgetConnection drops a server's connection and open authorizations when its URL changes: tokens issued for one
+// server must never reach another, so the admin authorizes the new URL again.
+func (service *McpServerOAuthService) ForgetConnection(ctx context.Context, db platform.DBTX, serverID int64) error {
+	if _, err := service.oauth.Delete(ctx, db, serverID); err != nil {
+		return err
+	}
+	return service.oauth.InvalidatePendingAuthorizations(ctx, db, serverID, service.now())
 }
 
 // AttachTokens adds the bearer header of every connected server, refreshing a token about to expire. A server whose
@@ -269,6 +284,12 @@ func (service *McpServerOAuthService) AttachTokens(ctx context.Context, db platf
 	for index := range servers {
 		connection, found := connections[servers[index].ID]
 		if !found || connection.Status != OAuthConnected {
+			continue
+		}
+		if !connection.IssuedFor(servers[index].Config.URL) {
+			if err := service.oauth.MarkError(ctx, db, servers[index].ID, "server_url_changed", service.now()); err != nil {
+				return err
+			}
 			continue
 		}
 		accessToken, err := service.currentAccessToken(ctx, db, servers[index], connection)
@@ -292,18 +313,22 @@ func (service *McpServerOAuthService) currentAccessToken(ctx context.Context, db
 	if err != nil {
 		return "", err
 	}
-	client, err := service.clientOf(server.Token, connection)
+	client, err := service.clientOf(server.Token, connection.Setup)
 	if err != nil {
 		return "", err
 	}
 	tokens, err := service.provider.RequestToken(ctx, TokenRequest{
-		Endpoint: stringValue(connection.TokenEndpoint), Client: client, Resource: stringValue(connection.Resource),
+		Endpoint: connection.Setup.TokenEndpoint, Client: client, Resource: connection.Setup.Resource,
 		Grant: url.Values{"grant_type": {"refresh_token"}, "refresh_token": {refreshToken}},
 	})
 	if err != nil {
 		return "", err
 	}
-	if err := service.storeTokens(ctx, db, server, tokens); err != nil {
+	update, err := service.encryptTokens(server, tokens)
+	if err != nil {
+		return "", err
+	}
+	if err := service.oauth.RefreshTokens(ctx, db, server.ID, update); err != nil {
 		return "", err
 	}
 	return tokens.AccessToken, nil

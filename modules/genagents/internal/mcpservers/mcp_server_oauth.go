@@ -33,32 +33,40 @@ var (
 type OAuthStatus string
 
 const (
-	OAuthPending   OAuthStatus = "pending"
 	OAuthConnected OAuthStatus = "connected"
 	OAuthError     OAuthStatus = "error"
 )
 
-// OAuthConnection is an MCP server's OAuth client registration and tokens; every secret in it is stored encrypted and
-// none is ever part of a response (rule 67).
-type OAuthConnection struct {
-	ID                      int64
-	ServerID                int64
-	Status                  OAuthStatus
-	Issuer                  *string
-	AuthorizationEndpoint   *string
-	TokenEndpoint           *string
-	Resource                *string
-	Scope                   *string
-	ClientID                *string
+// OAuthClientSetup is the client an authorization was started with: where to exchange and refresh tokens, as whom, and
+// for which server URL. Its secret is encrypted.
+type OAuthClientSetup struct {
+	ServerURL               string
+	TokenEndpoint           string
+	Resource                string
+	ClientID                string
 	ClientSecretCiphertext  []byte
-	TokenEndpointAuthMethod *string
-	AccessTokenCiphertext   []byte
-	RefreshTokenCiphertext  []byte
-	ExpiresAt               *time.Time
-	ConnectedAt             *time.Time
-	LastError               *string
-	CreatedAt               time.Time
-	UpdatedAt               time.Time
+	TokenEndpointAuthMethod string
+}
+
+// OAuthConnection is an MCP server's active OAuth client and tokens; every secret in it is stored encrypted and none is
+// ever part of a response (rule 67). ServerURL is the URL the tokens were issued for.
+type OAuthConnection struct {
+	ID                     int64
+	ServerID               int64
+	Status                 OAuthStatus
+	Setup                  OAuthClientSetup
+	AccessTokenCiphertext  []byte
+	RefreshTokenCiphertext []byte
+	ExpiresAt              *time.Time
+	ConnectedAt            *time.Time
+	LastError              *string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+// IssuedFor says whether the tokens belong to the server's current URL; tokens issued for another URL are never sent.
+func (connection OAuthConnection) IssuedFor(serverURL string) bool {
+	return connection.Setup.ServerURL == serverURL
 }
 
 // NeedsRefresh says whether the access token expires soon enough that a run should not start with it.
@@ -66,14 +74,15 @@ func (connection OAuthConnection) NeedsRefresh(now time.Time) bool {
 	return connection.ExpiresAt != nil && !connection.ExpiresAt.After(now.Add(OAuthRefreshMargin))
 }
 
-// OAuthAuthorization is one pending browser round trip: its state is stored hashed, its PKCE verifier encrypted.
+// OAuthAuthorization is one pending browser round trip: its state is stored hashed, its PKCE verifier encrypted, and it
+// carries the client it was started with until the code exchange succeeds.
 type OAuthAuthorization struct {
 	ID                     int64
 	Token                  string
 	ServerID               int64
 	CodeVerifierCiphertext []byte
+	Setup                  OAuthClientSetup
 	ExpiresAt              time.Time
-	ConsumedAt             *time.Time
 }
 
 // AuthorizationServerMetadata is the part of RFC 8414 metadata the flow uses.

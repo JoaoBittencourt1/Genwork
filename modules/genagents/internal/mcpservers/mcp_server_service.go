@@ -90,6 +90,11 @@ func (service *McpServerService) UpdateServer(ctx context.Context, token string,
 		if err != nil {
 			return err
 		}
+		if changed.Config.URL != stored.Config.URL && service.oauth != nil {
+			if err := service.oauth.ForgetConnection(ctx, tx, stored.ID); err != nil {
+				return err
+			}
+		}
 		config, secrets := splitSecrets(changed)
 		ciphertext, err := service.encryptSecrets(token, secrets)
 		if err != nil {
