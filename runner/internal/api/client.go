@@ -294,3 +294,46 @@ func decodeCode(payload []byte) string {
 	}
 	return body.Error.Code
 }
+
+// SignIn is an active web-started sign-in of an account this runner holds; Code is set once a person pasted it.
+type SignIn struct {
+	Token        string    `json:"token"`
+	AccountToken string    `json:"accountToken"`
+	Provider     string    `json:"provider"`
+	State        string    `json:"state"`
+	Code         string    `json:"code"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+}
+
+// SignInProgress is what the runner saw while the CLI ran: the URL to open, that it took the code, or how it ended.
+type SignInProgress struct {
+	State       string `json:"state"`
+	URL         string `json:"url,omitempty"`
+	UserCode    string `json:"userCode,omitempty"`
+	ExpectsCode bool   `json:"expectsCode"`
+	Message     string `json:"message,omitempty"`
+}
+
+func (client *Client) ListSignIns(ctx context.Context) ([]SignIn, error) {
+	var answer struct {
+		SignIns []SignIn `json:"signIns"`
+	}
+	err := client.call(ctx, http.MethodGet, "/sign-ins", nil, &answer, true)
+	return answer.SignIns, err
+}
+
+func (client *Client) ReportSignInProgress(ctx context.Context, signInToken string, progress SignInProgress) error {
+	return client.call(ctx, http.MethodPost, "/sign-ins/"+url.PathEscape(signInToken)+"/progress", progress, nil, true)
+}
+
+// GithubToken is a short-lived GitHub token the platform issued for one run's repositories.
+type GithubToken struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+func (client *Client) GithubToken(ctx context.Context, runToken string) (GithubToken, error) {
+	var token GithubToken
+	err := client.call(ctx, http.MethodPost, "/runs/"+url.PathEscape(runToken)+"/github-token", nil, &token, true)
+	return token, err
+}

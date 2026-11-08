@@ -333,3 +333,40 @@ func TestRedactAndSummarize(t *testing.T) {
 		t.Errorf("native skills were listed in the prompt: %s", prompt)
 	}
 }
+
+func TestSubscriptionProvidersSignInThroughTheirOwnCLI(t *testing.T) {
+	cases := map[string]struct {
+		command     string
+		profileEnv  string
+		expectsCode bool
+	}{
+		"anthropic": {"claude auth login", "CLAUDE_CONFIG_DIR", true},
+		"openai":    {"codex login --device-auth", "CODEX_HOME", false},
+		"cursor":    {"cursor-agent login", "HOME", false},
+	}
+	for provider, want := range cases {
+		adapter, _ := adapters.For(provider)
+		signIn := adapter.SignIn()
+		if signIn == nil {
+			t.Fatalf("%s has no sign-in", provider)
+		}
+		if strings.Join(signIn.Command, " ") != want.command || signIn.ExpectsCode != want.expectsCode {
+			t.Errorf("%s sign-in = %+v", provider, signIn)
+		}
+		if signIn.Env[want.profileEnv] != adapter.ProfileMount() {
+			t.Errorf("%s sign-in does not write the mounted profile: %v", provider, signIn.Env)
+		}
+	}
+	grok, _ := adapters.For("xai")
+	if grok.SignIn() != nil {
+		t.Error("xai offers a subscription sign-in")
+	}
+}
+
+func TestCodexDeviceCodePatternMatchesItsOneTimeCode(t *testing.T) {
+	codex, _ := adapters.For("openai")
+
+	if got := codex.SignIn().UserCodePattern.FindString("Enter this one-time code: ABCD-12345 (expires in 15 minutes)"); got != "ABCD-12345" {
+		t.Errorf("code = %q", got)
+	}
+}

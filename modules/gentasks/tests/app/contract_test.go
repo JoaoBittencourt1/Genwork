@@ -47,13 +47,15 @@ func sortedPaths(value any, skipPrefixes ...string) []string {
 func TestResponsesMatchRecordedFixtures(t *testing.T) {
 	app := newTestApp(t)
 	app.addBotMember()
+	app.connectAppForTokens(map[string]int64{"acme/api": 77})
 	board := app.createBoard("Genwork")
 	app.patchBoardGithubSettings(board.Token, map[string]any{"repository": "acme/api"})
 	label := app.createLabel(board.Token, "backend", "blue")
 	task := app.createTask(board.Token, map[string]any{"title": "Speed up", "assigneeToken": userToken, "labelTokens": []string{label.Token}})
 	live := map[string]response{
-		"task_context.json":   app.do(request{method: "GET", path: "/api/gentasks/v1/tasks/" + task.Token + "/context"}),
-		"assigned_tasks.json": app.do(request{method: "GET", path: assignedTasksPath}),
+		"task_context.json":     app.do(request{method: "GET", path: "/api/gentasks/v1/tasks/" + task.Token + "/context"}),
+		"assigned_tasks.json":   app.do(request{method: "GET", path: assignedTasksPath}),
+		"repository_token.json": app.requestRepositoryToken("acme/api"),
 	}
 
 	for _, name := range gentaskstest.FixtureNames {

@@ -95,20 +95,28 @@ func TestTwoRunnersNeverClaimTheSameRun(t *testing.T) {
 
 func TestClaimsFollowEligibility(t *testing.T) {
 	app := newTestApp(t)
-	withoutGithub := app.registerRunner("no-github", heartbeatOptions{tools: []string{"claude"}})
 	withoutCLI := app.registerRunner("no-cli", heartbeatOptions{tools: []string{"codex"}, github: true})
 	capable := app.registerRunner("capable", heartbeatOptions{tools: []string{"claude"}, github: true})
 	bot := app.createBotOn(app.claudeAccount().Token, nil)
 	app.queueRun(bot.Token, runs.RunKindTask, "task-1")
 
-	if claimed, _ := app.claim(withoutGithub, 1); claimed != nil {
-		t.Error("a runner without GitHub credentials claimed a task run")
-	}
 	if claimed, _ := app.claim(withoutCLI, 1); claimed != nil {
 		t.Error("a runner without the provider CLI claimed the run")
 	}
 	if claimed, _ := app.claim(capable, 1); claimed == nil {
 		t.Error("the capable runner got nothing")
+	}
+}
+
+// A runner without its own GitHub token takes task runs: the platform relays a token per run.
+func TestRunnerWithoutGithubCredentialsTakesTaskRuns(t *testing.T) {
+	app := newTestApp(t)
+	runner := app.registerRunner("no-github", heartbeatOptions{tools: []string{"claude"}})
+	bot := app.createBotOn(app.claudeAccount().Token, nil)
+	app.queueRun(bot.Token, runs.RunKindTask, "task-1")
+
+	if claimed, _ := app.claim(runner, 1); claimed == nil {
+		t.Error("a runner without GitHub credentials did not get the task run")
 	}
 }
 

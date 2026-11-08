@@ -39,7 +39,7 @@ func runAccountLogin(ctx context.Context, args []string, getenv config.Getenv, s
 	if err != nil {
 		return err
 	}
-	if adapter.LoginCommand() == nil {
+	if adapter.SignIn() == nil {
 		return fmt.Errorf("%s has no subscription sign-in", provider)
 	}
 	profileDir := settings.ProfileDir(accountToken)
@@ -80,11 +80,13 @@ func findAssignedProvider(ctx context.Context, client *api.Client, accountToken 
 }
 
 // BuildLoginCommand is the CLI's own sign-in, run interactively in a throwaway container that mounts only this account's
-// profile, with the same isolation settings a run gets; directory mode runs it on the host instead.
+// profile, with the same isolation settings a run gets; directory mode runs it on the host instead. It is the terminal
+// fallback to the sign-in started from the web app.
 func BuildLoginCommand(adapter adapters.Adapter, profileDir string, settings config.Config, getenv config.Getenv, directoryMode bool) (*exec.Cmd, error) {
-	environment := adapter.LoginEnv()
+	signIn := adapter.SignIn()
+	environment := signIn.Env
 	if directoryMode {
-		command := exec.Command(adapter.LoginCommand()[0], adapter.LoginCommand()[1:]...)
+		command := exec.Command(signIn.Command[0], signIn.Command[1:]...)
 		command.Env = append(os.Environ(), flattenEnvironment(rebase(environment, adapter.ProfileMount(), profileDir))...)
 		return command, nil
 	}
@@ -106,7 +108,7 @@ func BuildLoginCommand(adapter adapters.Adapter, profileDir string, settings con
 		arguments = append(arguments, "-e", pair)
 	}
 	arguments = append(arguments, settings.SandboxImage)
-	arguments = append(arguments, adapter.LoginCommand()...)
+	arguments = append(arguments, signIn.Command...)
 	return exec.Command(engine, arguments...), nil
 }
 

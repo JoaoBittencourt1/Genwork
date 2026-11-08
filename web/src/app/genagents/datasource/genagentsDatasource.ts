@@ -3,6 +3,7 @@ import type { ConversationPage } from '@/shared/domain/conversation'
 import type {
   Account,
   AccountPatch,
+  AccountSignIn,
   Bot,
   BotKind,
   BotPatch,
@@ -19,6 +20,7 @@ import type {
   Runner,
   Skill,
   SkillPatch,
+  StartMcpOAuth,
 } from '../domain/types'
 
 const API = '/api/genagents/v1'
@@ -37,6 +39,18 @@ export async function listAccounts(): Promise<Account[]> {
 
 export function createAccount(account: NewAccount): Promise<Account> {
   return apiRequest<Account>('POST', `${API}/accounts`, { body: account })
+}
+
+export function startAccountSignIn(accountToken: string): Promise<AccountSignIn> {
+  return apiRequest<AccountSignIn>('POST', `${API}/accounts/${segment(accountToken)}/sign-ins`)
+}
+
+export function submitAccountSignInCode(accountToken: string, signInToken: string, code: string): Promise<AccountSignIn> {
+  return apiRequest<AccountSignIn>('POST', `${API}/accounts/${segment(accountToken)}/sign-ins/${segment(signInToken)}/code`, { body: { code } })
+}
+
+export function cancelAccountSignIn(accountToken: string, signInToken: string): Promise<void> {
+  return apiRequest<void>('DELETE', `${API}/accounts/${segment(accountToken)}/sign-ins/${segment(signInToken)}`)
 }
 
 export function updateAccount(accountToken: string, patch: AccountPatch): Promise<Account> {
@@ -106,6 +120,15 @@ export function createMcpServer(server: NewMcpServer): Promise<McpServer> {
 
 export function updateMcpServer(serverToken: string, patch: McpServerPatch): Promise<McpServer> {
   return apiRequest<McpServer>('PATCH', `${API}/mcp-servers/${segment(serverToken)}`, { body: patch })
+}
+
+// startMcpOAuth returns the authorization server's page the browser opens to connect the server.
+export async function startMcpOAuth(serverToken: string, input: StartMcpOAuth = {}): Promise<string> {
+  return (await apiRequest<{ authorizationUrl: string }>('POST', `${API}/mcp-servers/${segment(serverToken)}/oauth/authorizations`, { body: input })).authorizationUrl
+}
+
+export function disconnectMcpOAuth(serverToken: string): Promise<void> {
+  return apiRequest<void>('DELETE', `${API}/mcp-servers/${segment(serverToken)}/oauth`)
 }
 
 export function deleteMcpServer(serverToken: string): Promise<void> {

@@ -221,7 +221,7 @@ func TestLoginContainerIsolatesTheSignInToOneProfile(t *testing.T) {
 		t.Fatalf("build: %v", err)
 	}
 	joined := strings.Join(cmd.Args, " ")
-	for _, want := range []string{"podman run --rm -it", "--cap-drop ALL", "--security-opt no-new-privileges", "--read-only", "-v /data/profiles/acct-1:/home/sandbox/.claude:rw", "CLAUDE_CONFIG_DIR=/home/sandbox/.claude", "registry.example/genwork-sandbox:2.0.0 claude /login"} {
+	for _, want := range []string{"podman run --rm -it", "--cap-drop ALL", "--security-opt no-new-privileges", "--read-only", "-v /data/profiles/acct-1:/home/sandbox/.claude:rw", "CLAUDE_CONFIG_DIR=/home/sandbox/.claude", "registry.example/genwork-sandbox:2.0.0 claude auth login"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("the login command lacks %q: %s", want, joined)
 		}

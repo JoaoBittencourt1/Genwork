@@ -44,11 +44,25 @@ type FakeGenagents struct {
 	AccountStatuses []map[string]any
 	// RegistrationToken is the one token the register route accepts.
 	RegistrationToken string
+	// SignIns is what the sign-in poll returns; SignInReports records what the runner reported, in order.
+	SignIns       []map[string]any
+	SignInReports []SignInReport
+	// GithubTokens maps a run token to the GitHub token the platform issues for it; a run without one gets 409.
+	GithubTokens map[string]string
+}
+
+// SignInReport is one progress report of a sign-in.
+type SignInReport struct {
+	Token   string
+	Payload map[string]any
 }
 
 func NewFakeGenagents(t testing.TB) *FakeGenagents {
 	t.Helper()
-	fake := &FakeGenagents{seen: map[string]bool{}, messages: map[string][]map[string]any{}, states: map[string]string{}, Acked: map[string]int64{}, RegistrationToken: "registration-token"}
+	fake := &FakeGenagents{
+		seen: map[string]bool{}, messages: map[string][]map[string]any{}, states: map[string]string{}, Acked: map[string]int64{},
+		RegistrationToken: "registration-token", GithubTokens: map[string]string{},
+	}
 	mux := http.NewServeMux()
 	base := "/api/genagents/v1/runner"
 	mux.HandleFunc("POST "+base+"/register", fake.register)
@@ -60,6 +74,9 @@ func NewFakeGenagents(t testing.TB) *FakeGenagents {
 	mux.HandleFunc("POST "+base+"/runs/{token}/messages/ack", fake.authenticated(fake.acknowledge))
 	mux.HandleFunc("POST "+base+"/runs/{token}/genwork-token", fake.authenticated(fake.genworkToken))
 	mux.HandleFunc("POST "+base+"/accounts/{token}/status", fake.authenticated(fake.accountStatus))
+	mux.HandleFunc("GET "+base+"/sign-ins", fake.authenticated(fake.listSignIns))
+	mux.HandleFunc("POST "+base+"/sign-ins/{token}/progress", fake.authenticated(fake.reportSignIn))
+	mux.HandleFunc("POST "+base+"/runs/{token}/github-token", fake.authenticated(fake.githubToken))
 	fake.server = httptest.NewServer(mux)
 	t.Cleanup(fake.server.Close)
 	return fake
@@ -289,4 +306,54 @@ func (fake *FakeGenagents) accountStatus(w http.ResponseWriter, r *http.Request)
 	defer fake.mutex.Unlock()
 	fake.AccountStatuses = append(fake.AccountStatuses, body)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// SetSignIns replaces what the sign-in poll returns.
+func (fake *FakeGenagents) SetSignIns(signIns ...map[string]any) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.SignIns = signIns
+}
+
+// SetGithubToken makes the platform issue a GitHub token for the run.
+func (fake *FakeGenagents) SetGithubToken(runToken, token string) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.GithubTokens[runToken] = token
+}
+
+// Reports returns the sign-in reports so far.
+func (fake *FakeGenagents) Reports() []SignInReport {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	return append([]SignInReport(nil), fake.SignInReports...)
+}
+
+func (fake *FakeGenagents) listSignIns(w http.ResponseWriter, _ *http.Request) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	listed := fake.SignIns
+	if listed == nil {
+		listed = []map[string]any{}
+	}
+	write(w, http.StatusOK, map[string]any{"signIns": listed})
+}
+
+func (fake *FakeGenagents) reportSignIn(w http.ResponseWriter, r *http.Request) {
+	payload := readBody(r)
+	fake.mutex.Lock()
+	fake.SignInReports = append(fake.SignInReports, SignInReport{Token: r.PathValue("token"), Payload: payload})
+	fake.mutex.Unlock()
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (fake *FakeGenagents) githubToken(w http.ResponseWriter, r *http.Request) {
+	fake.mutex.Lock()
+	token, found := fake.GithubTokens[r.PathValue("token")]
+	fake.mutex.Unlock()
+	if !found {
+		write(w, http.StatusConflict, map[string]any{"error": map[string]any{"code": "github_token_unavailable", "fields": map[string]string{"reason": "github_not_connected"}}})
+		return
+	}
+	write(w, http.StatusOK, map[string]any{"token": token, "expiresAt": time.Now().Add(time.Hour).UTC().Format(time.RFC3339)})
 }

@@ -11,15 +11,16 @@ import (
 )
 
 type accountBody struct {
-	Token       string  `json:"token"`
-	Name        string  `json:"name"`
-	Provider    string  `json:"provider"`
-	Mode        string  `json:"mode"`
-	HasAPIKey   bool    `json:"hasApiKey"`
-	APIKeyLast4 *string `json:"apiKeyLast4"`
-	Status      string  `json:"status"`
-	LastError   *string `json:"lastError"`
-	SignIn      *string `json:"signInCommand"`
+	Token       string      `json:"token"`
+	Name        string      `json:"name"`
+	Provider    string      `json:"provider"`
+	Mode        string      `json:"mode"`
+	HasAPIKey   bool        `json:"hasApiKey"`
+	APIKeyLast4 *string     `json:"apiKeyLast4"`
+	Status      string      `json:"status"`
+	LastError   *string     `json:"lastError"`
+	SignIn      *string     `json:"signInCommand"`
+	Attempt     *signInBody `json:"signIn"`
 	Runner      *struct {
 		Token string `json:"token"`
 		Name  string `json:"name"`

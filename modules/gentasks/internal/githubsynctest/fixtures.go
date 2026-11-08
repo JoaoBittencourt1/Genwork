@@ -4,6 +4,10 @@ package githubsynctest
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"testing"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/gentasks/internal/boardtest"
@@ -39,13 +43,30 @@ func NewCredentialCipher(t *testing.T, key []byte) *githubsync.CredentialCipher 
 // StoreGithubApp saves a connected App whose credentials are encrypted with key.
 func StoreGithubApp(t *testing.T, db platform.DBTX, key []byte) githubsync.GithubApp {
 	t.Helper()
+	return StoreGithubAppWithPrivateKey(t, db, key, PrivateKey)
+}
+
+// GenerateAppPrivateKey makes a throwaway RSA key at test time, so no private key is ever committed (rule 3).
+func GenerateAppPrivateKey(t *testing.T) (*rsa.PrivateKey, string) {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	encoded := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	return key, string(encoded)
+}
+
+// StoreGithubAppWithPrivateKey saves a connected App with the given private key PEM.
+func StoreGithubAppWithPrivateKey(t *testing.T, db platform.DBTX, key []byte, privateKeyPEM string) githubsync.GithubApp {
+	t.Helper()
 	cipher := NewCredentialCipher(t, key)
 	token := platform.NewPublicToken()
 	webhookSecret, err := cipher.Encrypt(githubsync.NewGithubCredential([]byte(WebhookSecret)), githubsync.WebhookSecretAssociatedData(token))
 	if err != nil {
 		t.Fatalf("encrypt webhook secret: %v", err)
 	}
-	privateKey, err := cipher.Encrypt(githubsync.NewGithubCredential([]byte(PrivateKey)), githubsync.PrivateKeyAssociatedData(token))
+	privateKey, err := cipher.Encrypt(githubsync.NewGithubCredential([]byte(privateKeyPEM)), githubsync.PrivateKeyAssociatedData(token))
 	if err != nil {
 		t.Fatalf("encrypt private key: %v", err)
 	}

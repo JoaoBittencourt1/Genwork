@@ -28,6 +28,15 @@ type fakeGithub struct {
 	Reviews      []map[string]any
 	FailReview   bool
 	FailPR       bool
+	// Tokens lists the run tokens the executor switched to, in order.
+	Tokens []string
+}
+
+func (github *fakeGithub) WithToken(token string) execution.GithubPoster {
+	github.mutex.Lock()
+	defer github.mutex.Unlock()
+	github.Tokens = append(github.Tokens, token)
+	return github
 }
 
 func (github *fakeGithub) DefaultBranch(context.Context, string) (string, error) { return "main", nil }
@@ -65,9 +74,15 @@ type environment struct {
 
 func newEnvironment(t *testing.T, script sandboxtest.Script, mutate func(*execution.Settings)) *environment {
 	t.Helper()
+	return newEnvironmentWithRunnerToken(t, script, mutate, "ghp-host-only-token")
+}
+
+// newEnvironmentWithRunnerToken sets the runner's own GitHub token; empty means the runner has none.
+func newEnvironmentWithRunnerToken(t *testing.T, script sandboxtest.Script, mutate func(*execution.Settings), runnerToken string) *environment {
+	t.Helper()
 	env := &environment{t: t, genagents: genagentstest.NewFakeGenagents(t), remote: gitremotetest.NewRemote(t), github: &fakeGithub{}, root: t.TempDir()}
 	env.launcher = sandboxtest.NewFakeLauncher(script)
-	env.workspace = workspace.NewManager(filepath.Join(env.root, "runs"), env.remote.BaseURL, "ghp-host-only-token")
+	env.workspace = workspace.NewManager(filepath.Join(env.root, "runs"), env.remote.BaseURL, runnerToken)
 	settings := execution.Settings{
 		SandboxImage: "registry.example/genwork-sandbox:2.0.0", Limits: sandbox.Limits{CPUs: 2, Memory: 1 << 30, PIDs: 100},
 		ProfileDir:   func(account string) string { return filepath.Join(env.root, "profiles", account) },

@@ -99,8 +99,9 @@ type request struct {
 }
 
 type response struct {
-	status int
-	body   []byte
+	status  int
+	body    []byte
+	headers http.Header
 }
 
 func (app *testApp) do(req request) response {
@@ -132,7 +133,7 @@ func (app *testApp) do(req request) response {
 	}
 	recorder := httptest.NewRecorder()
 	app.handler.ServeHTTP(recorder, httpRequest)
-	return response{status: recorder.Code, body: recorder.Body.Bytes()}
+	return response{status: recorder.Code, body: recorder.Body.Bytes(), headers: recorder.Header()}
 }
 
 func (resp response) decode(t *testing.T, target any) {

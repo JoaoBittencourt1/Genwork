@@ -11,7 +11,7 @@ import (
 var fixtures embed.FS
 
 // FixtureNames lists the recorded gentasks responses.
-var FixtureNames = []string{"task_context.json", "assigned_tasks.json"}
+var FixtureNames = []string{"task_context.json", "assigned_tasks.json", "repository_token.json"}
 
 func Fixture(name string) []byte {
 	data, err := fixtures.ReadFile("fixtures/" + name)

@@ -25,7 +25,9 @@ type McpServerResponse struct {
 	Command   *string         `json:"command"`
 	Args      []string        `json:"args"`
 	Env       []EntryResponse `json:"env"`
-	UpdatedAt time.Time       `json:"updatedAt"`
+	// OAuth is nil while the server was never connected through OAuth.
+	OAuth     *OAuthConnectionResponse `json:"oauth"`
+	UpdatedAt time.Time                `json:"updatedAt"`
 }
 
 type McpServerListResponse struct {
@@ -52,6 +54,10 @@ func NewMcpServerResponse(server McpServer) McpServerResponse {
 	}
 	if response.Args == nil {
 		response.Args = []string{}
+	}
+	if server.OAuth != nil {
+		connection := NewOAuthConnectionResponse(*server.OAuth)
+		response.OAuth = &connection
 	}
 	if server.Transport == TransportHTTP {
 		response.URL = &server.Config.URL

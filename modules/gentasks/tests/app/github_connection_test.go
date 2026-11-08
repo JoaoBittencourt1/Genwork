@@ -93,7 +93,8 @@ func TestStartGithubManifestForPersonalAccount(t *testing.T) {
 		manifest.SetupURL != coretest.Issuer+"/tasks/integrations/github" || !manifest.SetupOnUpdate {
 		t.Errorf("manifest URLs = %+v", manifest)
 	}
-	if len(manifest.DefaultPermissions) != 2 || manifest.DefaultPermissions["pull_requests"] != "read" || manifest.DefaultPermissions["metadata"] != "read" ||
+	if len(manifest.DefaultPermissions) != 3 || manifest.DefaultPermissions["pull_requests"] != "write" || manifest.DefaultPermissions["contents"] != "write" ||
+		manifest.DefaultPermissions["metadata"] != "read" ||
 		len(manifest.DefaultEvents) != 1 || manifest.DefaultEvents[0] != "pull_request" {
 		t.Errorf("permissions = %v, events = %v", manifest.DefaultPermissions, manifest.DefaultEvents)
 	}

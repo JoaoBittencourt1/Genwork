@@ -128,14 +128,11 @@ func (service *RunClaimService) tryClaim(ctx context.Context, tx pgx.Tx, runner 
 	return service.claim(ctx, tx, runner, run, bot, account)
 }
 
-// IsEligible says whether a runner may take a run: it holds the subscription account or reports the provider's CLI,
-// and has GitHub credentials when the run needs them.
+// IsEligible says whether a runner may take a run: it holds the subscription account or reports the provider's CLI.
+// GitHub credentials are not required up front: the platform relays a token per run, and the runner's own is the fallback.
 func IsEligible(runner runners.Runner, run runs.Run, account accounts.AiAccount) bool {
 	definition, found := accounts.FindProviderDefinition(account.Provider)
 	if !found || runner.IsRevoked() {
-		return false
-	}
-	if run.Kind.NeedsGithub() && !runner.HasGithubCredentials {
 		return false
 	}
 	if account.Mode == accounts.AccountModeSubscription {

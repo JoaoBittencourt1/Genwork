@@ -19,8 +19,8 @@ export function runnerCanBeRemoved(runner: Runner, now: Date): boolean {
 
 export type RunnerWarning = 'directoryMode' | 'noGithubCredentials' | 'customImage'
 
-// runnerWarnings lists what an admin should notice about a runner: unsafe directory mode, missing GitHub credentials
-// (it cannot take task runs or reviews), and a custom sandbox image.
+// runnerWarnings lists what an admin should notice about a runner: unsafe directory mode, no GitHub token of its own
+// (its GitHub runs depend on the platform's GitHub App), and a custom sandbox image.
 export function runnerWarnings(runner: Runner): RunnerWarning[] {
   const warnings: RunnerWarning[] = []
   if (runner.directoryMode) warnings.push('directoryMode')

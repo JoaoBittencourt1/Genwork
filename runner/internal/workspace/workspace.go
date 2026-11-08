@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -62,6 +63,25 @@ type Workspace struct {
 	RunToken string
 	Dir      string
 	manager  *Manager
+	// token is the run's own GitHub token, issued by the platform; empty means the runner's token.
+	token      string
+	tokenMutex sync.Mutex
+}
+
+// UseToken makes the workspace's Git commands authenticate with the run's own token instead of the runner's.
+func (workspace *Workspace) UseToken(token string) {
+	workspace.tokenMutex.Lock()
+	defer workspace.tokenMutex.Unlock()
+	workspace.token = token
+}
+
+func (workspace *Workspace) currentToken() string {
+	workspace.tokenMutex.Lock()
+	defer workspace.tokenMutex.Unlock()
+	if workspace.token != "" {
+		return workspace.token
+	}
+	return workspace.manager.token
 }
 
 // Create makes the run's directory, empty and owner-only.
@@ -100,6 +120,11 @@ func (manager *Manager) RemoveAll(keep map[string]bool) error {
 	return nil
 }
 
+// HasToken reports whether the runner has a GitHub token of its own, the fallback when the platform issues none.
+func (manager *Manager) HasToken() bool {
+	return manager.token != ""
+}
+
 // RepositoryURL is where a repository is cloned from: the configured Git server, then owner/name.
 func (manager *Manager) RepositoryURL(repository string) string {
 	return manager.gitBaseURL + "/" + repository + ".git"
@@ -110,9 +135,10 @@ func (manager *Manager) RepositoryURL(repository string) string {
 func (workspace *Workspace) git(ctx context.Context, directory string, authenticated bool, arguments ...string) (string, error) {
 	prefix := append([]string{}, untrustedConfig...)
 	environment := append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_CONFIG_NOSYSTEM=1")
+	token := workspace.currentToken()
 	if authenticated {
 		prefix = append(prefix, "-c", "credential.helper=", "-c", "credential.helper="+credentialHelp)
-		environment = append(environment, tokenVariable+"="+workspace.manager.token, hostVariable+"="+workspace.manager.gitHost)
+		environment = append(environment, tokenVariable+"="+token, hostVariable+"="+workspace.manager.gitHost)
 	}
 	command := exec.CommandContext(ctx, "git", append(prefix, arguments...)...)
 	command.Dir = directory
@@ -120,7 +146,7 @@ func (workspace *Workspace) git(ctx context.Context, directory string, authentic
 	var output bytes.Buffer
 	command.Stdout, command.Stderr = &output, &output
 	if err := command.Run(); err != nil {
-		return "", fmt.Errorf("git %s: %w: %s", arguments[0], err, redact(output.String(), workspace.manager.token))
+		return "", fmt.Errorf("git %s: %w: %s", arguments[0], err, redact(output.String(), token))
 	}
 	return strings.TrimSpace(output.String()), nil
 }

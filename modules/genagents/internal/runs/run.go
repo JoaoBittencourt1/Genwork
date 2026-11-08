@@ -16,7 +16,8 @@ const (
 	RunKindChat   RunKind = "chat"
 )
 
-// NeedsGithub says whether a run clones and posts on GitHub, so only runners with GitHub credentials may claim it.
+// NeedsGithub says whether a run clones and posts on GitHub, so it needs GitHub credentials: the platform's, relayed per
+// run, or the runner's own.
 func (kind RunKind) NeedsGithub() bool {
 	return kind == RunKindTask || kind == RunKindReview
 }
@@ -58,12 +59,14 @@ const (
 	FailureAccountError     FailureReason = "account_error"
 	FailureSessionRevoked   FailureReason = "session_revoked"
 	FailureRunFailed        FailureReason = "run_failed"
+	// FailureGithubCredentialsMissing: neither the platform's GitHub App nor the runner could provide GitHub credentials.
+	FailureGithubCredentialsMissing FailureReason = "github_credentials_missing"
 )
 
 func (reason FailureReason) IsValid() bool {
 	switch reason {
 	case FailureRunnerRevoked, FailureRunnerLost, FailureTimeout, FailureSandboxLimit, FailureAdapterError, FailureNoRepository,
-		FailureNoReply, FailureGithubPostFailed, FailureAccountError, FailureSessionRevoked, FailureRunFailed:
+		FailureNoReply, FailureGithubPostFailed, FailureAccountError, FailureSessionRevoked, FailureRunFailed, FailureGithubCredentialsMissing:
 		return true
 	}
 	return false
@@ -119,4 +122,26 @@ type Run struct {
 
 func (run Run) IsActive() bool {
 	return run.State.IsActive()
+}
+
+// MaxRunRepositories is the most repositories one run may work in: gentasks issues a GitHub token for at most this many
+// at once (its repository-tokens contract), so a run beyond it could never get credentials from the platform.
+const MaxRunRepositories = 10
+
+// Repositories lists the GitHub repositories a run works in, each once: the task's repository, or the reviewed pull
+// requests' repositories.
+func (spec RunSpec) Repositories() []string {
+	seen := map[string]bool{}
+	repositories := []string{}
+	add := func(repository string) {
+		if repository != "" && !seen[repository] {
+			seen[repository] = true
+			repositories = append(repositories, repository)
+		}
+	}
+	add(spec.Repository)
+	for _, pullRequest := range spec.PullRequests {
+		add(pullRequest.Repository)
+	}
+	return repositories
 }

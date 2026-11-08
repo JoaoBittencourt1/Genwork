@@ -60,6 +60,16 @@ type Invocation struct {
 	Profile *sandbox.Profile
 }
 
+// SignInSpec is how a CLI signs a subscription account in. The runner starts Command with Env (which points the CLI's
+// profile at ProfileMount) in a terminal, relays the URL it prints, and types the code a person pastes when ExpectsCode
+// is set. UserCodePattern finds the one-time code a device flow asks the person to enter on the provider's page.
+type SignInSpec struct {
+	Command         []string
+	Env             map[string]string
+	ExpectsCode     bool
+	UserCodePattern *regexp.Regexp
+}
+
 // Adapter is one provider's CLI.
 type Adapter interface {
 	// CLI is the tool name the sandbox image reports for this provider.
@@ -72,10 +82,8 @@ type Adapter interface {
 	// Invocation builds the call for a turn; sessionID is empty for the first one.
 	Invocation(run api.Run, prompt, sessionID string) Invocation
 	NewParser(secrets []string) Parser
-	// LoginCommand is the CLI's own sign-in, run interactively for a subscription account; nil when it has none.
-	LoginCommand() []string
-	// LoginEnv points the CLI's profile at the mounted directory during the sign-in.
-	LoginEnv() map[string]string
+	// SignIn is the CLI's own sign-in for a subscription account; nil when the provider has none.
+	SignIn() *SignInSpec
 	// Finish copies back what the CLI changed outside the profile mount, if anything.
 	Finish(workspace, profileDir string) error
 }

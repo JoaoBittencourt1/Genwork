@@ -58,7 +58,7 @@ describe('model filtering by account', () => {
 
 describe('accounts and bots', () => {
   it('shows the sign-in command only while an account waits for it', () => {
-    const pending = accountFixture({ status: 'pending_sign_in', signInCommand: 'genwork-runner account login a1' })
+    const pending = accountFixture({ mode: 'subscription', status: 'pending_sign_in', signInCommand: 'genwork-runner account login a1' })
 
     expect(accountSignInHint(pending)).toBe('genwork-runner account login a1')
     expect(accountSignInHint(accountFixture())).toBeNull()

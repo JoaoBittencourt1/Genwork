@@ -121,3 +121,62 @@ func (client *Client) get(ctx context.Context, accessToken, path string, target 
 	}
 	return nil
 }
+
+// RepositoryToken is a short-lived GitHub token for the repositories a run works in, issued by gentasks' GitHub App.
+type RepositoryToken struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+// RepositoryTokenRefusal is gentasks saying why it issued no token: its error code, such as github_not_connected,
+// github_app_not_installed, or forbidden when the bot's role lacks the permission.
+type RepositoryTokenRefusal struct {
+	Reason string
+}
+
+func (refusal *RepositoryTokenRefusal) Error() string {
+	return "gentasks issued no repository token: " + refusal.Reason
+}
+
+// IssueRepositoryToken asks gentasks for a GitHub token with the caller's own token, so gentasks applies its rights.
+func (client *Client) IssueRepositoryToken(ctx context.Context, accessToken string, repositories []string) (RepositoryToken, error) {
+	body, err := json.Marshal(map[string]any{"repositories": repositories})
+	if err != nil {
+		return RepositoryToken{}, fmt.Errorf("encode repository token request: %w", err)
+	}
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.baseURL+"/api/gentasks/v1/github/repository-tokens", strings.NewReader(string(body)))
+	if err != nil {
+		return RepositoryToken{}, fmt.Errorf("build gentasks request: %w", err)
+	}
+	httpRequest.Header.Set("Authorization", "Bearer "+accessToken)
+	httpRequest.Header.Set("Content-Type", "application/json")
+	response, err := client.httpClient.Do(httpRequest)
+	if err != nil {
+		return RepositoryToken{}, errors.Join(ErrUnavailable, err)
+	}
+	defer response.Body.Close()
+	payload, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return RepositoryToken{}, errors.Join(ErrUnavailable, err)
+	}
+	if response.StatusCode != http.StatusOK {
+		return RepositoryToken{}, &RepositoryTokenRefusal{Reason: refusalReason(response.StatusCode, payload)}
+	}
+	var token RepositoryToken
+	if err := json.Unmarshal(payload, &token); err != nil || token.Token == "" {
+		return RepositoryToken{}, errors.Join(ErrUnavailable, fmt.Errorf("decode repository token: %w", err))
+	}
+	return token, nil
+}
+
+func refusalReason(status int, payload []byte) string {
+	var failure struct {
+		Error struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(payload, &failure) == nil && failure.Error.Code != "" {
+		return failure.Error.Code
+	}
+	return "gentasks_status_" + strconv.Itoa(status)
+}

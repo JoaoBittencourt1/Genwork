@@ -17,11 +17,19 @@ type McpServerService struct {
 	db      *pgxpool.Pool
 	cipher  *platform.SecretCipher
 	servers McpServerRepository
+	oauth   *McpServerOAuthService
+	conns   McpServerOAuthRepository
 	now     func() time.Time
 }
 
 func NewMcpServerService(db *pgxpool.Pool, cipher *platform.SecretCipher, now func() time.Time) *McpServerService {
 	return &McpServerService{db: db, cipher: cipher, now: now}
+}
+
+// WithOAuth makes runs receive the bearer token of OAuth-connected servers.
+func (service *McpServerService) WithOAuth(oauth *McpServerOAuthService) *McpServerService {
+	service.oauth = oauth
+	return service
 }
 
 func associatedData(token string) string {
@@ -33,8 +41,19 @@ func (service *McpServerService) ListServers(ctx context.Context) ([]McpServer, 
 	if err != nil {
 		return nil, err
 	}
+	ids := make([]int64, 0, len(stored))
+	for _, server := range stored {
+		ids = append(ids, server.ID)
+	}
+	connections, err := service.conns.ListByServers(ctx, service.db, ids)
+	if err != nil {
+		return nil, err
+	}
 	listed := make([]McpServer, 0, len(stored))
 	for _, server := range stored {
+		if connection, found := connections[server.ID]; found {
+			server.OAuth = &connection
+		}
 		listed = append(listed, server.McpServer)
 	}
 	return listed, nil
@@ -71,6 +90,11 @@ func (service *McpServerService) UpdateServer(ctx context.Context, token string,
 		if err != nil {
 			return err
 		}
+		if changed.Config.URL != stored.Config.URL && service.oauth != nil {
+			if err := service.oauth.ForgetConnection(ctx, tx, stored.ID); err != nil {
+				return err
+			}
+		}
 		config, secrets := splitSecrets(changed)
 		ciphertext, err := service.encryptSecrets(token, secrets)
 		if err != nil {
@@ -95,20 +119,27 @@ func (service *McpServerService) DeleteServer(ctx context.Context, token string)
 	})
 }
 
-// ResolveForRun returns the servers with their secrets decrypted; only run claiming calls it, and only to hand the
-// values to a runner once.
+// ResolveForRun returns the servers with their secrets decrypted and the bearer token of OAuth-connected ones; only run
+// claiming calls it, and only to hand the values to a runner once.
 func (service *McpServerService) ResolveForRun(ctx context.Context, db platform.DBTX, ids []int64) ([]McpServer, error) {
 	stored, err := service.servers.ListByIDs(ctx, db, ids)
 	if err != nil {
 		return nil, err
 	}
-	resolved := make([]McpServer, 0, len(stored))
-	for _, server := range stored {
-		secrets, err := service.decryptSecrets(server)
+	for index := range stored {
+		secrets, err := service.decryptSecrets(stored[index])
 		if err != nil {
 			return nil, err
 		}
-		server.Secrets = secrets
+		stored[index].Secrets = secrets
+	}
+	if service.oauth != nil {
+		if err := service.oauth.AttachTokens(ctx, db, stored); err != nil {
+			return nil, err
+		}
+	}
+	resolved := make([]McpServer, 0, len(stored))
+	for _, server := range stored {
 		resolved = append(resolved, server.McpServer)
 	}
 	return resolved, nil

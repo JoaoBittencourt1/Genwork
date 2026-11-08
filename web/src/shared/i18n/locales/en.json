@@ -283,7 +283,16 @@
     "run_not_active": "There is no active run to stop.",
     "run_already_active": "A run of this kind is already active for this task.",
     "no_open_pull_requests": "This task has no open or draft pull request to review.",
-    "gentasks_unavailable": "Tasks are unavailable right now. Try again."
+    "gentasks_unavailable": "Tasks are unavailable right now. Try again.",
+    "sign_in_not_found": "Sign-in not found.",
+    "sign_in_not_active": "This sign-in already ended. Start a new one.",
+    "sign_in_not_awaiting_code": "This sign-in is not waiting for a code.",
+    "sign_in_in_flight": "A sign-in is already in progress for this account.",
+    "oauth_discovery_failed": "The server's OAuth configuration could not be found. Check its URL.",
+    "oauth_client_id_required": "This server does not register clients automatically. Enter a client id registered with it.",
+    "oauth_not_connected": "This server is not connected through OAuth.",
+    "oauth_state_invalid": "This authorization link is invalid or expired. Connect again.",
+    "too_many_review_repositories": "This review spans more than {{max}} repositories, the most one bot run can work in. Review the pull requests in smaller groups."
   },
   "common": {
     "cancel": "Cancel",
@@ -441,7 +450,7 @@
       "title": "GitHub",
       "intro": "Connect GitHub so pull requests move tasks: a pull request whose title or branch cites a task key moves the task when it is opened, when a review is requested, and when it is merged into a final branch. Each board chooses the columns in its settings.",
       "connectTitle": "Connect GitHub",
-      "connectDescription": "Genwork creates a private GitHub App for this installation with read-only access to pull requests. GitHub asks you to confirm, then you choose the repositories.",
+      "connectDescription": "Genwork creates a private GitHub App for this installation: it reads pull request events to move tasks, and gives bots short-lived tokens to push branches and open pull requests. GitHub asks you to confirm, then you choose the repositories. For an App created before version 2.2.0, open its settings on GitHub, give it read and write access to Contents and Pull requests, then accept the change on its installation.",
       "organization": "GitHub organization (optional)",
       "organizationPlaceholder": "acme",
       "organizationDescription": "Leave it empty to create the App on your personal account. A private App can only be installed on the account that owns it, so enter the organization that owns the repositories.",
@@ -674,7 +683,8 @@
       "github_post_failed": "GitHub refused the request",
       "account_error": "the AI account was refused: {{message}}",
       "session_revoked": "the chat's session ended; reopen the chat to continue",
-      "run_failed": "the run failed"
+      "run_failed": "the run failed",
+      "github_credentials_missing": "no GitHub credentials: connect the GitHub App in Tasks → GitHub and install it on the repository, or set GH_TOKEN on the runner"
     }
   },
   "genagents": {
@@ -689,7 +699,7 @@
     },
     "accounts": {
       "title": "AI accounts",
-      "description": "Link the team's AI accounts, with a subscription signed in on a runner or an API key.",
+      "description": "Link the team's AI accounts, with a subscription signed in from here or an API key.",
       "termsNote": "Check your provider's terms before sharing a consumer subscription with automation; an API key is always an option.",
       "columns": {
         "name": "Name",
@@ -719,7 +729,30 @@
       "removeModel": "Remove model {{id}}",
       "remove": "Remove {{name}}",
       "removeTitle": "Remove account?",
-      "removeDescription": "“{{name}}” will be unlinked. Its sign-in profile is deleted from the runner."
+      "removeDescription": "“{{name}}” will be unlinked. Its sign-in profile is deleted from the runner.",
+      "signIn": {
+        "start": "Log in with {{provider}}",
+        "again": "Sign in again with {{provider}}",
+        "waitingForRunner": "Waiting for {{runner}} to start the sign-in…",
+        "openAndPaste": "Open the sign-in page, authorize, then paste the code it shows here.",
+        "openAndAuthorize": "Open the sign-in page and authorize. This page updates by itself when you are done.",
+        "open": "Open {{host}}",
+        "userCode": "Code to enter on the page",
+        "code": "Code from the sign-in page",
+        "codePlaceholder": "Paste the code shown after authorizing",
+        "submitCode": "Finish sign-in",
+        "verifying": "Checking the sign-in…",
+        "cancel": "Cancel sign-in",
+        "fallback": "Or sign in from the runner's terminal",
+        "states": {
+          "failed": "Sign-in failed",
+          "cancelled": "Sign-in cancelled",
+          "expired": "Sign-in expired: nobody finished it within 10 minutes"
+        },
+        "errors": {
+          "sign_in_expired": "The last sign-in expired before it was finished. Start a new one."
+        }
+      }
     },
     "bots": {
       "title": "Bots",
@@ -811,7 +844,28 @@
       "entryValue": "Value",
       "keepStored": "Leave empty to keep the stored value",
       "addEntry": "Add",
-      "removeEntry": "Remove entry"
+      "removeEntry": "Remove entry",
+      "oauth": {
+        "connect": "Connect",
+        "reconnect": "Reconnect",
+        "disconnect": "Disconnect",
+        "connected": "The MCP server is connected.",
+        "clientRequired": "This server needs a client registered with it. Use this redirect URL there: <your Genwork URL>/api/genagents/v1/mcp-servers/oauth/callback",
+        "clientId": "Client id",
+        "clientSecret": "Client secret (optional)",
+        "states": {
+          "disconnected": "Not connected",
+          "connected": "Connected",
+          "error": "Connection error"
+        },
+        "reasons": {
+          "invalid_state": "The authorization link was invalid or expired. Connect again.",
+          "authorization_denied": "The authorization was denied or cancelled.",
+          "token_exchange_failed": "The server did not accept the authorization. Connect again.",
+          "refresh_failed": "The connection expired and could not be renewed. Connect again.",
+          "unknown": "The connection failed. Connect again."
+        }
+      }
     },
     "runners": {
       "title": "Runners",
@@ -830,7 +884,7 @@
       },
       "warnings": {
         "directoryMode": "Directory mode: runs without isolation. Development only.",
-        "noGithubCredentials": "No GitHub credentials: it cannot take task runs or reviews.",
+        "noGithubCredentials": "No GitHub token of its own: task runs and reviews use the GitHub App connected in Tasks → GitHub.",
         "customImage": "Custom sandbox image."
       },
       "directoryMode": "Directory mode",

@@ -18,13 +18,15 @@ The runner's secret is stored in `~/.genwork-runner/runner.json` (override the d
 
 ## GitHub credentials
 
-Task runs and reviews clone, push, open pull requests, and post reviews from the host. Give the runner a fine-grained GitHub token with contents and pull request access to the repositories bots work in:
+Task runs and reviews clone, push, open pull requests, and post reviews from the host. By default the runner needs nothing for this: for each run it asks Genwork for a short-lived token of the GitHub App connected in **Tasks → GitHub**, limited to that run's repositories, and renews it before it expires. For that, the bot's role needs the `gentasks.repository.write` permission (admin and member have it by default) and the App needs read and write access to Contents and Pull requests.
+
+A runner can also have a token of its own, used when the platform issues none:
 
 ```sh
 export GH_TOKEN=github_pat_...
 ```
 
-The token stays on this machine. It reaches Git through a one-off credential helper and is never written into a repository or a sandbox. A runner without it still serves admin chat runs and says so on the Runners page.
+Either token stays on the host. It reaches Git through a one-off credential helper and is never written into a repository or a sandbox. A run that needs GitHub fails with `github_credentials_missing` when neither exists.
 
 ## Run
 
@@ -46,13 +48,19 @@ It refuses to start without a container engine. For development only, `genwork-r
 
 ## Sign in a subscription account
 
-For an account linked in **subscription** mode, sign in on the runner that holds it:
+For an account linked in **subscription** mode, open **AI → Accounts** and click **Log in with <provider>**. The runner that holds the account starts the provider CLI's own sign-in (`claude auth login`, `codex login --device-auth`, or `cursor-agent login`) in a sandbox with a terminal that mounts only that account's profile, and the page shows the sign-in URL:
+
+- **Claude**: open the URL, authorize on Anthropic's page, and paste the code it shows back into Genwork.
+- **Codex**: open the URL and enter the code Genwork shows.
+- **Cursor**: open the URL and authorize.
+
+The CLI exchanges the authorization itself and keeps the credentials in the account's profile on this machine. Genwork never receives them. A sign-in nobody finishes expires after 10 minutes. Two accounts of the same provider never share a profile.
+
+From a terminal on the runner, the same sign-in also works interactively:
 
 ```sh
 genwork-runner account login <account token>
 ```
-
-The provider CLI's own sign-in runs in a sandbox that mounts only that account's profile. Two accounts of the same provider never share a profile, and credentials never leave this machine.
 
 ## Custom sandbox images
 

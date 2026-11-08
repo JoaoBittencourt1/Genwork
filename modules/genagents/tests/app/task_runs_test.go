@@ -2,6 +2,7 @@ package app_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -528,4 +529,28 @@ func TestRunListShowsRecentRunsAndFiltersActiveOnes(t *testing.T) {
 	}
 	expectValidationError(t, app.do(request{method: "GET", path: "/api/genagents/v1/runs?limit=0"}), "limit")
 	expectError(t, app.do(request{method: "GET", path: "/api/genagents/v1/runs", accessToken: app.tokenWith()}), http.StatusForbidden, "forbidden")
+}
+
+// A review spanning more repositories than gentasks issues one GitHub token for is refused up front, instead of failing
+// on the runner without credentials.
+func TestReviewAcrossTooManyRepositoriesIsRefused(t *testing.T) {
+	app := newTestApp(t)
+	app.createBotOn(app.claudeAccount().Token, func(body map[string]any) { body["kind"] = "reviewer" })
+	pullRequests := func(repositories int) []map[string]any {
+		listed := []map[string]any{}
+		for index := 0; index < repositories; index++ {
+			repository := fmt.Sprintf("acme/repo-%d", index)
+			listed = append(listed, map[string]any{"repository": repository, "number": 1, "state": "open", "url": "https://github.com/" + repository + "/pull/1"})
+		}
+		return listed
+	}
+	app.tasks.SetTask("task-1", func(task map[string]any) { task["pullRequests"] = pullRequests(runs.MaxRunRepositories + 1) })
+	app.tasks.SetTask("task-2", func(task map[string]any) { task["pullRequests"] = pullRequests(runs.MaxRunRepositories) })
+
+	body := expectError(t, app.do(request{method: "POST", path: "/api/genagents/v1/tasks/task-1/bot-reviews", body: map[string]any{}}), http.StatusConflict, "too_many_review_repositories")
+
+	if body.Error.Fields["max"] != "10" {
+		t.Errorf("fields = %v", body.Error.Fields)
+	}
+	expectStatus(t, app.do(request{method: "POST", path: "/api/genagents/v1/tasks/task-2/bot-reviews", body: map[string]any{}}), http.StatusAccepted)
 }
