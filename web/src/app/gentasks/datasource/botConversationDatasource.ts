@@ -14,11 +14,7 @@ export async function listBotOptions(): Promise<ReviewerBot[]> {
   return bots.map((bot) => ({ token: bot.token, memberToken: bot.memberToken, name: bot.name, kind: bot.kind, enabled: bot.enabled }))
 }
 
-function conversationPath(taskToken: string): string {
-  return `/api/gentasks/v1/tasks/${encodeURIComponent(taskToken)}`
-}
-
-// The conversation of a task and the bot review go through gentasks, which relays them to genagents.
+// The conversation of a task and its bot review belong to genagents, keyed by the gentasks task token.
 export function readTaskConversation(taskToken: string, afterSequence: number): Promise<ConversationPage> {
   return apiRequest<ConversationPage>('GET', `${GENAGENTS_API}/tasks/${encodeURIComponent(taskToken)}/conversation?after=${afterSequence}`)
 }
@@ -32,5 +28,5 @@ export function stopTaskRun(taskToken: string): Promise<void> {
 }
 
 export function requestBotReview(taskToken: string, botToken?: string): Promise<{ runToken: string; state: string }> {
-  return apiRequest<{ runToken: string; state: string }>('POST', `${conversationPath(taskToken)}/bot-reviews`, { body: botToken ? { botToken } : {} })
+  return apiRequest<{ runToken: string; state: string }>('POST', `${GENAGENTS_API}/tasks/${encodeURIComponent(taskToken)}/bot-reviews`, { body: botToken ? { botToken } : {} })
 }

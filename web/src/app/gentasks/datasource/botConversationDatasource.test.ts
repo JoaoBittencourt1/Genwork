@@ -19,7 +19,7 @@ describe('botConversationDatasource', () => {
     const read = captureRequests('get', '*/api/genagents/v1/tasks/:token/conversation', () => HttpResponse.json(page))
     const posted = captureRequests('post', '*/api/genagents/v1/tasks/:token/conversation/messages', () => new HttpResponse(null, { status: 202 }))
     const stopped = captureRequests('post', '*/api/genagents/v1/tasks/:token/conversation/stop', () => new HttpResponse(null, { status: 204 }))
-    const reviewed = captureRequests('post', '*/api/gentasks/v1/tasks/:token/bot-reviews', () => HttpResponse.json({ runToken: 'run-1', state: 'queued' }, { status: 202 }))
+    const reviewed = captureRequests('post', '*/api/genagents/v1/tasks/:token/bot-reviews', () => HttpResponse.json({ runToken: 'run-1', state: 'queued' }, { status: 202 }))
     setAccessToken('token-1')
 
     await expect(readTaskConversation('task/1', 40)).resolves.toEqual(page)
@@ -32,12 +32,13 @@ describe('botConversationDatasource', () => {
     expect(read[0]?.search).toBe('?after=40')
     expect(posted[0]?.body).toEqual({ text: 'use the repository' })
     expect(stopped[0]?.path).toBe('/api/genagents/v1/tasks/task-1/conversation/stop')
+    expect(reviewed[0]?.path).toBe('/api/genagents/v1/tasks/task-1/bot-reviews')
     expect(reviewed[0]?.body).toEqual({})
     expect(reviewed[1]?.body).toEqual({ botToken: 'bot-9' })
   })
 
   it('maps the review refusals', async () => {
-    captureRequests('post', '*/api/gentasks/v1/tasks/:token/bot-reviews', () => errorResponse(409, 'no_open_pull_requests'))
+    captureRequests('post', '*/api/genagents/v1/tasks/:token/bot-reviews', () => errorResponse(409, 'no_open_pull_requests'))
     setAccessToken('token-1')
 
     await expect(requestBotReview('task-1')).rejects.toMatchObject({ status: 409, code: 'no_open_pull_requests' })

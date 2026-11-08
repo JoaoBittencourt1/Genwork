@@ -23,12 +23,17 @@ const (
 )
 
 // StatusError is a refusal from genagents.
+// Reason is the error's "reason" field, which says why, such as why no GitHub token was issued.
 type StatusError struct {
 	Status int
 	Code   string
+	Reason string
 }
 
 func (err *StatusError) Error() string {
+	if err.Reason != "" {
+		return fmt.Sprintf("genagents answered %d %s (%s)", err.Status, err.Code, err.Reason)
+	}
 	return fmt.Sprintf("genagents answered %d %s", err.Status, err.Code)
 }
 
@@ -272,7 +277,8 @@ func (client *Client) send(ctx context.Context, method, path string, body any, t
 		return false, nil
 	}
 	if response.StatusCode >= http.StatusBadRequest {
-		return false, &StatusError{Status: response.StatusCode, Code: decodeCode(payload)}
+		code, reason := decodeError(payload)
+		return false, &StatusError{Status: response.StatusCode, Code: code, Reason: reason}
 	}
 	if target == nil {
 		return true, nil
@@ -283,16 +289,17 @@ func (client *Client) send(ctx context.Context, method, path string, body any, t
 	return true, nil
 }
 
-func decodeCode(payload []byte) string {
+func decodeError(payload []byte) (code, reason string) {
 	var body struct {
 		Error struct {
-			Code string `json:"code"`
+			Code   string            `json:"code"`
+			Fields map[string]string `json:"fields"`
 		} `json:"error"`
 	}
 	if json.Unmarshal(payload, &body) != nil || body.Error.Code == "" {
-		return "unknown"
+		return "unknown", ""
 	}
-	return body.Error.Code
+	return body.Error.Code, body.Error.Fields["reason"]
 }
 
 // SignIn is an active web-started sign-in of an account this runner holds; Code is set once a person pasted it.
