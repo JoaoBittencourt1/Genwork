@@ -56,6 +56,8 @@ func New(dependencies Dependencies) (http.Handler, error) {
 	taskcontext.NewTaskContextHandler(taskcontext.NewTaskContextService(dependencies.DB), dependencies.Github.WebURL).Register(router)
 	githubsync.NewGithubConnectionHandler(githubConnections).Register(router)
 	githubsync.NewGithubWebhookHandler(githubConnections, githubsync.NewPullRequestSyncService(dependencies.DB, taskService, dependencies.Now)).Register(router)
+	githubsync.NewRepositoryTokenHandler(githubsync.NewRepositoryTokenService(dependencies.DB, credentialCipher,
+		githubsync.NewGithubInstallationClient(dependencies.Github.APIURL), dependencies.UserDirectory, dependencies.Now)).Register(router)
 	githubsync.NewBoardGithubSettingsHandler(githubsync.NewBoardGithubSettingsService(dependencies.DB, dependencies.Now)).Register(router)
 	return router, nil
 }

@@ -41,6 +41,9 @@ type ContainerRequest struct {
 	WorkingDir   string            `json:"WorkingDir"`
 	Labels       map[string]string `json:"Labels"`
 	Tty          bool              `json:"Tty"`
+	OpenStdin    bool              `json:"OpenStdin"`
+	StdinOnce    bool              `json:"StdinOnce"`
+	AttachStdin  bool              `json:"AttachStdin"`
 	AttachStdout bool              `json:"AttachStdout"`
 	AttachStderr bool              `json:"AttachStderr"`
 	HostConfig   HostConfig        `json:"HostConfig"`
@@ -75,9 +78,13 @@ func BuildContainerRequest(spec Spec) ContainerRequest {
 	for _, key := range keys {
 		env = append(env, key+"="+spec.Env[key])
 	}
+	labels := map[string]string{RunLabel: spec.RunToken}
+	if spec.SignInToken != "" {
+		labels = map[string]string{SignInLabel: spec.SignInToken}
+	}
 	return ContainerRequest{
 		Image: spec.Image, Cmd: spec.Command, Env: env, User: containerUser(), WorkingDir: WorkspaceMount,
-		Labels: map[string]string{RunLabel: spec.RunToken}, Tty: true, AttachStdout: true, AttachStderr: true,
+		Labels: labels, Tty: true, AttachStdout: true, AttachStderr: true,
 		HostConfig: HostConfig{
 			Binds: binds, CapDrop: []string{"ALL"}, SecurityOpt: []string{"no-new-privileges"}, ReadonlyRootfs: true,
 			Tmpfs:  map[string]string{"/tmp": "rw,nosuid,size=1g", HomeMount: "rw,nosuid,size=1g"},
@@ -187,17 +194,18 @@ func (sandbox *ContainerSandbox) Stop(ctx context.Context, runToken string) erro
 	return nil
 }
 
+// RemoveLeftovers also removes every sign-in container: a sign-in never survives the runner, genagents expires it.
 func (sandbox *ContainerSandbox) RemoveLeftovers(ctx context.Context, keep map[string]bool) ([]string, error) {
-	filters, err := json.Marshal(map[string][]string{"label": {RunLabel}})
+	signIns, err := sandbox.listLabelled(ctx, SignInLabel)
 	if err != nil {
 		return nil, err
 	}
-	var listed []struct {
-		ID     string            `json:"Id"`
-		Labels map[string]string `json:"Labels"`
+	for _, container := range signIns {
+		sandbox.remove(container.ID)
 	}
-	if _, err := sandbox.engine.do(ctx, "GET", "/containers/json", url.Values{"all": {"1"}, "filters": {string(filters)}}, nil, &listed); err != nil {
-		return nil, fmt.Errorf("list sandboxes: %w", err)
+	listed, err := sandbox.listLabelled(ctx, RunLabel)
+	if err != nil {
+		return nil, err
 	}
 	var removedRuns []string
 	for _, container := range listed {
@@ -209,6 +217,23 @@ func (sandbox *ContainerSandbox) RemoveLeftovers(ctx context.Context, keep map[s
 		removedRuns = append(removedRuns, runToken)
 	}
 	return removedRuns, nil
+}
+
+type labelledContainer struct {
+	ID     string            `json:"Id"`
+	Labels map[string]string `json:"Labels"`
+}
+
+func (sandbox *ContainerSandbox) listLabelled(ctx context.Context, label string) ([]labelledContainer, error) {
+	filters, err := json.Marshal(map[string][]string{"label": {label}})
+	if err != nil {
+		return nil, err
+	}
+	var listed []labelledContainer
+	if _, err := sandbox.engine.do(ctx, "GET", "/containers/json", url.Values{"all": {"1"}, "filters": {string(filters)}}, nil, &listed); err != nil {
+		return nil, fmt.Errorf("list sandboxes: %w", err)
+	}
+	return listed, nil
 }
 
 // Describe reads the image the runner uses: its digest, and the provider CLIs and versions its labels declare.

@@ -54,10 +54,12 @@ func (claudeAdapter) Invocation(run api.Run, prompt, sessionID string) Invocatio
 	return invocation
 }
 
-func (claudeAdapter) LoginCommand() []string { return []string{"claude", "/login"} }
-
-func (claudeAdapter) LoginEnv() map[string]string {
-	return map[string]string{"CLAUDE_CONFIG_DIR": claudeProfileMount}
+// SignIn is Claude Code's own subscription login: Anthropic's page shows a code after authorizing, which the person
+// pastes back; the CLI exchanges it and keeps the credentials in its profile.
+func (claudeAdapter) SignIn() *SignInSpec {
+	return &SignInSpec{
+		Command: []string{"claude", "auth", "login"}, Env: map[string]string{"CLAUDE_CONFIG_DIR": claudeProfileMount}, ExpectsCode: true,
+	}
 }
 
 func (claudeAdapter) NewParser(secrets []string) Parser { return newStreamParser(secrets...) }

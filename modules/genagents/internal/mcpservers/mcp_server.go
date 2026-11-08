@@ -56,6 +56,8 @@ type McpServer struct {
 	Transport Transport
 	Config    Config
 	Secrets   map[string]string
+	// OAuth is the server's OAuth connection, set when servers are listed for the screens; nil when it has none.
+	OAuth     *OAuthConnection
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

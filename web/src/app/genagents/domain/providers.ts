@@ -30,9 +30,10 @@ export function isAccountUsable(account: Account): boolean {
   return account.status === 'ready'
 }
 
-// accountSignInHint is the runner command that signs a pending subscription account in.
+// accountSignInHint is the runner command that signs a subscription account in from a terminal: the fallback to the
+// web sign-in, offered while the account is not ready.
 export function accountSignInHint(account: Account): string | null {
-  return account.status === 'pending_sign_in' ? account.signInCommand : null
+  return account.mode === 'subscription' && account.status !== 'ready' ? account.signInCommand : null
 }
 
 // botsUsingAccount names the bots that keep an account from being removed.

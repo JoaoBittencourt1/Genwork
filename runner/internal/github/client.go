@@ -1,5 +1,5 @@
-// Package github is the runner's GitHub REST client. It runs on the host with the runner's own token, which never enters a
-// sandbox: it opens pull requests and posts reviews.
+// Package github is the runner's GitHub REST client. It runs on the host with the run's token from the platform or the
+// runner's own token, neither of which ever enters a sandbox: it opens pull requests and posts reviews.
 package github
 
 import (
@@ -37,6 +37,11 @@ func NewClient(apiURL, token string, httpClient *http.Client) *Client {
 		httpClient = &http.Client{Timeout: defaultTimeout}
 	}
 	return &Client{apiURL: strings.TrimRight(apiURL, "/"), token: token, httpClient: httpClient}
+}
+
+// WithToken is the same client authenticating with another token, such as a run's own.
+func (client *Client) WithToken(token string) *Client {
+	return &Client{apiURL: client.apiURL, token: token, httpClient: client.httpClient}
 }
 
 type PullRequest struct {

@@ -13,6 +13,8 @@ permissions:
     defaultRoles: [admin, member]
   - name: gentasks.github.manage
     defaultRoles: [admin]
+  - name: gentasks.repository.write
+    defaultRoles: [admin, member]
 events:
   publishes: []
   consumes: []

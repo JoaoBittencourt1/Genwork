@@ -69,6 +69,17 @@ func (McpServerRepository) FindByToken(ctx context.Context, db platform.DBTX, to
 	return stored, nil
 }
 
+func (McpServerRepository) FindByID(ctx context.Context, db platform.DBTX, id int64) (StoredMcpServer, error) {
+	stored, err := scanServer(db.QueryRow(ctx, `SELECT `+serverColumns+` FROM mcp_servers WHERE id = $1 AND deleted_at IS NULL`, id))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return StoredMcpServer{}, ErrMCPServerNotFound
+	}
+	if err != nil {
+		return StoredMcpServer{}, fmt.Errorf("find mcp server: %w", err)
+	}
+	return stored, nil
+}
+
 func (McpServerRepository) List(ctx context.Context, db platform.DBTX) ([]StoredMcpServer, error) {
 	return listServers(ctx, db, `SELECT `+serverColumns+` FROM mcp_servers WHERE deleted_at IS NULL ORDER BY name`)
 }

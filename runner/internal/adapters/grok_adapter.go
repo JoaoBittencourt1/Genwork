@@ -37,9 +37,8 @@ func (grokAdapter) Invocation(run api.Run, prompt, sessionID string) Invocation 
 	return Invocation{Command: command, Env: map[string]string{"GROK_API_KEY": run.Account.APIKey}}
 }
 
-func (grokAdapter) LoginCommand() []string { return nil }
-
-func (grokAdapter) LoginEnv() map[string]string { return nil }
+// SignIn is nil: xAI has no subscription sign-in for its CLI.
+func (grokAdapter) SignIn() *SignInSpec { return nil }
 
 func (grokAdapter) NewParser(secrets []string) Parser { return newStreamParser(secrets...) }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/github"
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/heartbeat"
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/sandbox"
+	"github.com/JoaoBittencourt1/Genwork/runner/internal/signin"
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/workspace"
 )
 
@@ -25,7 +26,9 @@ type ServeOptions struct {
 	Launcher          sandbox.Launcher
 	HeartbeatInterval time.Duration
 	PollInterval      time.Duration
-	DirectoryMode     bool
+	// SignInPollInterval is how often the runner looks for sign-ins started from the web app.
+	SignInPollInterval time.Duration
+	DirectoryMode      bool
 }
 
 func runServe(ctx context.Context, args []string, getenv config.Getenv, options ServeOptions) error {
@@ -68,7 +71,15 @@ func Serve(ctx context.Context, getenv config.Getenv, options ServeOptions) erro
 		Image: settings.SandboxImage, CustomImage: settings.CustomImage, HasGithubCredentials: settings.HasGithubCredentials(),
 		MaxConcurrency: settings.MaxConcurrency, ProfilesDir: settings.ProfilesDir(), Interval: options.HeartbeatInterval,
 	})
-	return runLoops(ctx, loop, beat)
+	loops := []func(context.Context) error{beat.Run, loop.Run}
+	if interactive, ok := launcher.(sandbox.InteractiveLauncher); ok {
+		signIns := signin.NewLoop(client, interactive, signin.Settings{
+			Image: settings.SandboxImage, Limits: sandbox.Limits{CPUs: settings.Limits.CPUs, Memory: settings.Limits.Memory, PIDs: settings.Limits.PIDs},
+			ProfileDir: settings.ProfileDir, ScratchDir: settings.WorkspacesDir(), PollInterval: options.SignInPollInterval,
+		})
+		loops = append(loops, signIns.Run)
+	}
+	return runLoops(ctx, loops...)
 }
 
 func chooseLauncher(settings config.Config, getenv config.Getenv, options ServeOptions) (sandbox.Launcher, error) {
@@ -104,18 +115,23 @@ func recoverLeftovers(ctx context.Context, launcher sandbox.Launcher, workspaces
 	return nil
 }
 
-// runLoops runs the heartbeat and the claim loop together; either one ending stops the other.
-func runLoops(ctx context.Context, loop *claims.Loop, beat *heartbeat.Loop) error {
+// runLoops runs the heartbeat, the claim loop, and the sign-in loop together; any one ending stops the others.
+func runLoops(ctx context.Context, loops ...func(context.Context) error) error {
 	loopCtx, stop := context.WithCancel(ctx)
 	defer stop()
-	failures := make(chan error, 2)
-	go func() { failures <- beat.Run(loopCtx) }()
-	go func() { failures <- loop.Run(loopCtx) }()
-	first := <-failures
-	stop()
-	second := <-failures
-	if errors.Is(first, claims.ErrRevoked) || errors.Is(second, claims.ErrRevoked) {
-		return claims.ErrRevoked
+	failures := make(chan error, len(loops))
+	for _, run := range loops {
+		go func() { failures <- run(loopCtx) }()
 	}
-	return errors.Join(first, second)
+	errs := []error{<-failures}
+	stop()
+	for range loops[1:] {
+		errs = append(errs, <-failures)
+	}
+	for _, err := range errs {
+		if errors.Is(err, claims.ErrRevoked) {
+			return claims.ErrRevoked
+		}
+	}
+	return errors.Join(errs...)
 }

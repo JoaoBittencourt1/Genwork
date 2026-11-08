@@ -1,10 +1,11 @@
 import { HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { setAccessToken } from '@/shared/datasource/httpClient'
-import { accountFixture, botFixture, mcpServerFixture, runnerFixture, skillFixture } from '@/test/genagentsFixtures'
+import { accountFixture, botFixture, mcpServerFixture, runnerFixture, signInFixture, skillFixture } from '@/test/genagentsFixtures'
 import { captureRequests, errorResponse } from '@/test/server'
 import {
   addCustomModel,
+  cancelAccountSignIn,
   createAccount,
   createBot,
   createMcpServer,
@@ -14,6 +15,7 @@ import {
   deleteChat,
   deleteMcpServer,
   deleteSkill,
+  disconnectMcpOAuth,
   importSkill,
   listAccounts,
   listBots,
@@ -31,8 +33,11 @@ import {
   revokeRunner,
   rotateBotSecret,
   sendChatMessage,
+  startAccountSignIn,
   startChat,
+  startMcpOAuth,
   stopChat,
+  submitAccountSignInCode,
   updateAccount,
   updateBot,
   updateMcpServer,
@@ -204,5 +209,59 @@ describe('admin chats', () => {
     setAccessToken('token-1')
 
     await expect(readChat('chat-9', 0)).rejects.toMatchObject({ status: 404, code: 'chat_not_found' })
+  })
+})
+
+describe('account sign-ins', () => {
+  it('starts a sign-in, submits the pasted code, and cancels', async () => {
+    const signIn = signInFixture({ state: 'awaiting_user', url: 'https://claude.ai/oauth/authorize', urlHost: 'claude.ai', expectsCode: true })
+    const started = captureRequests('post', '*/api/genagents/v1/accounts/:token/sign-ins', () => HttpResponse.json(signIn, { status: 201 }))
+    const submitted = captureRequests('post', '*/api/genagents/v1/accounts/:token/sign-ins/:signIn/code', () =>
+      HttpResponse.json({ ...signIn, state: 'code_submitted' }),
+    )
+    const cancelled = captureRequests('delete', '*/api/genagents/v1/accounts/:token/sign-ins/:signIn', noContent)
+    setAccessToken('token-1')
+
+    await expect(startAccountSignIn('account/1')).resolves.toEqual(signIn)
+    await expect(submitAccountSignInCode('account-1', 'sign-in-1', 'code#state')).resolves.toMatchObject({ state: 'code_submitted' })
+    await cancelAccountSignIn('account-1', 'sign-in-1')
+
+    expect(started[0]?.path).toBe('/api/genagents/v1/accounts/account%2F1/sign-ins')
+    expect(started[0]?.body).toBeUndefined()
+    expect(submitted[0]?.path).toBe('/api/genagents/v1/accounts/account-1/sign-ins/sign-in-1/code')
+    expect(submitted[0]?.body).toEqual({ code: 'code#state' })
+    expect(cancelled[0]?.path).toBe('/api/genagents/v1/accounts/account-1/sign-ins/sign-in-1')
+  })
+
+  it('surfaces an expired sign-in as its error code', async () => {
+    captureRequests('post', '*/api/genagents/v1/accounts/:token/sign-ins/:signIn/code', () => errorResponse(409, 'sign_in_not_active'))
+    setAccessToken('token-1')
+
+    await expect(submitAccountSignInCode('account-1', 'sign-in-1', 'late')).rejects.toMatchObject({ code: 'sign_in_not_active' })
+  })
+})
+
+describe('MCP server OAuth', () => {
+  it('starts an authorization and disconnects', async () => {
+    const started = captureRequests('post', '*/api/genagents/v1/mcp-servers/:token/oauth/authorizations', () =>
+      HttpResponse.json({ authorizationUrl: 'https://auth.example/authorize?state=s' }, { status: 201 }),
+    )
+    const disconnected = captureRequests('delete', '*/api/genagents/v1/mcp-servers/:token/oauth', noContent)
+    setAccessToken('token-1')
+
+    await expect(startMcpOAuth('server-1')).resolves.toBe('https://auth.example/authorize?state=s')
+    await startMcpOAuth('server-1', { clientId: 'manual', clientSecret: 'secret' })
+    await disconnectMcpOAuth('server-1')
+
+    expect(started[0]?.body).toEqual({})
+    expect(started[1]?.body).toEqual({ clientId: 'manual', clientSecret: 'secret' })
+    expect(disconnected[0]?.path).toBe('/api/genagents/v1/mcp-servers/server-1/oauth')
+  })
+
+  it('surfaces a server that needs a client id', async () => {
+    captureRequests('post', '*/api/genagents/v1/mcp-servers/:token/oauth/authorizations', () => errorResponse(409, 'oauth_client_id_required'))
+    setAccessToken('token-1')
+
+    await expect(startMcpOAuth('server-1')).rejects.toMatchObject({ code: 'oauth_client_id_required' })
   })
 })

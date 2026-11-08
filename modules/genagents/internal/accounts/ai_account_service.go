@@ -26,6 +26,8 @@ type AccountWithModels struct {
 	Account      AiAccount
 	CustomModels []AccountModel
 	Runner       *runners.Runner
+	// SignIn is the account's latest sign-in attempt, nil when none was ever started.
+	SignIn *AccountSignIn
 }
 
 type AiAccountService struct {
@@ -35,18 +37,24 @@ type AiAccountService struct {
 	runners runners.RunnerRepository
 	repo    AiAccountRepository
 	models  AccountModelRepository
+	signIns AccountSignInRepository
+	expiry  *AccountSignInService
 	now     func() time.Time
 }
 
 func NewAiAccountService(db *pgxpool.Pool, cipher *platform.SecretCipher, usage AccountUsage, now func() time.Time) *AiAccountService {
-	return &AiAccountService{db: db, cipher: cipher, usage: usage, now: now}
+	return &AiAccountService{db: db, cipher: cipher, usage: usage, expiry: NewAccountSignInService(db, cipher, now), now: now}
 }
 
 func AssociatedDataForAPIKey(accountToken string) string {
 	return apiKeyColumn + "|" + accountToken
 }
 
+// ListAccounts first expires the sign-ins nobody finished, so the list never shows one as still waiting.
 func (service *AiAccountService) ListAccounts(ctx context.Context) ([]AccountWithModels, error) {
+	if err := service.expiry.ExpireOverdue(ctx); err != nil {
+		return nil, err
+	}
 	listed, err := service.repo.List(ctx, service.db)
 	if err != nil {
 		return nil, err
@@ -222,6 +230,10 @@ func (service *AiAccountService) attachDetails(ctx context.Context, db platform.
 	if err != nil {
 		return nil, err
 	}
+	latestSignIns, err := service.signIns.ListLatestByAccounts(ctx, db, ids)
+	if err != nil {
+		return nil, err
+	}
 	allRunners, err := service.runners.List(ctx, db)
 	if err != nil {
 		return nil, err
@@ -233,6 +245,9 @@ func (service *AiAccountService) attachDetails(ctx context.Context, db platform.
 	detailed := make([]AccountWithModels, 0, len(listed))
 	for _, account := range listed {
 		entry := AccountWithModels{Account: account, CustomModels: customByAccount[account.ID]}
+		if signIn, found := latestSignIns[account.ID]; found {
+			entry.SignIn = &signIn
+		}
 		if account.RunnerID != nil {
 			if runner, found := runnersByID[*account.RunnerID]; found {
 				entry.Runner = &runner

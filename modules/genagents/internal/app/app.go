@@ -25,8 +25,14 @@ type Dependencies struct {
 	EncryptionKey []byte
 	Core          *corelink.Client
 	Gentasks      taskruns.GentasksClient
+	// RepositoryTokens issues the per-run GitHub tokens; nil when gentasks is not reachable from this module.
+	RepositoryTokens runexec.RepositoryTokenIssuer
 	// GenworkMCPURL is the instance's Genwork MCP server, which every run is configured with.
 	GenworkMCPURL string
+	// PublicURL is where people open Genwork; OAuth callbacks come back to it.
+	PublicURL string
+	// MCPOAuthClient is how genagents reaches MCP authorization servers.
+	MCPOAuthClient mcpservers.OAuthProviderClient
 	// ClaimLongPoll bounds how long a runner's claim waits for work; zero keeps the default.
 	ClaimLongPoll time.Duration
 	Now           func() time.Time
@@ -50,8 +56,10 @@ func New(dependencies Dependencies) (http.Handler, error) {
 	botService := bots.NewBotService(db, secretCipher, dependencies.Core, lifecycle, accountService, now)
 	bots.NewBotHandler(botService).Register(router)
 	skills.NewSkillHandler(skills.NewSkillService(db, now)).Register(router)
-	mcpServerService := mcpservers.NewMcpServerService(db, secretCipher, now)
+	mcpOAuthService := mcpservers.NewMcpServerOAuthService(db, secretCipher, dependencies.MCPOAuthClient, dependencies.PublicURL, now)
+	mcpServerService := mcpservers.NewMcpServerService(db, secretCipher, now).WithOAuth(mcpOAuthService)
 	mcpservers.NewMcpServerHandler(mcpServerService).Register(router)
+	mcpservers.NewMcpServerOAuthHandler(mcpOAuthService).Register(router)
 
 	taskRunService := taskruns.NewTaskRunService(db, dependencies.Gentasks, lifecycle, now)
 	taskruns.NewTaskRunHandler(taskRunService, taskruns.NewTaskConversationService(db, dependencies.Gentasks, lifecycle, now)).Register(router)
@@ -60,10 +68,13 @@ func New(dependencies Dependencies) (http.Handler, error) {
 
 	runnerService := runexec.NewRunnerService(db, lifecycle, now)
 	runexec.NewRunnerHandler(runnerService, now).Register(router)
+	accounts.NewAccountSignInHandler(accounts.NewAccountSignInService(db, secretCipher, now), runnerService).Register(router)
+	genworkTokens := runexec.NewGenworkTokenService(db, dependencies.Core, secretCipher, botService, lifecycle, now)
 	runnerAPI := runexec.NewRunnerAPIHandler(db, runnerService,
 		runexec.NewRunClaimService(db, accountService, mcpServerService, lifecycle, now),
 		runexec.NewRunEventService(db, lifecycle, now),
-		runexec.NewGenworkTokenService(db, dependencies.Core, secretCipher, botService, lifecycle, now),
+		genworkTokens,
+		runexec.NewGithubTokenService(db, genworkTokens, dependencies.RepositoryTokens),
 		dependencies.GenworkMCPURL, now,
 	)
 	if dependencies.ClaimLongPoll > 0 {

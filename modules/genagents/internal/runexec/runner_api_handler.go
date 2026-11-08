@@ -2,7 +2,6 @@ package runexec
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
@@ -16,15 +15,14 @@ const (
 	claimPollInterval  = time.Second
 )
 
-type runnerRequestHandler func(w http.ResponseWriter, r *http.Request, runner runners.Runner)
-
-// RunnerAPIHandler serves /api/genagents/v1/runner/...: the routes a runner process calls. Each route is public to the
-// router and authenticates with the runner secret itself (rule 18).
+// RunnerAPIHandler serves /api/genagents/v1/runner/...: the routes a runner process calls, each authenticated with the
+// runner secret (runners.RequireRunner).
 type RunnerAPIHandler struct {
 	runners       *RunnerService
 	claims        *RunClaimService
 	events        *RunEventService
 	tokens        *GenworkTokenService
+	github        *GithubTokenService
 	policy        RunAccessPolicy
 	runRepository runs.RunRepository
 	entries       runs.EntryRepository
@@ -40,9 +38,9 @@ type runDatabase interface {
 	platform.DBTX
 }
 
-func NewRunnerAPIHandler(db runDatabase, runnerService *RunnerService, claims *RunClaimService, events *RunEventService, tokens *GenworkTokenService, genworkMCPURL string, now func() time.Time) *RunnerAPIHandler {
+func NewRunnerAPIHandler(db runDatabase, runnerService *RunnerService, claims *RunClaimService, events *RunEventService, tokens *GenworkTokenService, github *GithubTokenService, genworkMCPURL string, now func() time.Time) *RunnerAPIHandler {
 	return &RunnerAPIHandler{
-		runners: runnerService, claims: claims, events: events, tokens: tokens, db: db, genworkMCPURL: genworkMCPURL, now: now,
+		runners: runnerService, claims: claims, events: events, tokens: tokens, github: github, db: db, genworkMCPURL: genworkMCPURL, now: now,
 		pollInterval: claimPollInterval, pollLimit: claimLongPollLimit,
 	}
 }
@@ -63,22 +61,11 @@ func (handler *RunnerAPIHandler) Register(router *httpapi.Router) {
 	router.HandleFunc("GET /api/genagents/v1/runner/runs/{token}/messages", httpapi.Public, handler.authenticated(handler.listMessages))
 	router.HandleFunc("POST /api/genagents/v1/runner/runs/{token}/messages/ack", httpapi.Public, handler.authenticated(handler.acknowledgeMessages))
 	router.HandleFunc("POST /api/genagents/v1/runner/runs/{token}/genwork-token", httpapi.Public, handler.authenticated(handler.issueGenworkToken))
+	router.HandleFunc("POST /api/genagents/v1/runner/runs/{token}/github-token", httpapi.Public, handler.authenticated(handler.issueGithubToken))
 }
 
-func (handler *RunnerAPIHandler) authenticated(next runnerRequestHandler) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		secret, found := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !found || strings.TrimSpace(secret) == "" {
-			httpapi.WriteError(w, r, runners.ErrInvalidRunnerSecret)
-			return
-		}
-		runner, err := handler.runners.Authenticate(r.Context(), strings.TrimSpace(secret))
-		if err != nil {
-			httpapi.WriteError(w, r, err)
-			return
-		}
-		next(w, r, runner)
-	}
+func (handler *RunnerAPIHandler) authenticated(next runners.RunnerRequestHandler) http.HandlerFunc {
+	return runners.RequireRunner(handler.runners, next)
 }
 
 type RegisterRunnerRequest struct {
@@ -300,4 +287,19 @@ func (handler *RunnerAPIHandler) issueGenworkToken(w http.ResponseWriter, r *htt
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	httpapi.WriteJSON(w, http.StatusOK, GenworkTokenResponse{AccessToken: token.AccessToken, ExpiresAt: token.ExpiresAt, MCPURL: handler.genworkMCPURL})
+}
+
+type GithubTokenResponse struct {
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+func (handler *RunnerAPIHandler) issueGithubToken(w http.ResponseWriter, r *http.Request, runner runners.Runner) {
+	token, err := handler.github.IssueToken(r.Context(), runner, r.PathValue("token"))
+	if err != nil {
+		httpapi.WriteError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	httpapi.WriteJSON(w, http.StatusOK, GithubTokenResponse{Token: token.Token, ExpiresAt: token.ExpiresAt})
 }

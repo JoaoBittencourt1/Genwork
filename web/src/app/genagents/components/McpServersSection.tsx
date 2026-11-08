@@ -16,6 +16,8 @@ import { Switch } from '@/shared/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table'
 import { createMcpServer, deleteMcpServer, listMcpServers, updateMcpServer } from '../datasource/genagentsDatasource'
 import { MCP_TRANSPORTS, type McpEntry, type McpEntryInput, type McpServer, type McpTransport } from '../domain/types'
+import { McpOAuthControls } from './McpOAuthControls'
+import { McpOAuthResultAlert } from './McpOAuthResultAlert'
 import { genagentsQueryKeys } from './queryKeys'
 
 export function McpServersSection({ canManage }: { canManage: boolean }) {
@@ -32,6 +34,7 @@ export function McpServersSection({ canManage }: { canManage: boolean }) {
 
   return (
     <div className="flex flex-col gap-3">
+      <McpOAuthResultAlert />
       <ErrorAlert error={remove.error} />
       <div className="rounded-lg border">
         <Table>
@@ -55,7 +58,8 @@ export function McpServersSection({ canManage }: { canManage: boolean }) {
                 <TableCell className="max-w-md truncate font-mono text-xs">{server.url ?? server.command}</TableCell>
                 <TableCell className="text-right">
                   {canManage ? (
-                    <div className="flex justify-end gap-1">
+                    <div className="flex flex-wrap items-start justify-end gap-1">
+                      <McpOAuthControls server={server} onChanged={refresh} />
                       <Button size="sm" variant="ghost" onClick={() => setEditing(server)}>
                         {t('genagents.mcpServers.edit')}
                       </Button>

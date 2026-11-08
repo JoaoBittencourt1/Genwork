@@ -22,6 +22,15 @@ type FakeGentasks struct {
 	forbidden map[string]bool
 	hidden    map[string]bool
 	down      bool
+	// tokenRefusal is the error code the repository-token route answers with; empty issues the recorded token.
+	tokenRefusal  string
+	tokenRequests []RepositoryTokenRequest
+}
+
+// RepositoryTokenRequest records who asked gentasks for a GitHub token, and for which repositories.
+type RepositoryTokenRequest struct {
+	Bearer       string
+	Repositories []string
 }
 
 func NewFakeGentasks(t testing.TB) *FakeGentasks {
@@ -30,6 +39,7 @@ func NewFakeGentasks(t testing.TB) *FakeGentasks {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/gentasks/v1/tasks/{token}/context", fake.serveContext)
 	mux.HandleFunc("GET /api/gentasks/v1/me/assigned-tasks", fake.serveAssigned)
+	mux.HandleFunc("POST /api/gentasks/v1/github/repository-tokens", fake.serveRepositoryToken)
 	fake.server = httptest.NewServer(mux)
 	t.Cleanup(fake.server.Close)
 	return fake
@@ -132,4 +142,38 @@ func write(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(body)
+}
+
+// RefuseRepositoryTokens makes gentasks refuse GitHub tokens with the error code, as when the App is not connected.
+func (fake *FakeGentasks) RefuseRepositoryTokens(code string) {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	fake.tokenRefusal = code
+}
+
+func (fake *FakeGentasks) RepositoryTokenRequests() []RepositoryTokenRequest {
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	return append([]RepositoryTokenRequest(nil), fake.tokenRequests...)
+}
+
+// serveRepositoryToken answers with the recorded token, or with the configured refusal.
+func (fake *FakeGentasks) serveRepositoryToken(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Repositories []string `json:"repositories"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	fake.mutex.Lock()
+	defer fake.mutex.Unlock()
+	if fake.down {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	fake.tokenRequests = append(fake.tokenRequests, RepositoryTokenRequest{Bearer: strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "), Repositories: body.Repositories})
+	if fake.tokenRefusal != "" {
+		write(w, http.StatusConflict, map[string]any{"error": map[string]any{"code": fake.tokenRefusal}})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(gentaskstest.Fixture("repository_token.json"))
 }

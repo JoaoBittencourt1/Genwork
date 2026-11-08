@@ -47,12 +47,12 @@ func (current *execution) finishTask(ctx context.Context, outcome adapters.Outco
 		current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)
 		return "", true
 	}
-	base, err := current.executor.github.DefaultBranch(ctx, current.run.Repository)
+	base, err := current.githubPoster().DefaultBranch(ctx, current.run.Repository)
 	if err != nil {
 		current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)
 		return "", true
 	}
-	created, err := current.executor.github.CreatePullRequest(ctx, current.run.Repository, current.branch, base, draft.Title, draft.Description)
+	created, err := current.githubPoster().CreatePullRequest(ctx, current.run.Repository, current.branch, base, draft.Title, draft.Description)
 	if err != nil {
 		current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)
 		return "", true
@@ -100,7 +100,7 @@ func (current *execution) finishReview(ctx context.Context, outcome adapters.Out
 		for _, finding := range review.Findings {
 			comments = append(comments, ReviewComment{Path: finding.Path, Line: finding.Line, Body: fmt.Sprintf("**%s**: %s", strings.ToUpper(finding.Severity), finding.Message)})
 		}
-		url, err := current.executor.github.CreateReview(ctx, review.Repository, review.Number, review.Summary, comments)
+		url, err := current.githubPoster().CreateReview(ctx, review.Repository, review.Number, review.Summary, comments)
 		if err != nil {
 			current.poster.Post(ctx, adapters.EventAssistantMessage, map[string]any{"text": adapters.Redact(RenderReview(reviews), current.secrets...)})
 			current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)

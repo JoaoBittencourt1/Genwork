@@ -15,6 +15,10 @@ func NewGithubAdapter(client *github.Client) GithubAdapter {
 	return GithubAdapter{client: client}
 }
 
+func (adapter GithubAdapter) WithToken(token string) GithubPoster {
+	return GithubAdapter{client: adapter.client.WithToken(token)}
+}
+
 func (adapter GithubAdapter) DefaultBranch(ctx context.Context, repository string) (string, error) {
 	return adapter.client.DefaultBranch(ctx, repository)
 }

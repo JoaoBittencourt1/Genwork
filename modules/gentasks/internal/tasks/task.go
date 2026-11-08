@@ -15,9 +15,8 @@ const (
 )
 
 var (
-	ErrTaskNotFound    = httpapi.NewAPIError(http.StatusNotFound, "task_not_found")
-	ErrTaskArchived    = httpapi.NewAPIError(http.StatusConflict, "task_archived")
-	ErrCoreUnavailable = httpapi.NewAPIError(http.StatusServiceUnavailable, "core_unavailable")
+	ErrTaskNotFound = httpapi.NewAPIError(http.StatusNotFound, "task_not_found")
+	ErrTaskArchived = httpapi.NewAPIError(http.StatusConflict, "task_archived")
 )
 
 // Urgency levels, ordered from lowest to highest.

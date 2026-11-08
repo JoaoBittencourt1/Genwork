@@ -35,6 +35,10 @@ const (
 	reasonGithubPostFailed = "github_post_failed"
 	reasonAccountError     = "account_error"
 	reasonRunFailed        = "run_failed"
+	reasonGithubMissing    = "github_credentials_missing"
+
+	// githubTokenMargin renews the platform's GitHub token this long before it expires.
+	githubTokenMargin = 15 * time.Minute
 )
 
 // GithubPoster is what the executor needs from GitHub (rule 9).
@@ -42,6 +46,8 @@ type GithubPoster interface {
 	DefaultBranch(ctx context.Context, repository string) (string, error)
 	CreatePullRequest(ctx context.Context, repository, head, base, title, description string) (PullRequestCreated, error)
 	CreateReview(ctx context.Context, repository string, number int, summary string, comments []ReviewComment) (string, error)
+	// WithToken is the same poster authenticating with a run's own token.
+	WithToken(token string) GithubPoster
 }
 
 type PullRequestCreated struct {
@@ -93,13 +99,16 @@ func NewExecutor(runAPI RunAPI, launcher sandbox.Launcher, workspaces *workspace
 
 // execution is the state of one run while it executes.
 type execution struct {
-	executor   *Executor
-	run        api.Run
-	adapter    adapters.Adapter
-	workspace  *workspace.Workspace
-	poster     *poster
-	profileDir string
-	secrets    []string
+	executor  *Executor
+	run       api.Run
+	adapter   adapters.Adapter
+	workspace *workspace.Workspace
+	poster    *poster
+	// github posts with the run's token from the platform, or the runner's own when the platform issued none.
+	github          GithubPoster
+	githubExpiresAt time.Time
+	profileDir      string
+	secrets         []string
 	// repositories maps "owner/name" to its directory in the workspace.
 	repositories map[string]string
 	branch       string
@@ -107,7 +116,10 @@ type execution struct {
 	tokenMutex   sync.Mutex
 }
 
-var errRunEnded = errors.New("the run ended elsewhere")
+var (
+	errRunEnded                 = errors.New("the run ended elsewhere")
+	errGithubCredentialsMissing = errors.New("no GitHub credentials: connect the GitHub App in Tasks → GitHub and install it on the repository, or set GH_TOKEN on the runner")
+)
 
 // Execute runs a claimed run and always cleans up: the workspace, with every secret file in it, is removed in every end
 // state, and the sandbox containers are removed as each turn ends.
@@ -122,7 +134,7 @@ func (executor *Executor) Execute(ctx context.Context, run api.Run) {
 	defer cancel(nil)
 	current := &execution{
 		executor: executor, run: run, adapter: adapter, poster: newPoster(executor.api, run.RunToken, executor.settings.Sleep),
-		secrets: []string{run.Account.APIKey}, repositories: map[string]string{}, cancel: cancel,
+		secrets: []string{run.Account.APIKey}, repositories: map[string]string{}, cancel: cancel, github: executor.github,
 	}
 	defer current.cleanup()
 	go current.watchForCancellation(runCtx)
@@ -175,8 +187,12 @@ func (current *execution) fail(ctx context.Context, reason, message string, extr
 // drive is the run's whole story: set up, take turns, finish.
 func (current *execution) drive(ctx context.Context) {
 	if err := current.setUp(ctx); err != nil {
+		reason := reasonAdapterError
+		if errors.Is(err, errGithubCredentialsMissing) {
+			reason = reasonGithubMissing
+		}
 		if ctx.Err() == nil {
-			current.fail(ctx, reasonAdapterError, err.Error(), nil)
+			current.fail(ctx, reason, err.Error(), nil)
 		}
 		return
 	}
@@ -210,6 +226,9 @@ func (current *execution) drive(ctx context.Context) {
 func (current *execution) setUp(ctx context.Context) error {
 	var err error
 	if current.workspace, err = current.executor.workspaces.Create(current.run.RunToken); err != nil {
+		return err
+	}
+	if err := current.acquireGithubCredentials(ctx); err != nil {
 		return err
 	}
 	if err := current.checkOutRepositories(ctx); err != nil {
@@ -312,6 +331,7 @@ func (current *execution) keepTokenFresh(ctx context.Context) {
 			if err := current.refreshToken(ctx); err != nil && ctx.Err() == nil {
 				slog.Warn("renew the Genwork token", "run", current.run.RunToken, "err", err)
 			}
+			current.renewGithubToken(ctx)
 		}
 	}
 }
@@ -438,4 +458,59 @@ func (writer *eventWriter) emit(line []byte) {
 
 func (writer *eventWriter) Tail() string {
 	return strings.TrimSpace(string(writer.tail))
+}
+
+func needsGithub(kind string) bool {
+	return kind == "task" || kind == "review"
+}
+
+// acquireGithubCredentials prefers a token the platform issues for this run's repositories and falls back to the runner's
+// own; a run that needs GitHub fails when neither exists.
+func (current *execution) acquireGithubCredentials(ctx context.Context) error {
+	if !needsGithub(current.run.Kind) {
+		return nil
+	}
+	if current.useGithubTokenFromPlatform(ctx) {
+		return nil
+	}
+	if !current.executor.workspaces.HasToken() {
+		return errGithubCredentialsMissing
+	}
+	return nil
+}
+
+func (current *execution) useGithubTokenFromPlatform(ctx context.Context) bool {
+	token, err := current.executor.api.GithubToken(ctx, current.run.RunToken)
+	if err != nil || token.Token == "" {
+		if err != nil {
+			slog.Info("the platform issued no GitHub token; using the runner's", "run", current.run.RunToken, "err", err)
+		}
+		return false
+	}
+	current.tokenMutex.Lock()
+	defer current.tokenMutex.Unlock()
+	current.secrets = append(current.secrets, token.Token)
+	current.workspace.UseToken(token.Token)
+	current.github = current.executor.github.WithToken(token.Token)
+	current.githubExpiresAt = token.ExpiresAt
+	return true
+}
+
+// renewGithubToken replaces the platform's token before it expires, so a long run can still push and post.
+func (current *execution) renewGithubToken(ctx context.Context) {
+	current.tokenMutex.Lock()
+	expiresAt := current.githubExpiresAt
+	current.tokenMutex.Unlock()
+	if expiresAt.IsZero() || time.Until(expiresAt) > githubTokenMargin {
+		return
+	}
+	if !current.useGithubTokenFromPlatform(ctx) && ctx.Err() == nil {
+		slog.Warn("renew the GitHub token", "run", current.run.RunToken)
+	}
+}
+
+func (current *execution) githubPoster() GithubPoster {
+	current.tokenMutex.Lock()
+	defer current.tokenMutex.Unlock()
+	return current.github
 }

@@ -9,6 +9,22 @@ export type AccountMode = (typeof ACCOUNT_MODES)[number]
 export const ACCOUNT_STATUSES = ['pending_sign_in', 'ready', 'error'] as const
 export type AccountStatus = (typeof ACCOUNT_STATUSES)[number]
 
+export const SIGN_IN_STATES = ['requested', 'awaiting_user', 'code_submitted', 'verifying', 'succeeded', 'failed', 'cancelled', 'expired'] as const
+export type SignInState = (typeof SIGN_IN_STATES)[number]
+
+// AccountSignIn is one web-started sign-in attempt; the code a person pastes is never part of it.
+export type AccountSignIn = {
+  token: string
+  state: SignInState
+  url: string | null
+  urlHost: string | null
+  userCode: string | null
+  expectsCode: boolean
+  failure: string | null
+  expiresAt: string
+  createdAt: string
+}
+
 export const BOT_KINDS = ['dev', 'reviewer', 'assistant'] as const
 export type BotKind = (typeof BOT_KINDS)[number]
 
@@ -33,6 +49,7 @@ export type Account = {
   status: AccountStatus
   lastError: string | null
   signInCommand: string | null
+  signIn: AccountSignIn | null
   models: ProviderModel[]
   createdAt: string
 }
@@ -94,6 +111,18 @@ export type SkillPatch = Partial<NewSkill>
 
 export type McpEntry = { name: string; secret: boolean; hasValue: boolean; value: string | null }
 
+export const MCP_OAUTH_STATUSES = ['pending', 'connected', 'error'] as const
+export type McpOAuthStatus = (typeof MCP_OAUTH_STATUSES)[number]
+
+// McpOAuthConnection never carries a token or the client secret.
+export type McpOAuthConnection = {
+  status: McpOAuthStatus
+  clientId: string | null
+  connectedAt: string | null
+  expiresAt: string | null
+  lastError: string | null
+}
+
 export type McpServer = {
   token: string
   name: string
@@ -103,8 +132,11 @@ export type McpServer = {
   command: string | null
   args: string[]
   env: McpEntry[]
+  oauth: McpOAuthConnection | null
   updatedAt: string
 }
+
+export type StartMcpOAuth = { clientId?: string; clientSecret?: string; scope?: string }
 
 export type McpEntryInput = { name: string; secret: boolean; value?: string }
 

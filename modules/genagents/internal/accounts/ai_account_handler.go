@@ -42,6 +42,7 @@ type AiAccountResponse struct {
 	Status      AccountStatus          `json:"status"`
 	LastError   *string                `json:"lastError"`
 	SignInHint  *string                `json:"signInCommand"`
+	SignIn      *AccountSignInResponse `json:"signIn"`
 	Models      []ModelResponse        `json:"models"`
 	CreatedAt   time.Time              `json:"createdAt"`
 }
@@ -63,7 +64,8 @@ func NewModelResponses(provider Provider, custom []AccountModel) []ModelResponse
 	return responses
 }
 
-// NewAiAccountResponse never carries the key; it only says whether one is set and its last characters.
+// NewAiAccountResponse never carries the key or a sign-in code; it only says whether a key is set and its last characters.
+// A subscription account that is not ready keeps the runner command as the fallback to the web sign-in.
 func NewAiAccountResponse(detailed AccountWithModels) AiAccountResponse {
 	account := detailed.Account
 	response := AiAccountResponse{
@@ -74,7 +76,11 @@ func NewAiAccountResponse(detailed AccountWithModels) AiAccountResponse {
 	if detailed.Runner != nil {
 		response.Runner = &AccountRunnerResponse{Token: detailed.Runner.Token, Name: detailed.Runner.Name}
 	}
-	if account.Status == AccountStatusPendingSignIn {
+	if detailed.SignIn != nil {
+		signIn := NewAccountSignInResponse(*detailed.SignIn)
+		response.SignIn = &signIn
+	}
+	if account.Mode == AccountModeSubscription && account.Status != AccountStatusReady {
 		hint := "genwork-runner account login " + account.Token
 		response.SignInHint = &hint
 	}

@@ -35,7 +35,7 @@ gentasks refuses to start if any of the three is missing.
 3. Under **GitHub organization (optional)**:
    - leave it empty if your repositories are on your personal account;
    - enter the organization login (for example `acme`) if they belong to an organization. A private GitHub App can only be installed on the account that owns it.
-4. Click **Connect GitHub**. GitHub opens with a pre-filled App: read-only access to pull requests, with the webhook pointing at your Genwork.
+4. Click **Connect GitHub**. GitHub opens with a pre-filled App: read and write access to contents and pull requests, with the webhook pointing at your Genwork. The webhook moves tasks; the write access is only used through short-lived tokens bots get for their runs (see [Bots](#6-bots)).
 5. If GitHub says the name is taken, change it on that page. Then click **Create GitHub App**.
 6. GitHub sends you back to Genwork, which shows **GitHub connected**.
 
@@ -78,6 +78,16 @@ From then on:
 - a pull request closed without merging moves nothing;
 - a pull request can cite several tasks, even on different boards, and each one follows its own board's settings;
 - people can still move any task by hand.
+
+## 6. Bots
+
+Bots of the genagents module use this App to clone, push branches, open pull requests, and post reviews, so runners need no GitHub token of their own. For each run, genagents asks gentasks for an installation token limited to the run's repositories (the board's bot repository, or the reviewed pull requests' repositories), valid for an hour and never stored.
+
+- The bot's role needs the `gentasks.repository.write` permission, which admin and member have by default. Only bot members get tokens: a person holding the permission is refused, so the App never extends anyone's own GitHub access.
+- The App must be installed on those repositories.
+- **An App created before version 2.2.0** only has read access to pull requests. On GitHub, open its settings (**App settings on GitHub**), then **Permissions & events**, give **Contents** and **Pull requests** read and write access, and save. Then accept the new permissions on the App's installation.
+
+Until then, a runner with its own `GH_TOKEN` keeps working as before.
 
 ## Troubleshooting
 

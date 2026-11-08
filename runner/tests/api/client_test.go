@@ -109,3 +109,35 @@ func TestWrongSecretIsRefused(t *testing.T) {
 		t.Errorf("error = %v", err)
 	}
 }
+
+func TestSignInsAreListedAndReported(t *testing.T) {
+	client, fake := newClient(t)
+	fake.SetSignIns(map[string]any{"token": "si-1", "accountToken": "acct-1", "provider": "anthropic", "state": "code_submitted", "code": "pasted", "expiresAt": "2026-11-07T12:10:00Z"})
+
+	listed, err := client.ListSignIns(context.Background())
+	if err != nil || len(listed) != 1 || listed[0].Code != "pasted" || listed[0].ExpiresAt.IsZero() {
+		t.Fatalf("listed = %+v, err = %v", listed, err)
+	}
+	err = client.ReportSignInProgress(context.Background(), "si-1", api.SignInProgress{State: "awaiting_user", URL: "https://example.com", ExpectsCode: true})
+
+	reports := fake.Reports()
+	if err != nil || len(reports) != 1 || reports[0].Token != "si-1" || reports[0].Payload["url"] != "https://example.com" || reports[0].Payload["expectsCode"] != true {
+		t.Errorf("reports = %+v, err = %v", reports, err)
+	}
+}
+
+func TestGithubTokenIsDecodedOrRefusedWithTheCode(t *testing.T) {
+	client, fake := newClient(t)
+	fake.SetGithubToken("run-1", "ghs_token")
+
+	token, err := client.GithubToken(context.Background(), "run-1")
+	if err != nil || token.Token != "ghs_token" || token.ExpiresAt.IsZero() {
+		t.Fatalf("token = %+v, err = %v", token, err)
+	}
+	_, err = client.GithubToken(context.Background(), "run-2")
+
+	var statusErr *api.StatusError
+	if !errors.As(err, &statusErr) || statusErr.Code != "github_token_unavailable" {
+		t.Errorf("err = %v", err)
+	}
+}

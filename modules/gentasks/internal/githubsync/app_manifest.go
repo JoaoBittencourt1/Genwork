@@ -34,8 +34,9 @@ type AppManifestWebhook struct {
 	Active bool   `json:"active"`
 }
 
-// NewAppManifest describes a private App with read-only access to pull requests: a private App can only be installed on
-// the account that owns it, so nobody else can point deliveries at this installation (design §2).
+// NewAppManifest describes a private App: a private App can only be installed on the account that owns it, so nobody
+// else can point deliveries at this installation (design §2). It reads pull request events and, for bots, writes
+// contents and pull requests through short-lived installation tokens.
 func NewAppManifest(publicURL string) AppManifest {
 	return AppManifest{
 		Name:               suggestAppName(),
@@ -45,7 +46,7 @@ func NewAppManifest(publicURL string) AppManifest {
 		SetupURL:           publicURL + integrationPagePath,
 		SetupOnUpdate:      true,
 		Public:             false,
-		DefaultPermissions: map[string]string{"pull_requests": "read", "metadata": "read"},
+		DefaultPermissions: map[string]string{"contents": "write", "pull_requests": "write", "metadata": "read"},
 		DefaultEvents:      []string{"pull_request"},
 	}
 }

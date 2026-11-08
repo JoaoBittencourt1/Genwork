@@ -335,7 +335,7 @@ func (service *TaskService) verifyAssignee(ctx context.Context, caller Caller, a
 	case errors.Is(err, coreclient.ErrDirectoryForbidden):
 		return "", httpapi.ErrForbidden
 	default:
-		return "", ErrCoreUnavailable
+		return "", platform.ErrCoreUnavailable
 	}
 }
 

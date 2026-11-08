@@ -1,6 +1,7 @@
 package githubsynctest
 
 import (
+	"crypto/rsa"
 	"embed"
 	"net/http"
 	"net/http/httptest"
@@ -39,9 +40,14 @@ var conversionResponses = map[string]recordedResponse{
 
 // FakeGithub serves the GitHub REST endpoints gentasks calls, so no test reaches the real GitHub (rule 25).
 type FakeGithub struct {
-	server      *httptest.Server
-	mutex       sync.Mutex
-	conversions []string
+	server            *httptest.Server
+	mutex             sync.Mutex
+	conversions       []string
+	appKey            *rsa.PublicKey
+	appID             int64
+	installations     map[string]int64
+	refusePermissions bool
+	tokenRequests     []InstallationTokenRequest
 }
 
 func NewFakeGithub(t testing.TB) *FakeGithub {
@@ -49,6 +55,7 @@ func NewFakeGithub(t testing.TB) *FakeGithub {
 	github := &FakeGithub{}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /app-manifests/{code}/conversions", github.serveConversion)
+	github.registerInstallationRoutes(mux)
 	github.server = httptest.NewServer(mux)
 	t.Cleanup(github.server.Close)
 	return github

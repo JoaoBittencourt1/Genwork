@@ -16,13 +16,17 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelinktest"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/gentasksclient"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/gentaskstest"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/mcpservers"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform/dbtest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/coretest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/tokens"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const adminUserToken = "ana-admin-token"
+const (
+	adminUserToken = "ana-admin-token"
+	testPublicURL  = "http://genwork.test"
+)
 
 var testEncryptionKey = bytes.Repeat([]byte{9}, 32)
 
@@ -61,15 +65,19 @@ func newTestApp(t *testing.T) *testApp {
 	clock := &testClock{current: time.Date(2026, 11, 5, 12, 0, 0, 0, time.UTC)}
 	coreAPI := corelinktest.NewFakeCore(t, clock.Now)
 	tasks := gentaskstest.NewFakeGentasks(t)
+	tasksClient := gentasksclient.NewClient(tasks.URL(), time.Second)
 	handler, err := app.New(app.Dependencies{
-		DB:            db,
-		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{JWKSURL: core.JWKSURL(), Issuer: coretest.Issuer}),
-		EncryptionKey: testEncryptionKey,
-		Core:          corelink.NewClient(coreAPI.URL(), time.Second),
-		Gentasks:      gentasksclient.NewClient(tasks.URL(), time.Second),
-		GenworkMCPURL: "http://genwork.test/mcp",
-		ClaimLongPoll: 150 * time.Millisecond,
-		Now:           clock.Now,
+		DB:               db,
+		TokenVerifier:    tokens.NewTokenVerifier(tokens.TokenVerifierConfig{JWKSURL: core.JWKSURL(), Issuer: coretest.Issuer}),
+		EncryptionKey:    testEncryptionKey,
+		Core:             corelink.NewClient(coreAPI.URL(), time.Second),
+		Gentasks:         tasksClient,
+		GenworkMCPURL:    "http://genwork.test/mcp",
+		PublicURL:        testPublicURL,
+		MCPOAuthClient:   mcpservers.NewMcpOAuthHTTPClient(nil),
+		RepositoryTokens: tasksClient,
+		ClaimLongPoll:    150 * time.Millisecond,
+		Now:              clock.Now,
 	})
 	if err != nil {
 		t.Fatalf("new app: %v", err)

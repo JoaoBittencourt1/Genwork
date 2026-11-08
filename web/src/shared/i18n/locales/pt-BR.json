@@ -283,7 +283,15 @@
     "run_not_active": "Não há execução ativa para parar.",
     "run_already_active": "Já há uma execução desse tipo ativa para esta tarefa.",
     "no_open_pull_requests": "Esta tarefa não tem pull request aberto ou em rascunho para revisar.",
-    "gentasks_unavailable": "As tarefas estão indisponíveis agora. Tente de novo."
+    "gentasks_unavailable": "As tarefas estão indisponíveis agora. Tente de novo.",
+    "sign_in_not_found": "Login não encontrado.",
+    "sign_in_not_active": "Este login já terminou. Inicie um novo.",
+    "sign_in_not_awaiting_code": "Este login não está esperando um código.",
+    "sign_in_in_flight": "Já há um login em andamento para esta conta.",
+    "oauth_discovery_failed": "Não foi possível encontrar a configuração OAuth do servidor. Confira a URL.",
+    "oauth_client_id_required": "Este servidor não registra clientes automaticamente. Informe um client id registrado nele.",
+    "oauth_not_connected": "Este servidor não está conectado por OAuth.",
+    "oauth_state_invalid": "Este link de autorização é inválido ou expirou. Conecte de novo."
   },
   "common": {
     "cancel": "Cancelar",
@@ -441,7 +449,7 @@
       "title": "GitHub",
       "intro": "Conecte o GitHub para que os pull requests movam as tarefas: um pull request cujo título ou branch cita a chave de uma tarefa move a tarefa quando é aberto, quando alguém pede review e quando é mergeado numa branch final. Cada quadro escolhe as colunas nas suas configurações.",
       "connectTitle": "Conectar o GitHub",
-      "connectDescription": "O Genwork cria um GitHub App privado para esta instalação, com acesso somente leitura aos pull requests. O GitHub pede sua confirmação e depois você escolhe os repositórios.",
+      "connectDescription": "O Genwork cria um GitHub App privado para esta instalação: ele lê os eventos de pull request para mover as tarefas e dá aos bots tokens de curta duração para enviar branches e abrir pull requests. O GitHub pede sua confirmação e depois você escolhe os repositórios. Para um App criado antes da versão 2.2.0, abra as configurações dele no GitHub, dê acesso de leitura e escrita a Contents e Pull requests e aceite a mudança na instalação.",
       "organization": "Organização no GitHub (opcional)",
       "organizationPlaceholder": "acme",
       "organizationDescription": "Deixe vazio para criar o App na sua conta pessoal. Um App privado só pode ser instalado na conta dona dele, então informe a organização dona dos repositórios.",
@@ -674,7 +682,8 @@
       "github_post_failed": "o GitHub recusou a requisição",
       "account_error": "a conta de IA foi recusada: {{message}}",
       "session_revoked": "a sessão do chat terminou; reabra o chat para continuar",
-      "run_failed": "a execução falhou"
+      "run_failed": "a execução falhou",
+      "github_credentials_missing": "sem credenciais do GitHub: conecte o GitHub App em Tarefas → GitHub e instale-o no repositório, ou defina GH_TOKEN no runner"
     }
   },
   "genagents": {
@@ -689,7 +698,7 @@
     },
     "accounts": {
       "title": "Contas de IA",
-      "description": "Vincule as contas de IA do time, com uma assinatura conectada em um runner ou uma chave de API.",
+      "description": "Vincule as contas de IA do time, com uma assinatura conectada por aqui ou uma chave de API.",
       "termsNote": "Confira os termos do seu provedor antes de compartilhar uma assinatura pessoal com automação; a chave de API é sempre uma opção.",
       "columns": {
         "name": "Nome",
@@ -719,7 +728,30 @@
       "removeModel": "Remover o modelo {{id}}",
       "remove": "Remover {{name}}",
       "removeTitle": "Remover conta?",
-      "removeDescription": "“{{name}}” será desvinculada. O perfil de login dela é apagado do runner."
+      "removeDescription": "“{{name}}” será desvinculada. O perfil de login dela é apagado do runner.",
+      "signIn": {
+        "start": "Entrar com {{provider}}",
+        "again": "Entrar de novo com {{provider}}",
+        "waitingForRunner": "Aguardando {{runner}} iniciar o login…",
+        "openAndPaste": "Abra a página de login, autorize e cole aqui o código que ela mostrar.",
+        "openAndAuthorize": "Abra a página de login e autorize. Esta página se atualiza sozinha quando você terminar.",
+        "open": "Abrir {{host}}",
+        "userCode": "Código para digitar na página",
+        "code": "Código da página de login",
+        "codePlaceholder": "Cole o código exibido depois de autorizar",
+        "submitCode": "Concluir login",
+        "verifying": "Verificando o login…",
+        "cancel": "Cancelar login",
+        "fallback": "Ou entre pelo terminal do runner",
+        "states": {
+          "failed": "O login falhou",
+          "cancelled": "Login cancelado",
+          "expired": "Login expirado: ninguém o concluiu em 10 minutos"
+        },
+        "errors": {
+          "sign_in_expired": "O último login expirou antes de ser concluído. Inicie um novo."
+        }
+      }
     },
     "bots": {
       "title": "Bots",
@@ -811,7 +843,29 @@
       "entryValue": "Valor",
       "keepStored": "Deixe vazio para manter o valor guardado",
       "addEntry": "Adicionar",
-      "removeEntry": "Remover item"
+      "removeEntry": "Remover item",
+      "oauth": {
+        "connect": "Conectar",
+        "reconnect": "Reconectar",
+        "disconnect": "Desconectar",
+        "connected": "O servidor MCP está conectado.",
+        "clientRequired": "Este servidor precisa de um cliente registrado nele. Use esta URL de redirecionamento lá: <URL do seu Genwork>/api/genagents/v1/mcp-servers/oauth/callback",
+        "clientId": "Client id",
+        "clientSecret": "Client secret (opcional)",
+        "states": {
+          "disconnected": "Não conectado",
+          "pending": "Conectando",
+          "connected": "Conectado",
+          "error": "Erro de conexão"
+        },
+        "reasons": {
+          "invalid_state": "O link de autorização era inválido ou expirou. Conecte de novo.",
+          "authorization_denied": "A autorização foi negada ou cancelada.",
+          "token_exchange_failed": "O servidor não aceitou a autorização. Conecte de novo.",
+          "refresh_failed": "A conexão expirou e não pôde ser renovada. Conecte de novo.",
+          "unknown": "A conexão falhou. Conecte de novo."
+        }
+      }
     },
     "runners": {
       "title": "Runners",
@@ -830,7 +884,7 @@
       },
       "warnings": {
         "directoryMode": "Modo diretório: roda sem isolamento. Apenas para desenvolvimento.",
-        "noGithubCredentials": "Sem credenciais do GitHub: não pega execuções de tarefa nem revisões.",
+        "noGithubCredentials": "Sem token do GitHub próprio: execuções de tarefas e revisões usam o GitHub App conectado em Tarefas → GitHub.",
         "customImage": "Imagem de sandbox personalizada."
       },
       "directoryMode": "Modo diretório",

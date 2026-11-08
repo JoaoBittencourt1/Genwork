@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"path/filepath"
+	"regexp"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/api"
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/sandbox"
@@ -59,10 +60,14 @@ func (codexAdapter) Invocation(run api.Run, prompt, sessionID string) Invocation
 	return Invocation{Command: command, Env: environment}
 }
 
-func (codexAdapter) LoginCommand() []string { return []string{"codex", "login"} }
+// codexUserCodePattern matches the one-time code the device flow prints, such as "ABCD-1234".
+var codexUserCodePattern = regexp.MustCompile(`\b[A-Z0-9]{4}-[A-Z0-9]{4,5}\b`)
 
-func (codexAdapter) LoginEnv() map[string]string {
-	return map[string]string{"CODEX_HOME": codexProfileMount}
+// SignIn is Codex's device code login: the person opens OpenAI's device page and enters the code; the CLI polls.
+func (codexAdapter) SignIn() *SignInSpec {
+	return &SignInSpec{
+		Command: []string{"codex", "login", "--device-auth"}, Env: map[string]string{"CODEX_HOME": codexProfileMount}, UserCodePattern: codexUserCodePattern,
+	}
 }
 
 func (codexAdapter) NewParser(secrets []string) Parser { return newCodexParser(secrets...) }

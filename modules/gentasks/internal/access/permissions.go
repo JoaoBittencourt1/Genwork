@@ -7,6 +7,8 @@ const (
 	PermissionTaskWrite    = "gentasks.task.write"
 	PermissionTaskDelete   = "gentasks.task.delete"
 	PermissionGithubManage = "gentasks.github.manage"
+	// PermissionRepositoryWrite lets a bot member get a GitHub token for the repositories bots work in; people never do.
+	PermissionRepositoryWrite = "gentasks.repository.write"
 )
 
-var Permissions = []string{PermissionBoardRead, PermissionBoardManage, PermissionTaskWrite, PermissionTaskDelete, PermissionGithubManage}
+var Permissions = []string{PermissionBoardRead, PermissionBoardManage, PermissionTaskWrite, PermissionTaskDelete, PermissionGithubManage, PermissionRepositoryWrite}

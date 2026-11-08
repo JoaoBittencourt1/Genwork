@@ -22,6 +22,7 @@ type RunAPI interface {
 	ListMessages(ctx context.Context, runToken string) ([]api.Message, error)
 	AcknowledgeMessages(ctx context.Context, runToken string, upToSequence int64) error
 	GenworkToken(ctx context.Context, runToken string) (api.GenworkToken, error)
+	GithubToken(ctx context.Context, runToken string) (api.GithubToken, error)
 }
 
 // poster sends a run's events in order, each with the next sequence number, and retries a failed post with the same

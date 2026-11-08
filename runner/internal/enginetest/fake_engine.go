@@ -40,6 +40,16 @@ type FakeEngine struct {
 	Calls []string
 	// Leftovers are containers a previous runner left behind, listed by run token.
 	Leftovers map[string]string
+	// SignInLeftovers are sign-in containers a previous runner left behind, listed by sign-in token.
+	SignInLeftovers map[string]string
+	// TerminalOutput is what an attached container prints at once; after it reads a line ending in a carriage return,
+	// it prints TerminalReply and exits. TerminalInput records what was typed.
+	TerminalOutput string
+	TerminalReply  string
+	TerminalInput  string
+	// Resizes records each "WxH" a container's terminal was resized to.
+	Resizes  []string
+	attached chan struct{}
 }
 
 func NewFakeEngine(t testing.TB) *FakeEngine {
@@ -49,7 +59,10 @@ func NewFakeEngine(t testing.TB) *FakeEngine {
 		t.Fatalf("create the socket directory: %v", err)
 	}
 	t.Cleanup(func() { os.RemoveAll(directory) })
-	engine := &FakeEngine{socket: filepath.Join(directory, "engine.sock"), containers: map[string]*Container{}, HasImage: true, Leftovers: map[string]string{}}
+	engine := &FakeEngine{
+		socket: filepath.Join(directory, "engine.sock"), containers: map[string]*Container{}, HasImage: true, Leftovers: map[string]string{},
+		SignInLeftovers: map[string]string{}, attached: make(chan struct{}),
+	}
 	listener, err := net.Listen("unix", engine.socket)
 	if err != nil {
 		t.Fatalf("listen on the engine socket: %v", err)
@@ -112,7 +125,7 @@ func (engine *FakeEngine) serve(w http.ResponseWriter, r *http.Request) {
 	case r.Method == "POST" && path == "/containers/create":
 		engine.createContainer(w, r)
 	case r.Method == "GET" && path == "/containers/json":
-		engine.listContainers(w)
+		engine.listContainers(w, r)
 	case strings.HasPrefix(path, "/containers/"):
 		engine.serveContainer(w, r)
 	default:
@@ -145,12 +158,24 @@ func (engine *FakeEngine) createContainer(w http.ResponseWriter, r *http.Request
 	write(w, http.StatusCreated, map[string]any{"Id": id})
 }
 
-func (engine *FakeEngine) listContainers(w http.ResponseWriter) {
+// listContainers honours the label filter, as the engine does.
+func (engine *FakeEngine) listContainers(w http.ResponseWriter, r *http.Request) {
+	var filters map[string][]string
+	_ = json.Unmarshal([]byte(r.URL.Query().Get("filters")), &filters)
+	wanted := map[string]bool{}
+	for _, label := range filters["label"] {
+		wanted[label] = true
+	}
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
 	listed := []map[string]any{}
-	for runToken, id := range engine.Leftovers {
-		listed = append(listed, map[string]any{"Id": id, "Labels": map[string]string{"genwork.run": runToken}})
+	for label, containers := range map[string]map[string]string{"genwork.run": engine.Leftovers, "genwork.signin": engine.SignInLeftovers} {
+		if len(wanted) > 0 && !wanted[label] {
+			continue
+		}
+		for token, id := range containers {
+			listed = append(listed, map[string]any{"Id": id, "Labels": map[string]string{label: token}})
+		}
 	}
 	write(w, http.StatusOK, listed)
 }
@@ -171,11 +196,24 @@ func (engine *FakeEngine) serveContainer(w http.ResponseWriter, r *http.Request)
 		write(w, http.StatusNotFound, map[string]any{"message": "no such container"})
 		return
 	}
+	if len(segments) == 2 && segments[1] == "attach" {
+		engine.mutex.Unlock()
+		engine.attach(w)
+		return
+	}
+	if len(segments) == 2 && segments[1] == "wait" && engine.TerminalOutput != "" {
+		engine.mutex.Unlock()
+		<-engine.attached
+		engine.mutex.Lock()
+	}
 	defer engine.mutex.Unlock()
 	switch {
 	case r.Method == "DELETE":
 		container.Removed = true
 		w.WriteHeader(http.StatusNoContent)
+	case len(segments) == 2 && segments[1] == "resize":
+		engine.Resizes = append(engine.Resizes, r.URL.Query().Get("w")+"x"+r.URL.Query().Get("h"))
+		w.WriteHeader(http.StatusOK)
 	case len(segments) == 2 && segments[1] == "start":
 		container.Started = true
 		w.WriteHeader(http.StatusNoContent)
@@ -195,9 +233,11 @@ func (engine *FakeEngine) serveContainer(w http.ResponseWriter, r *http.Request)
 }
 
 func (engine *FakeEngine) leftoverID(id string) (string, bool) {
-	for runToken, leftover := range engine.Leftovers {
-		if leftover == id {
-			return runToken, true
+	for _, containers := range []map[string]string{engine.Leftovers, engine.SignInLeftovers} {
+		for token, leftover := range containers {
+			if leftover == id {
+				return token, true
+			}
 		}
 	}
 	return "", false
@@ -206,9 +246,46 @@ func (engine *FakeEngine) leftoverID(id string) (string, bool) {
 func (engine *FakeEngine) removeLeftover(id string) {
 	engine.mutex.Lock()
 	defer engine.mutex.Unlock()
-	for runToken, leftover := range engine.Leftovers {
-		if leftover == id {
-			delete(engine.Leftovers, runToken)
+	for _, containers := range []map[string]string{engine.Leftovers, engine.SignInLeftovers} {
+		for token, leftover := range containers {
+			if leftover == id {
+				delete(containers, token)
+			}
 		}
 	}
+}
+
+// attach upgrades to the raw terminal stream the way the engine does, plays TerminalOutput, reads one line, answers
+// with TerminalReply, and ends the container.
+func (engine *FakeEngine) attach(w http.ResponseWriter) {
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		write(w, http.StatusInternalServerError, map[string]any{"message": "no hijack"})
+		return
+	}
+	connection, buffered, err := hijacker.Hijack()
+	if err != nil {
+		return
+	}
+	defer connection.Close()
+	defer close(engine.attached)
+	_, _ = buffered.WriteString("HTTP/1.1 101 UPGRADED\r\nContent-Type: application/vnd.docker.raw-stream\r\nConnection: Upgrade\r\nUpgrade: tcp\r\n\r\n")
+	_, _ = buffered.WriteString(engine.TerminalOutput)
+	_ = buffered.Flush()
+	typed, err := buffered.ReadString('\r')
+	engine.mutex.Lock()
+	engine.TerminalInput = typed
+	engine.mutex.Unlock()
+	if err != nil {
+		return
+	}
+	_, _ = buffered.WriteString(engine.TerminalReply)
+	_ = buffered.Flush()
+}
+
+// Typed returns what was typed into the attached terminal.
+func (engine *FakeEngine) Typed() string {
+	engine.mutex.Lock()
+	defer engine.mutex.Unlock()
+	return engine.TerminalInput
 }

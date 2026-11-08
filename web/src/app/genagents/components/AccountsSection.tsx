@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CopyableValue } from '@/shared/components/CopyableValue'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog'
 import { ErrorAlert } from '@/shared/components/ErrorAlert'
 import { useErrorMessage } from '@/shared/hooks/useErrorMessage'
@@ -24,15 +23,22 @@ import {
   removeCustomModel,
   updateAccount,
 } from '../datasource/genagentsDatasource'
-import { accountSignInHint, firstSupportedMode, supportsMode } from '../domain/providers'
+import { firstSupportedMode, supportsMode } from '../domain/providers'
+import { shouldPollAccounts, SIGN_IN_POLL_MS, signInErrorKey, supportsWebSignIn } from '../domain/signIns'
 import { runnersWithTool } from '../domain/runners'
 import { ACCOUNT_MODES, PROVIDERS, type Account, type AccountMode, type NewAccount, type Provider } from '../domain/types'
+import { AccountSignInPanel } from './AccountSignInPanel'
 import { genagentsQueryKeys } from './queryKeys'
 
 export function AccountsSection({ canManage }: { canManage: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const accounts = useQuery({ queryKey: genagentsQueryKeys.accounts, queryFn: listAccounts, enabled: canManage })
+  const accounts = useQuery({
+    queryKey: genagentsQueryKeys.accounts,
+    queryFn: listAccounts,
+    enabled: canManage,
+    refetchInterval: (query) => (shouldPollAccounts(query.state.data) ? SIGN_IN_POLL_MS : false),
+  })
   const [creating, setCreating] = useState(false)
   const [removing, setRemoving] = useState<Account | null>(null)
   const [editingModels, setEditingModels] = useState<Account | null>(null)
@@ -72,7 +78,7 @@ export function AccountsSection({ canManage }: { canManage: boolean }) {
                 </TableCell>
                 <TableCell>
                   <AccountStatusBadge account={account} />
-                  {accountSignInHint(account) ? <CopyableValue value={accountSignInHint(account) ?? ''} label={t('genagents.accounts.signInCommand')} /> : null}
+                  {canManage && supportsWebSignIn(account) ? <AccountSignInPanel account={account} onChanged={refresh} /> : null}
                 </TableCell>
                 <TableCell className="text-right">
                   {canManage ? (
@@ -118,10 +124,11 @@ export function AccountsSection({ canManage }: { canManage: boolean }) {
 
 function AccountStatusBadge({ account }: { account: Account }) {
   const { t } = useTranslation()
+  const lastErrorKey = signInErrorKey(account.lastError)
   return (
     <div className="flex flex-col gap-1">
       <Badge variant={account.status === 'ready' ? 'secondary' : account.status === 'error' ? 'destructive' : 'outline'}>{t(`genagents.accounts.statuses.${account.status}`)}</Badge>
-      {account.lastError ? <span className="text-xs text-destructive">{account.lastError}</span> : null}
+      {account.lastError ? <span className="text-xs text-destructive">{lastErrorKey ? t(lastErrorKey) : account.lastError}</span> : null}
     </div>
   )
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/app"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/corelink"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/gentasksclient"
+	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/mcpservers"
 	"github.com/JoaoBittencourt1/Genwork/modules/genagents/internal/platform"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/manifest"
 	"github.com/JoaoBittencourt1/Genwork/sdk/go/registration"
@@ -34,16 +35,20 @@ func RunServe(ctx context.Context, getenv platform.Getenv, schema string) error 
 	}
 	defer db.Close()
 
+	gentasksClient := gentasksclient.NewClient(config.GatewayInternalURL, gentasksclient.DefaultTimeout)
 	dependencies := app.Dependencies{
 		DB: db,
 		TokenVerifier: tokens.NewTokenVerifier(tokens.TokenVerifierConfig{
 			JWKSURL: config.CoreInternalURL + "/api/core/v1/auth/jwks", Issuer: config.PublicURL,
 		}),
-		EncryptionKey: config.EncryptionKey,
-		Core:          corelink.NewClient(config.CoreInternalURL, corelink.DefaultTimeout),
-		Gentasks:      gentasksclient.NewClient(config.GatewayInternalURL, gentasksclient.DefaultTimeout),
-		GenworkMCPURL: config.PublicURL + "/mcp",
-		Now:           time.Now,
+		EncryptionKey:    config.EncryptionKey,
+		Core:             corelink.NewClient(config.CoreInternalURL, corelink.DefaultTimeout),
+		Gentasks:         gentasksClient,
+		RepositoryTokens: gentasksClient,
+		GenworkMCPURL:    config.PublicURL + "/mcp",
+		PublicURL:        config.PublicURL,
+		MCPOAuthClient:   mcpservers.NewMcpOAuthHTTPClient(nil),
+		Now:              time.Now,
 	}
 	handler, err := app.New(dependencies)
 	if err != nil {

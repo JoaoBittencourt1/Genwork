@@ -54,10 +54,10 @@ func (cursorAdapter) Invocation(run api.Run, prompt, sessionID string) Invocatio
 	return invocation
 }
 
-func (cursorAdapter) LoginCommand() []string { return []string{"cursor-agent", "login"} }
-
-func (cursorAdapter) LoginEnv() map[string]string {
-	return map[string]string{"HOME": cursorProfileMount}
+// SignIn is the Cursor agent's browser login: it prints the URL instead of opening a browser and polls until the person
+// authorizes.
+func (cursorAdapter) SignIn() *SignInSpec {
+	return &SignInSpec{Command: []string{"cursor-agent", "login"}, Env: map[string]string{"HOME": cursorProfileMount, "NO_OPEN_BROWSER": "1"}}
 }
 
 func (cursorAdapter) NewParser(secrets []string) Parser { return newStreamParser(secrets...) }

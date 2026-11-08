@@ -15,6 +15,8 @@ const (
 	HomeMount = "/home/sandbox"
 	// RunLabel marks every container with the run it belongs to, so leftovers can be found after a crash.
 	RunLabel = "genwork.run"
+	// SignInLabel marks a sign-in container, so cleanup removes it without reporting a lost run.
+	SignInLabel = "genwork.signin"
 )
 
 var ErrNoEngine = errors.New("no container engine is reachable: start Docker or Podman, or start the runner with --directory-mode for development without isolation")
@@ -35,13 +37,15 @@ type Profile struct {
 // Spec is one sandboxed invocation. It carries no engine socket, no runner secret, and no GitHub credentials: only what
 // the CLI needs to work in the workspace.
 type Spec struct {
-	RunToken  string
-	Image     string
-	Workspace string
-	Profile   *Profile
-	Env       map[string]string
-	Command   []string
-	Limits    Limits
+	RunToken string
+	// SignInToken is set instead of RunToken for an account sign-in.
+	SignInToken string
+	Image       string
+	Workspace   string
+	Profile     *Profile
+	Env         map[string]string
+	Command     []string
+	Limits      Limits
 }
 
 // Result tells how the sandboxed process ended.
@@ -67,4 +71,19 @@ type Launcher interface {
 	// RemoveLeftovers removes every sandbox of a run not in keep and returns those run tokens.
 	RemoveLeftovers(ctx context.Context, keep map[string]bool) ([]string, error)
 	Describe(ctx context.Context, image string) (Info, error)
+}
+
+// InteractiveSession is a sandboxed process the runner talks to: what its terminal prints and what it types into it.
+type InteractiveSession interface {
+	Output() io.Reader
+	Input() io.Writer
+	// Wait blocks until the process ends.
+	Wait() (Result, error)
+	// Close kills the process if it still runs and removes what it left.
+	Close() error
+}
+
+// InteractiveLauncher starts a process with a terminal, for CLI sign-ins that print a URL and read a code.
+type InteractiveLauncher interface {
+	StartInteractive(ctx context.Context, spec Spec) (InteractiveSession, error)
 }
