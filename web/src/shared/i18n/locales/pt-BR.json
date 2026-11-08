@@ -664,6 +664,7 @@
       "run_succeeded": "Concluída.",
       "run_cancelled": "Cancelada ({{causeText}}).",
       "run_failed": "Falhou: {{reasonText}}",
+      "run_failed_with_message": "Falhou: {{reasonText}}. {{message}}",
       "only_dev_bots_work_tasks": "{{bot}} não é um bot dev, então não trabalha em {{taskKey}}."
     },
     "cause": {

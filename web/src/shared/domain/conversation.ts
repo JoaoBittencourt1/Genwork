@@ -67,15 +67,24 @@ export function isValidMessage(text: string): boolean {
 }
 
 // entryMessageKey names the localized text of a status or error entry; an unknown code falls back to a generic key.
+// REASONS_WITH_MESSAGE already show the failure's message in their own text, so it is not repeated after them.
+const REASONS_WITH_MESSAGE = ['account_error']
+
+// entryMessageKey picks the text of a status or error entry. A failure the runner reported carries a reason and its own
+// message instead of a code, and shows both.
 export function entryMessageKey(entry: ConversationEntry): string {
   const code = typeof entry.payload.code === 'string' ? entry.payload.code : null
-  if (code === null) return 'conversation.entry.unknown'
-  return `conversation.entry.${code}`
+  if (code !== null) return `conversation.entry.${code}`
+  const reason = typeof entry.payload.reason === 'string' ? entry.payload.reason : null
+  if (entry.type !== 'error' || reason === null) return 'conversation.entry.unknown'
+  const hasMessage = typeof entry.payload.message === 'string' && entry.payload.message !== ''
+  return hasMessage && !REASONS_WITH_MESSAGE.includes(reason) ? 'conversation.entry.run_failed_with_message' : 'conversation.entry.run_failed'
 }
 
 export function entryParams(entry: ConversationEntry): Record<string, unknown> {
   const params = entry.payload.params
-  const base = params && typeof params === 'object' ? (params as Record<string, unknown>) : {}
+  const base: Record<string, unknown> = params && typeof params === 'object' ? { ...(params as Record<string, unknown>) } : {}
+  if (typeof entry.payload.message === 'string' && base.message === undefined) base.message = entry.payload.message
   return typeof entry.payload.reason === 'string' ? { ...base, reason: entry.payload.reason } : base
 }
 

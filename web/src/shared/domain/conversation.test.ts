@@ -77,6 +77,18 @@ describe('entry text', () => {
     expect(entryParams(entry(3, { code: 'run_queued' }))).toEqual({})
   })
 
+  it('shows the reason and the message of a failure the runner reported', () => {
+    const error = (payload: Record<string, unknown>): ConversationEntry => ({ ...entry(4, payload), type: 'error' })
+    const posted = error({ reason: 'github_post_failed', message: 'github answered 422: Unprocessable Entity: Line could not be resolved' })
+
+    expect(entryMessageKey(posted)).toBe('conversation.entry.run_failed_with_message')
+    expect(entryParams(posted)).toEqual({ reason: 'github_post_failed', message: 'github answered 422: Unprocessable Entity: Line could not be resolved' })
+    expect(entryMessageKey(error({ reason: 'timeout' }))).toBe('conversation.entry.run_failed')
+    expect(entryMessageKey(error({ reason: 'account_error', message: 'invalid key' }))).toBe('conversation.entry.run_failed')
+    expect(entryMessageKey(error({ message: 'no reason' }))).toBe('conversation.entry.unknown')
+    expect(entryMessageKey(entry(5, { reason: 'timeout', message: 'status entries keep their code' }))).toBe('conversation.entry.unknown')
+  })
+
   it('reads the text of a message', () => {
     expect(entryText(entry(1, { text: 'hi' }))).toBe('hi')
     expect(entryText(entry(2))).toBe('')

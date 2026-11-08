@@ -30,6 +30,14 @@ type fakeGithub struct {
 	FailPR       bool
 	// Tokens lists the run tokens the executor switched to, in order.
 	Tokens []string
+	// Commentable is the diff's commentable lines per file; nil answers nil, as when the diff could not be read.
+	Commentable map[string]map[int]bool
+	// RejectInline makes GitHub refuse any review with inline comments, as it does for a line outside the diff.
+	RejectInline bool
+}
+
+func (github *fakeGithub) CommentableLines(context.Context, string, int) (map[string]map[int]bool, error) {
+	return github.Commentable, nil
 }
 
 func (github *fakeGithub) WithToken(token string) execution.GithubPoster {
@@ -56,6 +64,9 @@ func (github *fakeGithub) CreateReview(_ context.Context, repository string, num
 	defer github.mutex.Unlock()
 	if github.FailReview {
 		return "", fmt.Errorf("github refused the review")
+	}
+	if github.RejectInline && len(comments) > 0 {
+		return "", fmt.Errorf("%w: github answered 422: Unprocessable Entity: Line could not be resolved", execution.ErrReviewContentRejected)
 	}
 	github.Reviews = append(github.Reviews, map[string]any{"repository": repository, "number": number, "summary": summary, "comments": comments})
 	return fmt.Sprintf("https://github.com/%s/pull/%d#review", repository, number), nil

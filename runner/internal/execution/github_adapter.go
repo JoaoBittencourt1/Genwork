@@ -2,6 +2,9 @@ package execution
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"net/http"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/github"
 )
@@ -34,5 +37,13 @@ func (adapter GithubAdapter) CreateReview(ctx context.Context, repository string
 		converted = append(converted, github.ReviewComment{Path: comment.Path, Line: comment.Line, Body: comment.Body})
 	}
 	review, err := adapter.client.CreateReview(ctx, repository, number, summary, converted)
+	var apiErr *github.APIError
+	if errors.As(err, &apiErr) && apiErr.Status == http.StatusUnprocessableEntity {
+		return "", fmt.Errorf("%w: %v", ErrReviewContentRejected, err)
+	}
 	return review.URL, err
+}
+
+func (adapter GithubAdapter) CommentableLines(ctx context.Context, repository string, number int) (map[string]map[int]bool, error) {
+	return adapter.client.CommentableLines(ctx, repository, number)
 }

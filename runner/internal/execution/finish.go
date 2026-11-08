@@ -2,8 +2,8 @@ package execution
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/JoaoBittencourt1/Genwork/runner/internal/adapters"
@@ -14,8 +14,7 @@ import (
 func (current *execution) finish(ctx context.Context, outcome adapters.Outcome, session string) (string, bool) {
 	switch current.run.Kind {
 	case "review":
-		current.finishReview(ctx, outcome, session)
-		return "", true
+		return current.finishReview(ctx, outcome, session)
 	case "task":
 		return current.finishTask(ctx, outcome, session)
 	}
@@ -81,30 +80,39 @@ func (current *execution) waitForReply(ctx context.Context, session string) (str
 	}
 }
 
-// finishReview validates the reviewer's findings, then posts one GitHub review per pull request. When GitHub refuses, the
-// full review text goes to the conversation and the run fails with github_post_failed.
-func (current *execution) finishReview(ctx context.Context, outcome adapters.Outcome, session string) {
+// ErrReviewContentRejected is GitHub refusing a review's content (422), typically a comment on a line outside the diff.
+var ErrReviewContentRejected = errors.New("github refused the review content")
+
+// reviewResendPrompt asks the model, once, for the review JSON again when its answer could not be read.
+const reviewResendPrompt = "Your review could not be read: %s. Reply with only the corrected JSON object " +
+	`{"pullRequests": [{"repository", "number", "summary", "findings": [{"path", "line", "severity", "message"}]}]}` +
+	", valid and complete, with nothing before or after it."
+
+// finishReview validates the reviewer's findings, then posts one GitHub review per pull request. An unreadable answer
+// gets one resend request; when GitHub still refuses, the full review text goes to the conversation and the run fails
+// with github_post_failed.
+func (current *execution) finishReview(ctx context.Context, outcome adapters.Outcome, session string) (string, bool) {
 	expected := map[string]bool{}
 	for _, pullRequest := range current.run.PullRequests {
 		expected[PullRequestKey(pullRequest.Repository, pullRequest.Number)] = true
 	}
 	reviews, err := ParseReview(outcome.FinalText, expected)
+	if err != nil && !current.reviewRetried {
+		current.reviewRetried = true
+		return fmt.Sprintf(reviewResendPrompt, err.Error()), false
+	}
 	if err != nil {
 		current.fail(ctx, reasonAdapterError, "the review could not be read: "+err.Error(), nil)
-		return
+		return "", true
 	}
 	posted := make([]map[string]any, 0, len(reviews))
 	total := 0
 	for _, review := range reviews {
-		comments := make([]ReviewComment, 0, len(review.Findings))
-		for _, finding := range review.Findings {
-			comments = append(comments, ReviewComment{Path: finding.Path, Line: finding.Line, Body: fmt.Sprintf("**%s**: %s", strings.ToUpper(finding.Severity), finding.Message)})
-		}
-		url, err := current.githubPoster().CreateReview(ctx, review.Repository, review.Number, review.Summary, comments)
+		url, err := current.postReview(ctx, review)
 		if err != nil {
 			current.poster.Post(ctx, adapters.EventAssistantMessage, map[string]any{"text": adapters.Redact(RenderReview(reviews), current.secrets...)})
 			current.fail(ctx, reasonGithubPostFailed, err.Error(), nil)
-			return
+			return "", true
 		}
 		total += len(review.Findings)
 		posted = append(posted, map[string]any{"repository": review.Repository, "number": review.Number, "findings": len(review.Findings), "url": url})
@@ -112,4 +120,20 @@ func (current *execution) finishReview(ctx context.Context, outcome adapters.Out
 	current.poster.Post(ctx, adapters.EventResult, map[string]any{
 		"summary": fmt.Sprintf("%d findings", total), "sessionId": session, "findings": total, "reviews": posted,
 	})
+	return "", true
+}
+
+// postReview comments inline on the findings GitHub accepts there, the lines in the diff, and lists the rest in the
+// review body; when GitHub still refuses the inline comments, it posts every finding in the body.
+func (current *execution) postReview(ctx context.Context, review PullRequestReview) (string, error) {
+	commentable, err := current.githubPoster().CommentableLines(ctx, review.Repository, review.Number)
+	if err != nil {
+		commentable = nil
+	}
+	inline, outside := SplitFindingsByDiff(review.Findings, commentable)
+	url, err := current.githubPoster().CreateReview(ctx, review.Repository, review.Number, ReviewBody(review.Summary, outside), ReviewComments(inline))
+	if errors.Is(err, ErrReviewContentRejected) && len(inline) > 0 {
+		return current.githubPoster().CreateReview(ctx, review.Repository, review.Number, ReviewBody(review.Summary, review.Findings), nil)
+	}
+	return url, err
 }
