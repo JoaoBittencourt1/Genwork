@@ -22,8 +22,9 @@ const (
 // a read-only root file system with a temporary home and /tmp, resource limits, outbound-only networking, and only the
 // run's workspace and its own account profile mounted.
 type ContainerSandbox struct {
-	engine *engineClient
-	mutex  sync.Mutex
+	engine   *engineClient
+	capacity engineCapacity
+	mutex    sync.Mutex
 	// containers maps a run token to the container id it currently runs in.
 	containers map[string]string
 }
@@ -107,6 +108,7 @@ func (sandbox *ContainerSandbox) Run(ctx context.Context, spec Spec, output io.W
 	if err := sandbox.ensureImage(ctx, spec.Image); err != nil {
 		return Result{}, err
 	}
+	spec = sandbox.fitLimits(ctx, spec)
 	var created struct {
 		ID string `json:"Id"`
 	}

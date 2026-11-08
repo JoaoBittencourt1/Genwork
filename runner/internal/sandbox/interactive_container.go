@@ -22,7 +22,7 @@ func (sandbox *ContainerSandbox) StartInteractive(ctx context.Context, spec Spec
 	if err := sandbox.ensureImage(ctx, spec.Image); err != nil {
 		return nil, err
 	}
-	request := BuildContainerRequest(spec)
+	request := BuildContainerRequest(sandbox.fitLimits(ctx, spec))
 	request.OpenStdin, request.StdinOnce, request.AttachStdin = true, true, true
 	var created struct {
 		ID string `json:"Id"`

@@ -70,6 +70,9 @@ func (session *signInSession) start(ctx context.Context) (sandbox.InteractiveSes
 	if err := os.MkdirAll(profileDir, 0o700); err != nil {
 		return nil, "", fmt.Errorf("create the account profile: %w", err)
 	}
+	if err := os.MkdirAll(session.loop.settings.ScratchDir, 0o700); err != nil {
+		return nil, "", fmt.Errorf("create the sign-in directory: %w", err)
+	}
 	scratch, err := os.MkdirTemp(session.loop.settings.ScratchDir, "signin-")
 	if err != nil {
 		return nil, "", fmt.Errorf("create the sign-in directory: %w", err)

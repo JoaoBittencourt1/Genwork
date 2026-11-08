@@ -252,3 +252,14 @@ func waitFor(t *testing.T, condition func() bool) {
 	}
 	t.Fatal("condition never held")
 }
+
+// A runner that never executed a run has no workspaces directory yet; the sign-in creates it.
+func TestASignInWorksOnARunnerThatNeverRan(t *testing.T) {
+	scratch := filepath.Join(t.TempDir(), "never-created", "runs")
+	h := newHarness(t, claudeLogin, func(settings *signin.Settings) { settings.ScratchDir = scratch })
+	h.fake.SetSignIns(signInOf("si-10", "anthropic", "requested"))
+
+	h.poll()
+
+	h.waitForReport("si-10", "awaiting_user")
+}

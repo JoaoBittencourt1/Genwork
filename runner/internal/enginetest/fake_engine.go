@@ -47,6 +47,9 @@ type FakeEngine struct {
 	TerminalOutput string
 	TerminalReply  string
 	TerminalInput  string
+	// EngineCPUs and EngineMemory are what /info reports; zero CPUs makes /info answer 404, as an engine that does not say.
+	EngineCPUs   int
+	EngineMemory int64
 	// Resizes records each "WxH" a container's terminal was resized to.
 	Resizes  []string
 	attached chan struct{}
@@ -112,6 +115,8 @@ func (engine *FakeEngine) serve(w http.ResponseWriter, r *http.Request) {
 	engine.mutex.Unlock()
 	path := r.URL.Path
 	switch {
+	case r.Method == "GET" && path == "/info" && engine.EngineCPUs > 0:
+		write(w, http.StatusOK, map[string]any{"NCPU": engine.EngineCPUs, "MemTotal": engine.EngineMemory})
 	case r.Method == "GET" && path == "/version":
 		write(w, http.StatusOK, map[string]any{"Platform": map[string]any{"Name": "Docker Engine - Community"}, "Version": "27.0.1"})
 	case r.Method == "GET" && strings.HasPrefix(path, "/images/") && strings.HasSuffix(path, "/json"):
